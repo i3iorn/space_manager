@@ -70,6 +70,12 @@ pub struct App {
     notice: Option<String>,
     selected: usize,
     report: Option<MonthReport>,
+    /// The confirmation before the game quits.
+    ///
+    /// **The campaign is not saved**, so leaving is not a thing to do by
+    /// accident. The confirmation is a modal over the screen behind it, and
+    /// the safe answer is the one that starts selected.
+    confirm: Option<crate::confirm::Confirmation>,
 }
 
 impl App {
@@ -94,6 +100,7 @@ impl App {
             notice: None,
             selected: 0,
             report: None,
+            confirm: None,
         }
     }
 
@@ -215,7 +222,14 @@ impl App {
             return Action::None;
         }
 
-        // **Ctrl+C always quits, whatever is on the screen.**
+        // **The confirmation is a modal over everything**, so it takes the
+        // keys before any of the other modals do. It is drawn last, and a
+        // dialog that is drawn last and read first is a dialog that works.
+        if self.confirm.is_some() {
+            return self.confirm_key(key);
+        }
+
+        // **Ctrl+C always reaches the confirmation, whatever is on the screen.**
         //
         // Every modal takes the keys while it is open — the report, the
         // manual, the filter, the order palette — and each of them would
@@ -227,7 +241,7 @@ impl App {
         // This is checked before everything else for that reason, and the
         // same key is handled globally in `input.rs`, so the two agree.
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-            self.should_quit = true;
+            self.open_confirmation();
             return Action::Quit;
         }
 
@@ -304,7 +318,7 @@ impl App {
                 self.screen = self.screen.previous();
                 self.selected = 0;
             }
-            Action::Quit => self.should_quit = true,
+            Action::Quit => self.open_confirmation(),
             Action::Help => self.show_help = true,
             Action::OpenManual => self.open_manual(None),
             Action::OpenInfo => self.open_manual(Some(self.screen)),
@@ -622,6 +636,53 @@ impl App {
         self.palette = Some(palette);
     }
 
+    /// Opens the confirmation before the game quits.
+    ///
+    /// **The campaign is not saved, so leaving is not a thing to do by
+    /// accident.** The confirmation is a modal over the screen behind it, so
+    /// the player can see the agency they are about to leave while they are
+    /// asked about it.
+    fn open_confirmation(&mut self) {
+        if self.confirm.is_none() {
+            self.confirm = Some(crate::confirm::Confirmation::new());
+        }
+    }
+
+    /// The keys of the confirmation.
+    ///
+    /// **Ctrl+C leaves at once.** The player has been asked already, so a
+    /// second press is a decision rather than a mistake. Everything else is
+    /// explicit: the arrows move the selection, Enter chooses, and Esc stays.
+    fn confirm_key(&mut self, key: KeyEvent) -> Action {
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+            self.confirm = None;
+            self.should_quit = true;
+            return Action::Quit;
+        }
+        let action = action_for(key, self.screen);
+        match action {
+            Action::Up | Action::Down | Action::Left | Action::Right => {
+                if let Some(confirmation) = self.confirm.as_mut() {
+                    confirmation.move_selection();
+                }
+            }
+            Action::Accept => {
+                let quitting = self
+                    .confirm
+                    .is_some_and(|confirmation| confirmation.is_quit());
+                self.confirm = None;
+                if quitting {
+                    self.should_quit = true;
+                    return Action::Quit;
+                }
+            }
+            Action::Back => {
+                self.confirm = None;
+            }
+            _ => {}
+        }
+        action
+    }
     /// Issues an order, and reports a refusal.
     /// Gives an order.
     ///
@@ -660,6 +721,13 @@ impl App {
     /// between two campaigns at different instants says nothing.
     pub fn advance(&mut self, delta: Duration) {
         if delta.is_zero() {
+            return;
+        }
+        // **The world waits while the player decides.** The dialog is a
+        // question about whether to keep playing, and the campaign moving on
+        // underneath it would be the game changing the subject. The real time
+        // is still consumed, so there is no backlog when the player returns.
+        if self.confirm.is_some() {
             return;
         }
         // **The target is measured from the campaign's effective time**, not
@@ -754,6 +822,12 @@ impl App {
         // month report.
         if self.show_help {
             screens::keymap::render(frame, frame.area());
+        }
+
+        // **And the confirmation is over everything**, because it is the last
+        // question the game asks.
+        if let Some(confirmation) = &self.confirm {
+            crate::confirm::render(frame, frame.area(), confirmation);
         }
 
         // **And the manual is over the keymap**, because the manual is the

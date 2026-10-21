@@ -31,6 +31,7 @@
 
 pub mod app;
 pub mod clock;
+pub mod confirm;
 pub mod input;
 pub mod list_control;
 pub mod manual;

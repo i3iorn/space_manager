@@ -186,7 +186,7 @@ pub const TOPICS: &[Topic] = &[
          The keys that are not in the ledger are `/` to filter a list, `s` to change how it \
          is sorted, and the left and right arrows, which change the selected person's \
          shift on the staff screen.\n\n\
-         **`Ctrl+C` always quits, whatever is on the screen.** The report, the manual, \
+         **`Ctrl+C` always reaches the confirmation, whatever is on the screen.** The report, the manual, \
          the filter, and the order palette each take the keys while they are open, and a \
          player who presses the key that means *stop* in one of them and finds the game \
          still running has to work out how to leave. It is handled before everything else, \
@@ -224,6 +224,31 @@ pub const TOPICS: &[Topic] = &[
          disappears without a word is indistinguishable from a game that decided to \
          stop, and the player has to be able to tell the difference.\n\n\
          **`Ctrl+C` is the way out, and it always works.** A game that will not let a \
-         player leave is a game that feels broken."
+         player leave is a game that feels broken. It opens the same confirmation the q key does, and a second press leaves at once."
+    ),
+    topic!(
+        "interface.quitting",
+        Section::Interface,
+        "Leaving the game",
+        "The game asks before it quits, because the campaign is not saved.",
+        "**Pressing `q` does not quit the game; it asks whether to.** The dialog is a \
+         modal over the screen behind it, so the player can see the agency they are about \
+         to leave while they are asked about it.\n\n\
+         The dialog says what is true: *the campaign is not saved, and quitting ends it*. \
+         That is the whole reason it is there. A player who has spent an evening on a \
+         campaign should not lose it to a stray key, and the keys that quit the game are \
+         two of the most-used keys on the keyboard.\n\n\
+         | Key | What it does |\n|---|---|\n\
+         | `Left` `Right` `Up` `Down` | Move between **Keep playing** and **Quit** |\n\
+         | `Enter` | Choose the highlighted answer |\n\
+         | `Esc` | Stay in the campaign |\n\
+         | `Ctrl+C` | Leave at once, without asking again |\n\n\
+         **The safe answer is the one that starts selected.** A player who opens the \
+         dialog and presses Enter without reading it has not quit, and that is the mistake \
+         the dialog exists to catch. The selection is shown in reverse video with a \
+         marker beside it, so it is findable on a monochrome terminal too.\n\n\
+         **And the world waits while the player decides.** The campaign does not advance \
+         underneath the dialog, so the question costs no time - but the real time is still \
+         consumed, so there is no backlog when the player carries on."
     ),
 ];

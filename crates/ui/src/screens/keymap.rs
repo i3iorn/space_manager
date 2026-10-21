@@ -70,7 +70,7 @@ const ENTRIES: &[(&str, &str)] = &[
     ("s", "change how the list is sorted"),
     ("y", "the chronicle's year"),
     ("c", "the chronicle's category"),
-    ("q", "quit"),
+    ("q", "quit, after a check"),
 ];
 
 /// The keys in the ledger, and what they do.

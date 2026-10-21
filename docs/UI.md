@@ -133,6 +133,32 @@ panic hook for good.
 
 ---
 
+### 2.2 Leaving the game [D]
+
+**The game asks before it quits, because the campaign is not saved.**
+
+| Key | What it does |
+|---|---|
+| `q` | Open the confirmation |
+| `←` `→` `↑` `↓` | Move between **Keep playing** and **Quit** |
+| `Enter` | Choose the highlighted answer |
+| `Esc` | Stay in the campaign |
+| `Ctrl+C` | Open the confirmation, or leave at once if it is already open |
+
+**The safe answer is the one that starts selected.** A player who opens the
+dialog and presses `Enter` without reading it has not quit — that is the
+mistake the dialog exists to catch. The selection is shown in reverse video with
+a marker beside it, so it is findable on a monochrome terminal too.
+
+**The dialog says what is true.** It says that the campaign is not saved and
+that quitting ends it. A dialog that hides the cost of the choice is worse than
+no dialog at all.
+
+**The world waits while the player decides.** The campaign does not advance
+underneath the dialog, so the question costs no time — but the real time is
+still consumed, so there is no backlog when the player carries on.
+
+---
 ## 3. Navigation and controls
 
 | Key | Action |
@@ -156,7 +182,7 @@ panic hook for good.
 | `/` | **Filter the list** |
 | `s` | **Change how the list is sorted** |
 | `←` `→` | The shift, on the staff screen; the fields of a form, elsewhere |
-| `q` | Quit (with a save prompt) |
+| `q` | **Quit — after asking** |
 | **`Ctrl+C`** | **Quit, whatever is on the screen** |
 
 **`Ctrl+C` always quits, and no modal may swallow it [D].** The report, the

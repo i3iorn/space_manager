@@ -333,6 +333,7 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.dashboard.finance",
             "screen.flow",
             "interface.firsthour",
+            "interface.quitting",
             "state.capital",
             "state.mandate",
         ],

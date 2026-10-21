@@ -133,14 +133,22 @@ fn the_simulation_names_the_assignment() {
 }
 
 #[test]
-fn control_c_quits_from_a_modal() {
+fn control_c_reaches_the_confirmation_from_a_modal() {
     // **A player who presses Ctrl+C means "stop".** No modal has the right to
     // swallow it: the report, the manual, the filter, and the order palette
     // all take the keys while they are open, and the one key that means
     // "leave" has to get through all of them.
+    //
+    // **It opens the confirmation rather than quitting outright**, because the
+    // campaign is not saved. See `quit.rs`.
     let mut app = campaign();
     // The month report is up.
     app.advance(domain::time::Duration::from_days(40));
     app.on_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL));
-    assert!(app.should_quit(), "Ctrl+C quits the game");
+    assert!(!app.should_quit(), "the game did not quit");
+    let screen = rendered(&mut app);
+    assert!(
+        screen.contains("Leave the campaign?"),
+        "the confirmation is on the screen: {screen}"
+    );
 }
