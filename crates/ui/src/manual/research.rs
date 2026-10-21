@@ -274,4 +274,72 @@ pub const TOPICS: &[Topic] = &[
          **A mission is also the fastest way to make the agency famous** - and fame is \
          what brings the good people to apply for the next one."
     ),
+    topic!(
+        "research.disciplines",
+        Section::Research,
+        "Disciplines and capabilities",
+        "Three fields of science, five capabilities, and what each one unlocks.",
+        "**The agency researches in three disciplines**: propulsion, structures and \
+         materials, and life support. Each is adjacent to the other two, which is why a \
+         narrow portfolio costs something - the knowledge a project produces spills a fifth \
+         into the neighbouring fields, but nothing spills into a field the agency does not \
+         work in at all.\n\n\
+         **Five capabilities come out of that research**, and each is a thing the agency can \
+         do afterwards:\n\n\
+         | Capability | Field | Knowledge needed | What it unlocks |\n|---|---|---|---|\n\
+         | Atmospheric sounding | propulsion | 0 | nothing - the agency always had it |\n\
+         | Orbital propulsion | propulsion | 240 | the Orbital and Low orbit destinations |\n\
+         | Basic re-entry | structures and materials | 300 | the heat-shield slider |\n\
+         | Closed-loop life support | life support | 380 | the Long duration destination |\n\
+         | Orbital launch | propulsion | 420 | the orbital launch destination |\n\n\
+         **A capability is a key, and the keys are what the campaign is for.** Without \
+         basic re-entry the agency cannot put a heat shield on a vehicle however much it \
+         spends; without orbital propulsion there is nowhere to fly. The sliders a player \
+         can turn are pinned at zero until the capability behind them has been developed, \
+         and that is why a research project is not a way of earning points - it is the way \
+         of getting the right to build anything."
+    ),
+    topic!(
+        "research.knowledge",
+        Section::Research,
+        "Knowledge and breakthroughs",
+        "What a finished project leaves behind, and the one-in-three chance of a leap.",
+        "**A finished project is worth 120 units of knowledge**, and the knowledge goes to \
+         the capability of the project's own discipline. A fifth of it spills into the \
+         neighbouring disciplines, so a project in propulsion also teaches a little \
+         structures and a little life support.\n\n\
+         **35% of the projects yield a breakthrough**: a large gain in knowledge in a \
+         single instant, and sometimes a capability that the agency was not going to reach \
+         by arithmetic. The draw is on the project's own start month and its identity, so \
+         the same campaign always has the same breakthroughs in the same places - the \
+         player is never cheated by a dice roll they could not have seen coming.\n\n\
+         The thresholds are the numbers that matter: 240 units of knowledge unlocks orbital \
+         propulsion, 300 unlocks basic re-entry, 380 closed-loop life support, and 420 \
+         orbital launch. **A project gives 120**, so a capability takes two or three \
+         projects and a breakthrough can save one of them.\n\n\
+         **This is the research half of the central tension, and it is why the portfolio \
+         matters.** A player who researches one field exclusively will unlock that field's \
+         capabilities and no others, and the capabilities are what the rest of the game \
+         needs."
+    ),
+    topic!(
+        "research.archetypes",
+        Section::Research,
+        "The vehicle archetypes",
+        "Three kinds of machine, and what each of them is for.",
+        "**A vehicle is an archetype and eight sliders.** The archetype says what kind of \
+         machine it is, and it bounds what the sliders may do:\n\n\
+         | Archetype | What it is |\n|---|---|\n\
+         | Sounding rocket | an uncrewed probe that goes up and comes down |\n\
+         | Orbital launcher | the thing that puts a payload into orbit |\n\
+         | Orbital capsule | the thing that comes back |\n\n\
+         **The archetype is a constraint, not a suggestion.** A sounding rocket cannot be \
+         crewed, because the life-support slider it would need is not one it has. A player \
+         who wants a crewed capsule has to design one, and an orbital launcher has to be \
+         able to fly, which means the propulsion slider is not optional.\n\n\
+         Everything else about the vehicle follows from the sliders - the cost, the \
+         reliability, the payload, the delta-v - and the archetype only says what kind of \
+         thing the numbers are allowed to describe. **The design is the player's decision, \
+         and the derived numbers are computed from it every time they are shown.**"
+    ),
 ];

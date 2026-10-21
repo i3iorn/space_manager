@@ -216,4 +216,31 @@ pub const TOPICS: &[Topic] = &[
          Postponing costs in proportion: 40 political capital for a political deadline, \
          20 for a contractual one, 5 for the agency's own."
     ),
+    topic!(
+        "programme.categories",
+        Section::Programmes,
+        "The eight categories",
+        "What a programme is for, and why the state reads the portfolio rather than one programme.",
+        "**Every programme is in one of eight categories**, and the category is what the \
+         state is being asked to fund:\n\n\
+         | Category | What it is for |\n|---|---|\n\
+         | Orbital | getting above the atmosphere and staying there |\n\
+         | Lunar | going to the Moon |\n\
+         | Deep space | going further |\n\
+         | Earth observation | watching the homeworld |\n\
+         | Military reconnaissance | watching other nations |\n\
+         | Commercial launch | selling services |\n\
+         | Space station | staying somewhere |\n\
+         | Resource extraction | digging things up |\n\n\
+         **The state reads the portfolio, not the programme.** A player with three orbital \
+         programmes and one lunar programme is making a statement about the agency, and the \
+         approval that statement earns is the approval of the agency rather than of any one \
+         of its pieces. The category is therefore a slow, expensive decision: it is the \
+         kind of thing a player sets in the first year and explains to the state for the \
+         next thirty.\n\n\
+         **And the category sets what the programme can lead to.** A programme is a body of \
+         work, and its objectives are the dated pieces of it - and it is the objectives \
+         that the state scores, the deadlines that are kept or missed, and the approval that \
+         follows from them."
+    ),
 ];

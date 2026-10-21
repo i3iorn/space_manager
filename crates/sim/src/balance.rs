@@ -270,6 +270,20 @@ pub const TEST_CAMPAIGN_POINTS_TARGET: u32 = 100;
 /// half of the game will be pointless.
 pub const TEST_CAMPAIGN_POINTS_PER_HEAD: u32 = 5;
 
+/// How much the state's approval drifts back towards zero in a year.
+///
+/// **The state's opinion of an agency that has done nothing for a decade is
+/// not the opinion it had when the agency was doing something.** A point a
+/// year is slow enough that a kept deadline is worth more than a year of
+/// drift, and steady enough that a decade of silence costs something.
+pub const APPROVAL_DRIFT_PER_YEAR: i16 = PERCENT_UNITS as i16;
+
+/// How much of the agency's prestige decays in a year.
+///
+/// **Prestige is slow.** It is built by significant achievement and lost a
+/// point a year, which is what makes it worth spending.
+pub const PRESTIGE_DECAY_PER_YEAR: i16 = PERCENT_UNITS as i16;
+
 /// The chance, in basis points, that a finished project yields a breakthrough.
 pub const BREAKTHROUGH_CHANCE_BP: u32 = 3_500;
 

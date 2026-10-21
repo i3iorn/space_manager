@@ -195,8 +195,9 @@ pub const TOPICS: &[Topic] = &[
         Section::Agency,
         "Specialisms",
         "What a person is especially good at. They fit the work better than their raw ability suggests.",
-        "A specialism is a field a person has real experience in - propulsion, life \
-         support, exobiology, and so on. It is worth more than raw ability, because a \
+        "A specialism is a field a person has real experience in - propulsion, \
+         structures, avionics, life support, power, geology, medicine, public relations, \
+         computing, and manufacturing. It is worth more than raw ability, because a \
          person who has done a thing before does it faster and does it better the \
          second time.\n\n\
          Specialisms raise the role-fit factor, which is one of the eight \

@@ -333,28 +333,37 @@ fn adjust_all_condition(context: &mut MonthContext<'_>, delta: i16) {
 }
 
 /// Applies one effect.
+/// Scales a delta in percentage points into the scaled units the state keeps.
+///
+/// **The catalogue speaks in points and the state speaks in hundredths of a
+/// point.** An effect that was meant to move morale by four was moving it by
+/// four hundredths of a point, and the events were doing nothing at all
+/// without anybody noticing.
+fn scaled(delta: i16) -> i16 {
+    i16::try_from(i32::from(delta) * domain::scale::PERCENT_UNITS).unwrap_or(0)
+}
 fn apply_effect(context: &mut MonthContext<'_>, effect: &Effect) {
     match effect {
         Effect::AdjustMorale { person, delta } => {
             if let Some(person) = context.state.people.get_mut(person) {
-                person.state.morale = add_signed(person.state.morale, *delta);
+                person.state.morale = add_signed(person.state.morale, scaled(*delta));
             }
         }
         Effect::AdjustLoyalty { person, delta } => {
             if let Some(person) = context.state.people.get_mut(person) {
-                person.state.loyalty = add_signed(person.state.loyalty, *delta);
+                person.state.loyalty = add_signed(person.state.loyalty, scaled(*delta));
             }
         }
         Effect::AdjustHealth { person, delta } => {
             if let Some(person) = context.state.people.get_mut(person) {
-                person.state.health = add_unsigned(person.state.health, *delta);
+                person.state.health = add_unsigned(person.state.health, scaled(*delta));
             }
         }
-        Effect::AdjustAllMorale { delta } => adjust_all_morale(context, *delta),
-        Effect::AdjustAllLoyalty { delta } => adjust_all_loyalty(context, *delta),
-        Effect::AdjustAllFatigue { delta } => adjust_all_fatigue(context, *delta),
-        Effect::AdjustAllHealth { delta } => adjust_all_health(context, *delta),
-        Effect::AdjustAllCondition { delta } => adjust_all_condition(context, *delta),
+        Effect::AdjustAllMorale { delta } => adjust_all_morale(context, scaled(*delta)),
+        Effect::AdjustAllLoyalty { delta } => adjust_all_loyalty(context, scaled(*delta)),
+        Effect::AdjustAllFatigue { delta } => adjust_all_fatigue(context, scaled(*delta)),
+        Effect::AdjustAllHealth { delta } => adjust_all_health(context, scaled(*delta)),
+        Effect::AdjustAllCondition { delta } => adjust_all_condition(context, scaled(*delta)),
         Effect::AdjustTreasury { delta } => {
             context.state.treasury.balance = context
                 .state
@@ -365,15 +374,15 @@ fn apply_effect(context: &mut MonthContext<'_>, effect: &Effect) {
         }
         Effect::AdjustApproval { delta } => {
             context.state.political.approval.value =
-                add_signed(context.state.political.approval.value, *delta);
+                add_signed(context.state.political.approval.value, scaled(*delta));
         }
         Effect::AdjustPublicOpinion { delta } => {
             context.state.public.opinion.value =
-                add_signed(context.state.public.opinion.value, *delta);
+                add_signed(context.state.public.opinion.value, scaled(*delta));
         }
         Effect::AdjustPrestige { delta } => {
             context.state.public.prestige.value =
-                add_signed(context.state.public.prestige.value, *delta);
+                add_signed(context.state.public.prestige.value, scaled(*delta));
         }
         Effect::AdvanceProject { project, points } => {
             if let Some(project) = context.state.projects.get_mut(project) {
@@ -389,7 +398,7 @@ fn apply_effect(context: &mut MonthContext<'_>, effect: &Effect) {
         }
         Effect::AdjustFacilityCondition { facility, delta } => {
             if let Some(facility) = context.state.facilities.get_mut(facility) {
-                facility.condition = add_unsigned(facility.condition, *delta);
+                facility.condition = add_unsigned(facility.condition, scaled(*delta));
             }
         }
         Effect::PersonLeaves { person, reason } => {

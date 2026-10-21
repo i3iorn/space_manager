@@ -24,6 +24,7 @@ impl Phase for PoliticsPhase {
     fn run(context: &mut MonthContext<'_>) -> Result<(), SimError> {
         check_promises(context);
         drift_approval(context);
+        decay_prestige(context);
         regenerate_capital(context);
         check_mandate(context);
         Ok(())
@@ -138,12 +139,41 @@ fn check_promises(context: &mut MonthContext<'_>) {
 /// Approval drifts back towards neutral, so a state that has not been courted
 /// forgets.
 fn drift_approval(context: &mut MonthContext<'_>) {
+    if !is_a_year(context) {
+        return;
+    }
     let approval = &mut context.state.political.approval.value;
     if *approval > 0 {
-        *approval -= 1;
+        *approval -= balance::APPROVAL_DRIFT_PER_YEAR;
     } else if *approval < 0 {
-        *approval += 1;
+        *approval += balance::APPROVAL_DRIFT_PER_YEAR;
     }
+}
+
+/// The agency's prestige decays a point a year.
+///
+/// **The prestige is slow, and that is the point.** It is built by
+/// significant achievement and lost by nothing much at all, so it is the
+/// one number in the game that a patient player accumulates.
+fn decay_prestige(context: &mut MonthContext<'_>) {
+    if !is_a_year(context) {
+        return;
+    }
+    let prestige = &mut context.state.public.prestige.value;
+    if *prestige > 0 {
+        *prestige -= balance::PRESTIGE_DECAY_PER_YEAR;
+    } else if *prestige < 0 {
+        *prestige += balance::PRESTIGE_DECAY_PER_YEAR;
+    }
+}
+
+/// Whether the month being resolved is the first of a year.
+///
+/// **The drifts are yearly, and the campaign's months are counted from its
+/// start.** The twelfth month of the campaign is the first month of its
+/// second year, and the drift belongs there.
+fn is_a_year(context: &MonthContext<'_>) -> bool {
+    context.month.months() % 12 == 0
 }
 
 /// Political capital regenerates slowly, and only if nothing was broken.

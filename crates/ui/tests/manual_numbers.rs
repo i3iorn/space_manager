@@ -364,3 +364,49 @@ fn the_dilations_are_quoted_correctly() {
         );
     }
 }
+
+#[test]
+fn the_knowledge_numbers_are_quoted_correctly() {
+    // **What a finished project is worth**, and how often one of them leaps.
+    let text = text("research.knowledge");
+    assert!(
+        mentions(&text, &balance::KNOWLEDGE_PER_PROJECT.to_string()),
+        "the manual must quote the knowledge a project is worth: {}",
+        balance::KNOWLEDGE_PER_PROJECT
+    );
+    assert!(
+        mentions(&text, &(balance::BREAKTHROUGH_CHANCE_BP / 100).to_string()),
+        "the manual must quote the chance of a breakthrough: {}%",
+        balance::BREAKTHROUGH_CHANCE_BP / 100
+    );
+}
+
+#[test]
+fn the_public_numbers_are_quoted_correctly() {
+    // **The prestige decays 1 point a year**, and the opinion moves by 1 to 3
+    // points an event.
+    let text = text("state.public");
+    assert!(
+        mentions(
+            &text,
+            &(balance::PRESTIGE_DECAY_PER_YEAR / domain::scale::PERCENT_UNITS as i16).to_string()
+        ),
+        "the manual must quote the prestige's decay: {}",
+        balance::PRESTIGE_DECAY_PER_YEAR / domain::scale::PERCENT_UNITS as i16
+    );
+}
+
+#[test]
+fn the_approval_drift_is_quoted_correctly() {
+    // **The state's approval drifts back a point a year** when nothing is
+    // happening, and the manual says so.
+    let text = text("state.approval");
+    assert!(
+        mentions(
+            &text,
+            &(balance::APPROVAL_DRIFT_PER_YEAR / domain::scale::PERCENT_UNITS as i16).to_string()
+        ),
+        "the manual must quote the approval's drift: {}",
+        balance::APPROVAL_DRIFT_PER_YEAR / domain::scale::PERCENT_UNITS as i16
+    );
+}

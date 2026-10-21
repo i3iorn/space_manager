@@ -134,7 +134,12 @@ pub const TOPICS: &[Topic] = &[
          **The two things that move it most are the ones the player controls**: keeping a \
          deadline is worth +8, missing one is worth -18, and a promise kept is worth +4 \
          against -14 for a promise broken. The asymmetry is deliberate. A state would rather \
-         have a director who delivers what they said than one who promises generously."
+         have a director who delivers what they said than one who promises generously.\n\n\
+         **And it drifts.** The state's opinion of an agency that has done nothing for a \
+         decade is not the opinion it had when the agency was doing something, so the \
+         approval slides back towards zero by 1 point a year. A point a year is slow enough \
+         that a kept deadline is worth more than a year of drift, and steady enough that a \
+         decade of silence costs something."
     ),
     topic!(
         "state.goodwill",
@@ -244,5 +249,31 @@ pub const TOPICS: &[Topic] = &[
          weeks instead of two and charge a third more - and the player is shown both, at \
          the moment the order is written.\n\n\
          **A player who only ever looks at the money is looking at a third of the price.**"
+    ),
+    topic!(
+        "state.public",
+        Section::State,
+        "Public opinion and prestige",
+        "What the public thinks, and what the world thinks. The first is fast; the second is slow.",
+        "**Public opinion moves fast and prestige moves slowly**, and that is how a public \
+         can be enthusiastic about an agency that is quietly failing. The two are on the \
+         dashboard's finance panel, and they are not the state's approval - the approval is \
+         the state's opinion, and it is in the top bar.\n\n\
+         | | Range | What moves it |\n|---|---|---|\n\
+         | Public opinion | -100 to +100 | events, by 1 to 3 points |\n\
+         | Prestige | -100 to +100 | significant achievement, by 5 to 15 points, and 1 \
+         point a year of decay |\n\n\
+         **The opinion is the volatile one and the prestige is the bank.** A hostile press \
+         can cost a dozen points of opinion in a year, and the opinion comes back just as \
+         fast. Prestige is built by things the world notices - a published result, a \
+         successful mission - and it decays 1 point a year whether or not anything happens, \
+         so it is the one number in the game that a patient player accumulates.\n\n\
+         **The world reads the opinion.** It is one of the eight weighting contexts: below \
+         minus thirty, the hostile-media events become markedly more likely. That is the \
+         whole point of showing it - a number the world reacts to and the player cannot see \
+         is a number the player cannot act on.\n\n\
+         The opinion is also the closest thing the game has to a second political axis. The \
+         state's approval can be high while the public is against the agency, and that is a \
+         real and uncomfortable position: the funding is safe and the legitimacy is not."
     ),
 ];

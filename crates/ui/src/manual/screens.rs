@@ -335,6 +335,7 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "interface.firsthour",
             "interface.quitting",
             "state.capital",
+            "state.public",
             "state.mandate",
         ],
         Screen::Staff => &[
@@ -350,6 +351,7 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.programme",
             "screen.programme.list",
             "programme.milestone",
+            "programme.categories",
             "programme.slack",
         ],
         Screen::Research => &[
@@ -357,10 +359,13 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.research.projects",
             "screen.research.facilities",
             "research.tension",
+            "research.disciplines",
+            "research.knowledge",
         ],
         Screen::Vehicles => &[
             "screen.vehicles",
             "research.mission",
+            "research.archetypes",
             "order.design_vehicle",
         ],
         Screen::Chronicle => &[

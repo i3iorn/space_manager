@@ -201,3 +201,26 @@ fn a_follow_up_is_scheduled_rather_than_applied() {
         );
     }
 }
+
+#[test]
+fn an_event_moves_the_state_by_the_number_of_points_it_says() {
+    // **The catalogue speaks in points and the state speaks in hundredths of a
+    // point.** An effect that was meant to move the approval by three was
+    // moving it by three hundredths of a point, and the events were doing
+    // nothing at all - which is exactly the sort of bug that looks like
+    // balance rather than like a bug, because the game still runs and the
+    // events still fire.
+    let sim = campaign();
+    let approval = sim.state().political.approval.value;
+    assert_eq!(
+        approval % domain::scale::PERCENT_UNITS as i16,
+        0,
+        "the state's approval is not a whole number of points: {approval}"
+    );
+    let opinion = sim.state().public.opinion.value;
+    assert_eq!(
+        opinion % domain::scale::PERCENT_UNITS as i16,
+        0,
+        "the public's opinion is not a whole number of points: {opinion}"
+    );
+}
