@@ -1,0 +1,92 @@
+[
+  [
+    {
+      "Hire": {
+        "role": "Scientist",
+        "salary": 120000
+      }
+    },
+    {
+      "StartProject": {
+        "discipline": 0,
+        "principal_investigator": 0,
+        "title": "Liquid upper stage"
+      }
+    }
+  ],
+  [
+    {
+      "Assign": {
+        "person": 1,
+        "to": {
+          "Project": {
+            "project": 1
+          }
+        }
+      }
+    },
+    {
+      "Assign": {
+        "person": 3,
+        "to": {
+          "Project": {
+            "project": 1
+          }
+        }
+      }
+    }
+  ],
+  [
+    {
+      "StartProject": {
+        "discipline": 2,
+        "principal_investigator": 2,
+        "title": "Closed-loop systems"
+      }
+    }
+  ],
+  [
+    {
+      "Assign": {
+        "person": 2,
+        "to": {
+          "Project": {
+            "project": 2
+          }
+        }
+      }
+    }
+  ],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [],
+  []
+]

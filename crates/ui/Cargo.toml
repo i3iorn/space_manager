@@ -1,0 +1,18 @@
+﻿[package]
+name = "ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The terminal interface for space_manager."
+
+[dependencies]
+domain = { workspace = true }
+sim = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
+

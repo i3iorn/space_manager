@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # The simulation is deterministic, so a warning about an unused crate is
+  # information, not noise. Keep it visible.
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    name: Format, lint, and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Linting
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+  determinism:
+    name: Determinism across architectures
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # The determinism test lives with the simulation's own tests, but it is
+      # worth running on two operating systems on its own: a stream that differs
+      # between Windows and Linux would invalidate every replay made on the
+      # other one.
+      - name: Determinism test
+        run: cargo test --workspace determinism
+
+  nightly:
+    name: Nightly checks
+    runs-on: ubuntu-latest
+    # The heavy suites run on a schedule rather than on every push. The schedule
+    # is not wired up yet, because the suites themselves are not written: the
+    # fuzz harness arrives with Slice 1 (ROADMAP S1-26) and the performance
+    # budgets with Slice 3 (ROADMAP S3-27). This job is enabled then.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Fuzzing
+        run: cargo test --workspace --test fuzz -- --ignored
+
+      - name: Performance budgets
+        run: cargo test --workspace --test perf

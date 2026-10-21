@@ -1,0 +1,1 @@
+//! External events — suppliers, partners, and the wider world.

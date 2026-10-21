@@ -1,0 +1,21 @@
+# Build artefacts
+/target/
+
+# IntelliJ IDEA. The project files are checked in; the machine-local ones are not.
+.idea/
+.idea/workspace.xml
+.idea/shelf/
+.idea/httpRequests/
+.idea/queries/
+.idea/dataSources/
+.idea/dataSources.local.xml
+
+# Editor and OS noise
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Save files and campaign exports
+*.save
+saves/

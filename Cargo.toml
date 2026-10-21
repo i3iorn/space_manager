@@ -1,0 +1,75 @@
+﻿# The workspace root.
+#
+# This manifest is *virtual*: it holds no package of its own. The binary package lives
+# in crates/space_manager and MUST keep the name "space_manager" â€” the IntelliJ run
+# configuration in .idea/workspace.xml invokes
+# `cargo run --package space_manager --bin space_manager`.
+#
+# See docs/ARCHITECTURE.md for the crate layout and the dependency rules.
+
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# --- workspace crates -------------------------------------------------------
+domain = { path = "crates/domain" }
+sim = { path = "crates/sim" }
+ui = { path = "crates/ui" }
+
+# --- external ---------------------------------------------------------------
+rand = "0.10"
+rand_chacha = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+ratatui = "0.30"
+crossterm = "0.29"
+
+[workspace.lints.rust]
+# The simulation is plain safe Rust. There is no use case for unsafe here, and
+# forbidding it keeps the "no wall-clock time, no system randomness" contract
+# (docs/SIMULATION.md Â§3.1) honest.
+unsafe_code = "forbid"
+
+[workspace.lints.cargo]
+# The binary package must stay "space_manager" so that the IntelliJ run configuration
+# (`cargo run --package space_manager --bin space_manager`) keeps working. Silence the
+# kebab-case lint explicitly rather than renaming the package. See
+# docs/ARCHITECTURE.md Â§7. This is harmless for the library crates, which have no
+# binary targets.
+non_kebab_case_bins = "allow"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+# The allow-list is deliberately short. Each entry is a lint that fights the domain
+# model rather than a general quality concern. Add a lint here only with a reason.
+#
+# Our types are named after the thing they are (CampaignState, Person, Programme);
+# the lint wants the crate name to be part of every type.
+module_name_repetitions = "allow"
+# Constructors and event definitions take many fields. The alternatives are worse.
+too_many_arguments = "allow"
+# Domain types legitimately hold several boolean flags.
+struct_excessive_bools = "allow"
+# The documentation lives in the design documents, not in doc comments.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+missing_safety_doc = "allow"
+# Asserting that a collection is empty reads better than comparing it to an
+# empty Vec, and the lint's own auto-fix produces type errors for element
+# types that are not Copy.
+assert_is_empty = "allow"
+# Integer conversions are deliberate and checked; the lint fires on every one.
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+

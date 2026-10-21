@@ -1,0 +1,24 @@
+﻿[package]
+name = "space_manager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "A space agency management simulation."
+
+[[bin]]
+name = "space_manager"
+path = "src/main.rs"
+
+[dependencies]
+domain = { workspace = true }
+sim = { workspace = true }
+ui = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
+

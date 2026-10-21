@@ -1,0 +1,19 @@
+﻿[package]
+name = "sim"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The engine for space_manager: the month tick, determinism, directives, and events."
+
+[dependencies]
+domain = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
+
