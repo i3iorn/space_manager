@@ -27,8 +27,8 @@ use crate::error::SimError;
 /// **It was 2 when the scheduler joined the save**, **3 when the orders in
 /// flight joined the state**, **4 when the shift joined a person**, **5 when
 /// the remainder joined an objective**, and **6 when the condition of a
-/// facility was scaled**. A file of an older format is refused rather than
-/// half-read.
+/// facility was scaled**, and **7 when the testing joined the state**. A file of
+/// an older format is refused rather than half-read.
 pub const SAVE_FORMAT: u32 = 7;
 
 /// The engine version.

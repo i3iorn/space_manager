@@ -43,6 +43,7 @@ pub mod branch;
 pub mod deadlines;
 pub mod derived;
 pub mod error;
+pub mod event_catalogue;
 pub mod events;
 pub mod orders;
 pub mod performance;
@@ -473,6 +474,10 @@ impl Sim {
                 let interval = Duration::from_days(self.event_check_interval_days());
                 self.scheduler
                     .schedule(at.saturating_add(interval), ScheduledKind::EventCheck);
+                // **The draw is here, at a scheduled instant**, and it is on the
+                // check's own stream, so the n-th check of a campaign always
+                // draws the same numbers.
+                self.draw_event(at);
                 // **The event check's index is its bucket**, and it is a stable
                 // identifier: the n-th check of a campaign always draws the
                 // same numbers, whether or not it happens at the same instant —
@@ -481,6 +486,10 @@ impl Sim {
                 // save and load does not restart it.
                 self.resolve_events(at)?;
                 self.state.event_checks = self.state.event_checks.saturating_add(1);
+                Ok(None)
+            }
+            ScheduledKind::EventFollowUp { event } => {
+                self.fire_follow_up(at, *event);
                 Ok(None)
             }
             ScheduledKind::VehicleComplete { vehicle } => {
@@ -596,6 +605,56 @@ impl Sim {
                 self.scheduler.schedule(at, item);
             }
             self.pending_lines.extend(context.programme_lines);
+            for entry in context.events {
+                working.chronicle(entry);
+            }
+        }
+        self.state = working;
+    }
+    /// Draws an event at an event check, and applies it.
+    ///
+    /// **The events phase runs outside the month's commit**, so it writes its
+    /// own chronicle entries. Without that, an event would fire and never be
+    /// recorded.
+    fn draw_event(&mut self, at: Instant) {
+        let check = self.state.event_checks;
+        let mut working = self.state.clone();
+        {
+            let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
+            crate::phases::events::draw_and_apply(&mut context, check);
+            for (at, item) in std::mem::take(&mut context.schedule) {
+                self.scheduler.schedule(at, item);
+            }
+            self.pending_lines.extend(context.programme_lines);
+            for warning in context.warnings {
+                self.pending_lines
+                    .push(domain::report::ReportLine::new(warning));
+            }
+            for entry in context.events {
+                working.chronicle(entry);
+            }
+        }
+        self.state = working;
+    }
+
+    /// Fires a follow-up event.
+    fn fire_follow_up(&mut self, at: Instant, event: domain::ids::EventId) {
+        let Some(definition) = crate::event_catalogue::event(event) else {
+            return;
+        };
+        let definition = definition.clone();
+        let mut working = self.state.clone();
+        {
+            let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
+            crate::phases::events::apply_event(&mut context, &definition);
+            for (at, item) in std::mem::take(&mut context.schedule) {
+                self.scheduler.schedule(at, item);
+            }
+            self.pending_lines.extend(context.programme_lines);
+            for warning in context.warnings {
+                self.pending_lines
+                    .push(domain::report::ReportLine::new(warning));
+            }
             for entry in context.events {
                 working.chronicle(entry);
             }

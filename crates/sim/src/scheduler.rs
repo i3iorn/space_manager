@@ -98,6 +98,11 @@ pub enum ScheduledKind {
         /// The vehicle.
         vehicle: domain::ids::VehicleId,
     },
+    /// The moment a follow-up event fires.
+    EventFollowUp {
+        /// The event.
+        event: domain::ids::EventId,
+    },
     /// The moment a mission changes phase.
     MissionPhase {
         /// The mission.
@@ -138,7 +143,7 @@ impl ScheduledKind {
             Self::MissionPhase { .. } => PRIORITY_MISSION,
             Self::ProjectComplete { .. } | Self::VehicleComplete { .. } => PRIORITY_PROJECT,
             Self::AttritionCheck { .. } => PRIORITY_ATTRITION,
-            Self::EventCheck => PRIORITY_EVENT,
+            Self::EventCheck | Self::EventFollowUp { .. } => PRIORITY_EVENT,
         }
     }
 }

@@ -53,7 +53,10 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
             crew,
         } => {
             let id = context.state.id_counters.next_mission();
-            let probability = crate::derived::mission_probability(context.state, *vehicle);
+            // **The chance is the vehicle's reliability, less what the testing
+            // has taken out of the destination's capability.**
+            let probability =
+                crate::derived::mission_probability_for(context.state, *vehicle, destination);
             let mission = domain::mission::Mission::new(
                 id,
                 *vehicle,

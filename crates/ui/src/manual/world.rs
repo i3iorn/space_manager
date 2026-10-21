@@ -63,4 +63,24 @@ pub const TOPICS: &[Topic] = &[
          dilation is a pacing control and nothing else, and the game is built to keep that \
          guarantee."
     ),
+    topic!(
+        "world.events",
+        Section::World,
+        "Events",
+        "The world reacts. Bad conditions raise the odds of bad events, and most weeks produce nothing at all.",
+        "**Once a week the world looks at the agency and something may happen.** An \
+         event is data - a weight, some conditions, some effects, and the words it uses - \
+         and the weight is the base weight multiplied by the modifiers that apply.\n\n\
+         **Bad conditions raise the odds of bad events**, and good conditions raise the odds \
+         of good ones. A laboratory that nobody maintains is more likely to fail; an agency \
+         the state approves of is more likely to be praised. The player should be able to \
+         look back at a disaster and say *my fault - I was running everyone at eighty percent \
+         fatigue and skipped testing*.\n\n\
+         **Most weeks produce nothing.** The weights are in basis points and they add up to \
+         the chance that a check produces anything at all, so a quiet stretch is a normal \
+         outcome and not a sign that the game has stopped.\n\n\
+         An event cannot break the campaign, because an event is a list of deltas and cannot \
+         express a mutation that would. Some events cause others: a scientist who leaves \
+         takes a team's loyalty with them three months later."
+    ),
 ];

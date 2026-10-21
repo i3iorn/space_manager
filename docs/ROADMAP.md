@@ -794,7 +794,20 @@ discipline.
 **A vehicle is built, and the build takes real time.** The time is its cost: a
 cheap sounding rocket is built in a month and an orbital launcher takes a year.
 The build is a rate, and the industrial capacity slows it the same way it
-slows the work — an over-stretched agency builds everything more slowly.
+slows the work - an over-stretched agency builds everything more slowly.
+
+**The world reacts.** An event is data - a weight, some conditions, some
+effects, and the words it uses - and the weight is the base weight multiplied
+by the modifiers that apply, so **bad conditions raise the odds of bad
+events**. A quiet stretch is a legitimate outcome: the weights are in basis
+points and they add up to the chance that a check produces anything at all, so
+most weeks produce nothing.
+
+**Testing is what makes the difference.** A completed test campaign takes
+points of failure risk out of the capability it tested, and the risk stays
+taken out after the campaign that found it is gone. The vehicles screen says
+what the testing would cost and what it would buy, because the choice the
+player is making is *test this* or *build a better vehicle*.
 ### 6.1 Hardware and missions
 
 | ID | Task | Depends on | Done when |
@@ -805,32 +818,32 @@ slows the work — an over-stretched agency builds everything more slowly.
 | S3-04 | `Mission` and the phase machine, with the flight phases in their real durations. | M1 | A mission advances through its phases, and the ascent takes 60-90 minutes | Done |
 | S3-05 | Success resolution, with partial failure as the common branch, resolved at a scheduled instant. | S3-04 | A failed mission usually produces partial results, not a total loss | Done |
 | S3-06 | Results feeding research: a successful mission's data advances a discipline. | S3-05, S1-21 | A mission's outcome measurably advances knowledge | Done |
-| S3-07 | The `DesignVehicle`, `SetSubsystem`, `AuthorizeLaunch` handlers. | S1-06, S3-04 | A player can design, build, and launch | Partly: the design and the subsystem change are done; the launch waits on S3-04 |
+| S3-07 | The `DesignVehicle`, `SetSubsystem`, `AuthorizeLaunch` handlers. | S1-06, S3-04 | A player can design, build, and launch | Done |
 | S3-08 | Vehicle construction, using industrial capacity, as a rate. | S2-11, S3-07 | A vehicle takes real time and capacity to build | Done |
-| S3-09 | The vehicles and missions screen: sliders, derived stats, risk, authorisation, and the time to orbit. | M1-18, S3-01 | The risk figure and the flight time are visible before authorisation | Partly: the sliders, the derived stats and the risk are there; the flight time waits on the phase machine |
+| S3-09 | The vehicles and missions screen: sliders, derived stats, risk, authorisation, and the time to orbit. | M1-18, S3-01 | The risk figure and the flight time are visible before authorisation | Done |
 
 ### 6.2 Capability against reliability
 
 | ID | Task | Depends on | Done when |
 |---|---|---|---|
-| S3-10 | `TestCampaign` as a distinct activity from a research project. | S1-11 | A test campaign consumes staff and money like a project, but produces no new capability |
-| S3-11 | Test campaigns reducing the risk of existing capability. | S3-10, S3-01 | A tested capability measurably lowers a launch's failure probability |
-| S3-12 | The capability-versus-reliability decision surfaced in the UI: what testing would cost and what it would buy. | S3-11, S3-09 | The player can see the trade before choosing |
+| S3-10 | `TestCampaign` as a distinct activity from a research project. | S1-11 | A test campaign consumes staff and money like a project, but produces no new capability | Done |
+| S3-11 | Test campaigns reducing the risk of existing capability. | S3-10, S3-01 | A tested capability measurably lowers a launch's failure probability | Done |
+| S3-12 | The capability-versus-reliability decision surfaced in the UI: what testing would cost and what it would buy. | S3-11, S3-09 | The player can see the trade before choosing | Done |
 
 ### 6.3 The world reacts
 
 | ID | Task | Depends on | Done when |
 |---|---|---|---|
-| S3-13 | `EventDef`, `Condition`, `Effect`, `WeightMod` and the event registry. | S1-05 | An event can be defined purely as data |
-| S3-14 | The context weighting: weight is base × modifiers over live state. | S3-13 | A fatigued team measurably raises the weight of its bad events |
-| S3-15 | The event phase: draw, apply effects atomically, write chronicle entries. | S3-14, S1-13 | Events apply as deltas and never break an invariant |
-| S3-16 | `FollowUp`: immediate, delayed, and conditional. | S3-15 | A delayed follow-up fires in a later month and appears in the forecast |
-| S3-17 | The **event catalogue** — ~35 events across the eight categories. | S3-15 | Every category has events, and each of the eight weighting scenarios is covered |
-| S3-18 | The event phase runs **last**, after every other phase. | S1-04, S3-15 | The order matches `SIMULATION.md` §2.2 and is covered by a golden test |
-| S3-19 | Politics: approval, political capital, promises, milestone demands. | S1-14 | A kept promise raises capital; a broken one costs it |
-| S3-20 | Public opinion and prestige, and their link to the chronicle. | S3-19 | A disaster moves public opinion in the same month it happens |
-| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | The player sees what is coming, and no more |
-| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Filtering by a programme shows its entire history |
+| S3-13 | `EventDef`, `Condition`, `Effect`, `WeightMod` and the event registry. | S1-05 | An event can be defined purely as data | Done |
+| S3-14 | The context weighting: weight is base × modifiers over live state. | S3-13 | A fatigued team measurably raises the weight of its bad events  Done |
+| S3-15 | The event phase: draw, apply effects atomically, write chronicle entries. | S3-14, S1-13 | Events apply as deltas and never break an invariant | Done |
+| S3-16 | `FollowUp`: immediate, delayed, and conditional. | S3-15 | A delayed follow-up fires in a later month and appears in the forecast | Done |
+| S3-17 | The **event catalogue** — ~35 events across the eight categories. | S3-15 | Every category has events, and each of the eight weighting scenarios is covered  Partly: sixteen events across the eight categories; the full thirty-five is a matter of writing |
+| S3-18 | The event phase runs **last**, after every other phase. | S1-04, S3-15 | The order matches `SIMULATION.md` §2.2 and is covered by a golden test  Done |
+| S3-19 | Politics: approval, political capital, promises, milestone demands. | S1-14 | A kept promise raises capital; a broken one costs it  Done |
+| S3-20 | Public opinion and prestige, and their link to the chronicle. | S3-19 | A disaster moves public opinion in the same month it happens  Done |
+| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | The player sees what is coming, and no more  Partly: the forecast shows the promises and the objectives; the risk figures are not on it yet |
+| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Filtering by a programme shows its entire history  Not yet |
 
 ### 6.4 Proving it
 

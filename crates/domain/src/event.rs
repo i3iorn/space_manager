@@ -123,6 +123,36 @@ pub enum Effect {
         /// By how much.
         delta: i16,
     },
+    /// Everybody's morale moves.
+    ///
+    /// **The catalogue cannot name a person**, because the people in the
+    /// catalogue do not exist yet: a condition is checked at the moment the
+    /// event fires, and an effect that lands on everybody is the honest
+    /// version of "the whole agency felt it".
+    AdjustAllMorale {
+        /// By how much.
+        delta: i16,
+    },
+    /// Everybody's loyalty moves.
+    AdjustAllLoyalty {
+        /// By how much.
+        delta: i16,
+    },
+    /// Everybody's fatigue moves.
+    AdjustAllFatigue {
+        /// By how much.
+        delta: i16,
+    },
+    /// Everybody's health moves.
+    AdjustAllHealth {
+        /// By how much.
+        delta: i16,
+    },
+    /// Every facility's condition moves.
+    AdjustAllCondition {
+        /// By how much.
+        delta: i16,
+    },
     /// A person leaves the agency.
     PersonLeaves {
         /// The person.

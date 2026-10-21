@@ -158,6 +158,23 @@ pub const CAPABILITIES: [Capability; 5] = [
     },
 ];
 
+/// The capability a destination names.
+///
+/// **A destination names a capability, and a capability has a discipline** — so
+/// the data a mission brings back goes to the field that asked for it, and the
+/// testing a capability has had is the testing of that destination.
+#[must_use]
+pub fn capability_for_destination(destination: &str) -> Option<CapabilityId> {
+    CAPABILITIES
+        .iter()
+        .find(|capability| {
+            capability.unlocks.iter().any(|unlock| {
+                matches!(unlock, Unlock::Destination { destination: name } if name.eq_ignore_ascii_case(destination))
+            })
+        })
+        .map(|capability| capability.id)
+}
+
 /// The discipline a destination belongs to.
 ///
 /// **A destination names a capability, and a capability has a discipline**, so

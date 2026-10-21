@@ -296,9 +296,21 @@ fn advance_test_campaigns(context: &mut MonthContext<'_>) {
         campaign.progress.points = campaign.progress.points.saturating_add(points);
         if campaign.progress.is_complete() {
             let name = domain::research::capability_name(campaign.target_capability);
+            let capability = campaign.target_capability;
+            let reduction = campaign.risk_reduction;
+            // **The testing is remembered after the campaign is gone.** A
+            // tested capability is a safer capability, and the risk it has
+            // taken out does not go with the people who found it.
+            let known = context.state.tested.get(&capability).copied().unwrap_or(0);
+            context
+                .state
+                .tested
+                .insert(capability, known.max(reduction));
             context.programme_lines.push(
-                domain::report::ReportLine::new(format!("A test campaign on {name} is complete."))
-                    .with_severity(Severity::Minor),
+                domain::report::ReportLine::new(format!(
+                    "A test campaign on {name} is complete: {reduction} points of risk taken out."
+                ))
+                .with_severity(Severity::Minor),
             );
             context.state.test_campaigns.remove(&id);
         }

@@ -27,7 +27,7 @@ stock defaults, and the toolchain follows the machine's rustup default. CI lives
 `.github/workflows/ci.yml` and runs the first four plus the dependency-direction test
 on both Linux and Windows.
 
-**`cargo test --workspace` currently runs 483 tests and they all pass.** That number
+**`cargo test --workspace` currently runs 490 tests and they all pass.** That number
 matters: it is the baseline a change is measured against. If you add behaviour, add
 tests with it, or "green" means nothing.
 

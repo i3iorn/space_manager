@@ -115,6 +115,32 @@ pub fn mission_probability(state: &CampaignState, vehicle: domain::ids::VehicleI
     u16::try_from(basis_points.min(9_500)).unwrap_or(0)
 }
 
+/// The chance of a mission to a destination working, in basis points.
+///
+/// **The testing is what makes the difference.** A capability that has been
+/// tested is a safer capability, and the risk the testing took out comes off the
+/// top of the launch's chances.
+#[must_use]
+pub fn mission_probability_for(
+    state: &CampaignState,
+    vehicle: domain::ids::VehicleId,
+    destination: &str,
+) -> u16 {
+    let base = u32::from(mission_probability(state, vehicle));
+    let reduction = tested_reduction(state, destination);
+    let reduction = u32::try_from(reduction.max(0)).unwrap_or(0);
+    let reduced = base.saturating_sub(reduction * 100);
+    u16::try_from(reduced.min(9_500)).unwrap_or(0)
+}
+
+/// The risk a destination's capability has had taken out of it, in points.
+#[must_use]
+pub fn tested_reduction(state: &CampaignState, destination: &str) -> i16 {
+    domain::research::capability_for_destination(destination)
+        .and_then(|capability| state.tested.get(&capability).copied())
+        .unwrap_or(0)
+}
+
 /// The agency's industrial capacity, and the demand on it.
 ///
 /// **The capacity is what the facilities can hold** and the demand is how many

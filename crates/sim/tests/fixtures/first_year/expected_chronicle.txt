@@ -1,1 +1,34 @@
-2040-03-21 20:00 | Minor | Research completed: Liquid upper stage.
+2039-01-22 00:00 | Minor | The weather turned.
+2039-02-06 00:00 | Major | A review of the agency's work was requested.
+2039-02-20 00:00 | Minor | A rival agency poached a scientist.
+2039-04-23 00:00 | Minor | Somebody else got there first.
+2039-05-20 00:00 | Minor | The loss was still being talked about.
+2039-06-19 00:00 | Minor | Somebody else got there first.
+2039-07-17 00:00 | Major | An unexpected bill arrived.
+2039-10-04 00:00 | Info | A grant was awarded.
+2039-11-16 00:00 | Major | Equipment failed in a laboratory.
+2040-02-10 00:00 | Major | Equipment failed in a laboratory.
+2040-03-08 00:00 | Major | Equipment failed in a laboratory.
+2040-03-21 22:00 | Minor | Research completed: Liquid upper stage.
+2040-04-29 00:00 | Major | A review of the agency's work was requested.
+2040-05-11 00:00 | Major | Equipment failed in a laboratory.
+2040-05-26 00:00 | Minor | A rival agency poached a scientist.
+2040-07-05 00:00 | Minor | Somebody else got there first.
+2040-07-23 00:00 | Info | The state praised the agency's work.
+2040-08-23 00:00 | Major | Equipment failed in a laboratory.
+2040-08-26 00:00 | Minor | The loss was still being talked about.
+2040-08-29 00:00 | Info | A quiet week, and a good one.
+2040-09-20 00:00 | Major | Equipment failed in a laboratory.
+2040-11-23 00:00 | Info | A result nobody expected.
+2041-02-14 00:00 | Info | A piece about the agency was favourable.
+2041-04-14 00:00 | Minor | The weather turned.
+2041-05-02 00:00 | Minor | The press found an angle.
+2041-05-14 00:00 | Minor | A rival agency poached a scientist.
+2041-05-23 00:00 | Minor | The weather turned.
+2041-07-20 00:00 | Minor | A calibration was found to be wrong.
+2041-08-14 00:00 | Minor | The loss was still being talked about.
+2041-09-14 00:00 | Minor | Somebody else got there first.
+2041-09-29 00:00 | Major | Equipment failed in a laboratory.
+2041-11-11 00:00 | Minor | The press found an angle.
+2041-11-17 00:00 | Minor | The press found an angle.
+2041-12-23 00:00 | Major | An unexpected bill arrived.

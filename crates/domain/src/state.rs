@@ -103,6 +103,13 @@ pub struct CampaignState {
     pub knowledge: BTreeMap<CapabilityId, u32>,
     /// The capabilities the agency has unlocked.
     pub unlocked: BTreeSet<CapabilityId>,
+
+    /// What the testing has bought, by capability: the capability and the
+    /// percentage points of failure risk it has taken out.
+    ///
+    /// **A tested capability is a safer capability**, and the risk it has taken
+    /// out has to be remembered after the campaign that found it is gone.
+    pub tested: BTreeMap<CapabilityId, i16>,
     /// The id allocation counters.
     pub id_counters: IdCounters,
 }
@@ -132,6 +139,7 @@ impl CampaignState {
             chronicle: Vec::new(),
             knowledge: BTreeMap::new(),
             unlocked: BTreeSet::new(),
+            tested: BTreeMap::new(),
             id_counters: IdCounters::default(),
         }
     }
