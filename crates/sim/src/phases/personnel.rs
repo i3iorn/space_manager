@@ -53,13 +53,17 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
     match order {
         OrderKind::Assign { person, to } => {
             if let Some(target) = context.state.people.get(person) {
-                let previous = target.assignment.description();
+                let previous =
+                    crate::derived::assignment_description(context.state, &target.assignment);
                 let name = target.name.clone();
                 assign(context, *person, to.clone());
                 context.personnel_lines.push(
                     domain::report::ReportLine::new(format!(
                         "{name} moved from {previous} to {}.",
-                        context.state.people[person].assignment.description()
+                        crate::derived::assignment_description(
+                            context.state,
+                            &context.state.people[person].assignment
+                        )
                     ))
                     .with_severity(Severity::Info),
                 );

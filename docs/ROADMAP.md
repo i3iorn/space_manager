@@ -177,6 +177,24 @@ year happen *and* act on it.
 sees it complete, sees a breakthrough unlock something, and can explain why their team
 was slow.
 
+**The playtest is running, and it has already found four things worth fixing.** They
+are recorded here because a playtest that finds nothing is a playtest that did not
+happen, and because each of these is a rule the interface should have followed from
+the start.
+
+| What the playtester said | What it actually was | The fix |
+|---|---|---|
+| "I see `programme 0` when I assign somebody" | The interface showed **identifiers** where it should have shown names — in the staff screen, in the order palette, in the report, and in every refusal message | `sim::derived::assignment_description` names the programme, the project, the facility, and the test campaign; the domain's own description no longer carries a number at all, so an identifier cannot leak even from the layer that has no names |
+| "It is not the only place" | It was not the only place: the refusals, the order notice, the chronicle's subject filter, and the vehicle's build state all had the same fault | Every message that names a thing goes through one function, and the rule is now in `UI.md` §1 and in the manual |
+| "The game just shuts down without warning" | A **panic printed its message to the alternate screen** — which is thrown away when the screen is left, so the game vanished with no explanation and the shell came back looking normal | A panic hook restores the terminal *first* and writes the message *after* it, and the game says plainly that it stopped unexpectedly |
+| "I cannot always get out" | **Every modal took the keys** while it was open, and `Ctrl+C` was one of them, so a player who pressed it in the report or the palette found the game still running | `Ctrl+C` quits from any screen and any modal, and is handled before the modals |
+
+The campaign itself was not the cause of the crash: a thirty-year campaign with an
+order every week, and forty seeds run for fifty years, are both clean, and so is the
+interface driven through forty thousand frames of clock, keys, and drawing. What was
+wrong was that **the game could not say why it stopped**, and that is the part worth
+having fixed.
+
 ### 3.7 What Slice 1 actually delivered, and what it did not
 
 **Delivered:**

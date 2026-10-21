@@ -350,7 +350,7 @@ pub fn validate(kind: &OrderKind, state: &CampaignState) -> Result<(), OrderErro
                 Ok(())
             } else {
                 Err(OrderError::Rejected {
-                    reason: format!("There is no mission {mission:?}."),
+                    reason: "There is no such mission.".to_owned(),
                 })
             }
         }
@@ -368,7 +368,7 @@ fn validate_assign(
     if current.is_assigned() {
         return Err(OrderError::AlreadyAssigned {
             name: current.name.clone(),
-            current: current.assignment.description(),
+            current: crate::derived::assignment_description(state, &current.assignment),
         });
     }
     match to {
@@ -381,7 +381,7 @@ fn validate_assign(
                 Ok(())
             } else {
                 Err(OrderError::Rejected {
-                    reason: format!("There is no project {project:?}."),
+                    reason: "There is no such project.".to_owned(),
                 })
             }
         }
@@ -390,7 +390,7 @@ fn validate_assign(
                 Ok(())
             } else {
                 Err(OrderError::Rejected {
-                    reason: format!("There is no test campaign {campaign:?}."),
+                    reason: "There is no such test campaign.".to_owned(),
                 })
             }
         }
@@ -407,7 +407,7 @@ fn vehicle_must_exist(
         Ok(())
     } else {
         Err(OrderError::NoSuchVehicle {
-            name: format!("vehicle {vehicle:?}"),
+            name: "a vehicle that has been scrapped".to_owned(),
         })
     }
 }
@@ -421,7 +421,7 @@ fn programme_must_exist(
         Ok(())
     } else {
         Err(OrderError::NoSuchProgramme {
-            name: format!("programme {programme:?}"),
+            name: "a programme that has closed".to_owned(),
         })
     }
 }
@@ -442,10 +442,7 @@ fn objective_must_exist(
         Ok(())
     } else {
         Err(OrderError::Rejected {
-            reason: format!(
-                "There is no objective {objective:?} in {}.",
-                programme.title
-            ),
+            reason: format!("The programme {} has no such objective.", programme.title),
         })
     }
 }
@@ -481,7 +478,7 @@ fn facility_must_exist(
         Ok(())
     } else {
         Err(OrderError::NoSuchFacility {
-            name: format!("facility {facility:?}"),
+            name: "a facility that has been demolished".to_owned(),
         })
     }
 }
@@ -492,7 +489,7 @@ fn person_must_exist(person: PersonId, state: &CampaignState) -> Result<(), Orde
         Some(_found) => Ok(()),
         None => Err(OrderError::PersonGone {
             person,
-            name: format!("Person {person:?}"),
+            name: "someone who has left".to_owned(),
         }),
     }
 }

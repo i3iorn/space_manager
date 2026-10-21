@@ -6,7 +6,7 @@
 
 use domain::money::Money;
 use domain::performance::{Modifier, ModifierKind, PerformanceInput, PerformanceResult};
-use domain::person::{Person, Specialism};
+use domain::person::{Assignment, Person, ProgrammeRole, Specialism};
 use domain::state::CampaignState;
 
 use crate::balance;
@@ -401,6 +401,55 @@ pub fn monthly_outgoings(state: &CampaignState) -> Money {
 #[must_use]
 pub fn team_support_modifier(team_size: usize, lead_present: bool) -> Modifier {
     balance::support_modifier(team_size, lead_present)
+}
+
+/// Where a person is, in words, with the name in it.
+///
+/// **The player must never be shown an identifier.** The domain knows what
+/// *kind* of thing a person is assigned to but not what it is called, so it
+/// can only say "works on a programme"; this function has the state and can
+/// say "works on the Orbital Survey programme".
+///
+/// Every message that names an assignment goes through here. The fallback for
+/// a thing that has closed is a name that says so, because a message reading
+/// "programme 3" is an implementation detail leaking into the interface.
+#[must_use]
+pub fn assignment_description(state: &CampaignState, assignment: &Assignment) -> String {
+    match assignment {
+        Assignment::Unassigned => "Unassigned".to_owned(),
+        Assignment::Division(_) => "a division".to_owned(),
+        Assignment::Programme { programme, role } => {
+            let title = state.programmes.get(programme).map_or_else(
+                || "a programme that has closed".to_owned(),
+                |programme| programme.title.clone(),
+            );
+            match role {
+                ProgrammeRole::Lead => format!("leads the {title} programme"),
+                ProgrammeRole::Member => format!("works on the {title} programme"),
+                ProgrammeRole::Adviser => format!("advises on the {title} programme"),
+            }
+        }
+        Assignment::Project { project } => {
+            let title = state.projects.get(project).map_or_else(
+                || "a project that has closed".to_owned(),
+                |project| project.title.clone(),
+            );
+            format!("the {title} project")
+        }
+        Assignment::Facility { facility } => state.facilities.get(facility).map_or_else(
+            || "a facility that has closed".to_owned(),
+            |facility| facility.name.clone(),
+        ),
+        Assignment::TestCampaign { campaign } => state.test_campaigns.get(campaign).map_or_else(
+            || "a test campaign that has closed".to_owned(),
+            |campaign| {
+                format!(
+                    "the {} test campaign",
+                    domain::research::capability_name(campaign.target_capability)
+                )
+            },
+        ),
+    }
 }
 
 /// The single most binding constraint across a team, if any.

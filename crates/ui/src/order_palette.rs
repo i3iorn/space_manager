@@ -87,7 +87,7 @@ impl Choice {
                 }),
             Self::Role(role) => role.label().to_owned(),
             Self::Salary(salary) => format!("{} a month", salary.credits()),
-            Self::Target(target) => target.description().clone(),
+            Self::Target(target) => sim::derived::assignment_description(state, target),
             Self::Discipline(id) => domain::research::discipline_name(*id).to_owned(),
             Self::Capability(id) => domain::research::capability_name(*id).to_owned(),
             Self::Course(course) => (*course).to_owned(),

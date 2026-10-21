@@ -140,7 +140,10 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
             format!(" {} — {}", person.name, person.role.label()),
             theme::emphasis(),
         ),
-        Line::raw(format!("  {}", person.assignment.description())),
+        Line::raw(format!(
+            "  {}",
+            sim::derived::assignment_description(app.sim().state(), &person.assignment)
+        )),
         Line::raw(format!(
             "  morale {}  fatigue {}  health {}  fame {}",
             person.state.morale_percent(),

@@ -25,10 +25,10 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     for vehicle in state.vehicles.values() {
         lines.push(Line::styled(
             format!(
-                "  {} — {} ({:?})",
+                "  {} - {} ({})",
                 vehicle.name,
                 domain::vehicle::archetype_name(vehicle.archetype),
-                vehicle.build_state
+                vehicle.build_state.label()
             ),
             theme::emphasis(),
         ));

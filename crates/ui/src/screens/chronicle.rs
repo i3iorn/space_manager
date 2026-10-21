@@ -120,10 +120,10 @@ impl ChronicleFilter {
         &self,
         entry: &domain::chronicle::ChronicleEntry,
         text: &str,
-        calendar: &domain::time::Calendar,
+        state: &domain::state::CampaignState,
     ) -> bool {
         if let Some(year) = self.year {
-            if calendar.date(entry.date).year != i32::try_from(year).unwrap_or(i32::MAX) {
+            if state.calendar().date(entry.date).year != i32::try_from(year).unwrap_or(i32::MAX) {
                 return false;
             }
         }
@@ -137,10 +137,11 @@ impl ChronicleFilter {
         }
         let needle = text.to_lowercase();
         entry.headline.to_lowercase().contains(&needle)
-            || entry
-                .subjects
-                .iter()
-                .any(|subject| subject_label(subject).to_lowercase().contains(&needle))
+            || entry.subjects.iter().any(|subject| {
+                subject_label(subject, state)
+                    .to_lowercase()
+                    .contains(&needle)
+            })
     }
 
     /// Moves to the next year, or back to every year.
@@ -193,12 +194,30 @@ impl ChronicleFilter {
 }
 
 /// The name of a subject, for the text filter.
-fn subject_label(subject: &domain::chronicle::SubjectRef) -> String {
+///
+/// **A name, never an identifier.** The filter is for finding a thing in the
+/// history, and the player finds it by the name they know it by.
+fn subject_label(
+    subject: &domain::chronicle::SubjectRef,
+    state: &domain::state::CampaignState,
+) -> String {
     match subject {
-        domain::chronicle::SubjectRef::Programme(id) => format!("programme {id:?}"),
-        domain::chronicle::SubjectRef::Person(id) => format!("person {id:?}"),
-        domain::chronicle::SubjectRef::Facility(id) => format!("facility {id:?}"),
-        domain::chronicle::SubjectRef::Vehicle(id) => format!("vehicle {id:?}"),
+        domain::chronicle::SubjectRef::Programme(id) => state.programmes.get(id).map_or_else(
+            || "a programme that has closed".to_owned(),
+            |programme| programme.title.clone(),
+        ),
+        domain::chronicle::SubjectRef::Person(id) => state.people.get(id).map_or_else(
+            || "someone who has left".to_owned(),
+            |person| person.name.clone(),
+        ),
+        domain::chronicle::SubjectRef::Facility(id) => state.facilities.get(id).map_or_else(
+            || "a facility that has been demolished".to_owned(),
+            |facility| facility.name.clone(),
+        ),
+        domain::chronicle::SubjectRef::Vehicle(id) => state.vehicles.get(id).map_or_else(
+            || "a vehicle that has been scrapped".to_owned(),
+            |vehicle| vehicle.name.clone(),
+        ),
     }
 }
 /// Draws the chronicle screen.
@@ -222,7 +241,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     )];
 
     for entry in state.chronicle.iter().rev().take(40) {
-        if !filter.matches(entry, text, &state.calendar()) {
+        if !filter.matches(entry, text, state) {
             continue;
         }
         let meaning = match entry.severity {

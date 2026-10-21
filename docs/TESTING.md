@@ -72,6 +72,8 @@ The current figure is **89%** of the lines and **91%** of the regions.
 | **The facilities** | `crates/sim/src/rates.rs` | The wear, the maintenance, and the capacity |
 | **The screens** | `crates/ui/tests/screens.rs` | Every screen renders, says something, and renders on an empty campaign |
 | **The names** | `crates/ui/tests/names.rs` | No screen shows an index or a raw millisecond count where a name or a date belongs |
+| **The identifiers** | `crates/ui/tests/identifiers.rs` | No screen, no message, and no confirmation shows an identifier where a name belongs — and `Ctrl+C` quits from any modal |
+| **A long run** | `crates/sim/tests/longrun.rs` | A five-year campaign with an order every week survives without a panic |
 | **The manual's numbers** | `crates/ui/tests/manual_numbers.rs` | The manual quotes the live balance constants, and a change to one fails the test that guards it |
 
 **The negative cases are the ones that find things.** Every bug this project has

@@ -4,7 +4,7 @@
 //! holds a **snapshot** of the campaign, never a live reference into it, so the
 //! interface can never hold a borrow across a mutation.
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use domain::report::MonthReport;
 use domain::time::Duration;
 use ratatui::Frame;
@@ -213,6 +213,22 @@ impl App {
         // second is refused, because the first already did it.
         if !key.kind.is_press() {
             return Action::None;
+        }
+
+        // **Ctrl+C always quits, whatever is on the screen.**
+        //
+        // Every modal takes the keys while it is open — the report, the
+        // manual, the filter, the order palette — and each of them would
+        // otherwise swallow the one key that means "stop". A player who
+        // presses Ctrl+C in a modal and finds the game still running has to
+        // work out how to leave, and a game that will not let a player leave
+        // is a game that feels broken.
+        //
+        // This is checked before everything else for that reason, and the
+        // same key is handled globally in `input.rs`, so the two agree.
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+            self.should_quit = true;
+            return Action::Quit;
         }
 
         // **The player has acted, so the hint on this screen has done its
@@ -615,9 +631,13 @@ impl App {
     /// can fork from.
     pub fn issue(&mut self, kind: domain::order::OrderKind) {
         match self.sim.issue(kind) {
-            Ok(id) => {
+            Ok(_id) => {
                 self.refresh_fork_points();
-                self.notice = Some(format!("Order {id:?} given."));
+                // **No identifier in the notice.** The player issued the order
+                // they can see; the number the engine gave it is an
+                // implementation detail, and a confirmation that shows one
+                // teaches the player to read numbers instead of names.
+                self.notice = Some("Order given.".to_owned());
             }
             // **A refused order is refused here, at the moment it is given**,
             // with a reason. The player is never told three weeks later that

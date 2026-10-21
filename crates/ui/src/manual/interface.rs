@@ -119,4 +119,33 @@ pub const TOPICS: &[Topic] = &[
          is sorted, and the left and right arrows, which change the selected person's \
          shift on the staff screen."
     ),
+    topic!(
+        "interface.names",
+        Section::Interface,
+        "Names, never numbers",
+        "The interface never shows an identifier. It shows what things are called.",
+        "**A number that means something to the engine and nothing to the player is a \
+         bug.** The interface shows the programme's title, the person's name, the \
+         facility's name, and the vehicle's name - never their numbers.\n\n\
+         Where the interface has no name to show, because the thing has closed or been \
+         demolished, it says what kind of thing it was: *a programme that has closed*, \
+         not *programme 3*. A player who is shown an identifier has to learn to read \
+         numbers instead of reading the situation, and the whole point of the interface \
+         is that the situation can be read."
+    ),
+    topic!(
+        "interface.stopping",
+        Section::Interface,
+        "When the game stops",
+        "The terminal is always put back, and the game always says why it stopped.",
+        "The game runs on the alternate screen and in raw mode, and both are undone when \
+         it ends - whether the player quits, whether the engine reports an error, or \
+         whether the game fails.\n\n\
+         **A message written to the alternate screen is a message the player never \
+         sees**, because the alternate screen is thrown away when it is left. So if the \
+         game ever fails, it puts the terminal back *first* and says plainly that it \
+         stopped unexpectedly, with the place it stopped written underneath. A game that \
+         disappears without a word is indistinguishable from a game that decided to \
+         stop, and the player has to be able to tell the difference."
+    ),
 ];

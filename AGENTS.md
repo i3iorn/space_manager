@@ -4,7 +4,7 @@
 
 A space agency management simulation, in Rust, built as a cargo workspace of four
 crates: `domain` (the data), `sim` (the engine), `ui` (the terminal interface), and
-`space_manager` (the binary). 175 tests pass.
+`space_manager` (the binary). 501 tests pass.
 
 **The design is complete and the code is behind it.** The engine in `crates/` still
 implements the old monthly-turn model; Milestone M1 (`docs/ROADMAP.md` §4) rebuilds it
@@ -27,7 +27,7 @@ stock defaults, and the toolchain follows the machine's rustup default. CI lives
 `.github/workflows/ci.yml` and runs the first four plus the dependency-direction test
 on both Linux and Windows.
 
-**`cargo test --workspace` currently runs 494 tests and they all pass.** That number
+**`cargo test --workspace` currently runs 501 tests and they all pass.** That number
 matters: it is the baseline a change is measured against. If you add behaviour, add
 tests with it, or "green" means nothing.
 

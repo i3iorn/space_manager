@@ -415,6 +415,19 @@ pub enum BuildState {
     Scrapped,
 }
 
+impl BuildState {
+    /// The state, as a player reads it.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Planned => "planned",
+            Self::Building => "being built",
+            Self::Complete => "ready",
+            Self::Scrapped => "written off",
+        }
+    }
+}
+
 /// A vehicle the agency owns.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Vehicle {

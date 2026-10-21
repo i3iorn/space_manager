@@ -27,6 +27,15 @@
    player does not know what will go wrong.
 7. **Every order shows its price before it is confirmed** — the lead time, the money,
    and the goodwill.
+8. **Names, never identifiers [D].** No screen, no message, and no confirmation may
+   show an identifier — not a programme number, not a person number, not a vehicle
+   number. The number means something to the engine and nothing to the player, and a
+   player who is shown one has to learn to read numbers instead of reading the
+   situation. Where the interface does not have a name to show, it says what kind of
+   thing it is: "a programme that has closed", not "programme 3".
+9. **The game must never disappear without saying why [D].** A crash that leaves the
+   player with a working terminal and no explanation is indistinguishable from a
+   game that decided to stop. See §2.1.
 
 ---
 
@@ -96,6 +105,32 @@ player thinks in "per day" — and the number is small enough to read at a glanc
 **The dilution is in the top bar, always.** It is the control the player uses most, and
 it must never be something they have to go looking for.
 
+### 2.1 When the game stops [D]
+
+**The terminal is always put back, and the game always says why it stopped.**
+
+The interface runs on the alternate screen and in raw mode. Both are undone when the
+game ends — normally, on an error, and on a panic — because a terminal left in raw
+mode is a terminal the player cannot type in.
+
+| How the game ends | What the player sees |
+|---|---|
+| The player quits | The terminal is restored and the shell is back |
+| An order is refused | Nothing happens; the game carries on |
+| The engine reports an error | The message is shown; the game carries on |
+| **The game panics** | **The terminal is restored, and the panic is printed where the player can read it** |
+
+**A panic message written to the alternate screen is a message the player never
+sees.** The alternate screen is thrown away when it is left, so a panic that unwinds
+out of the interface takes its own explanation with it: the terminal comes back, the
+game is gone, and nothing says why. The panic hook therefore restores the terminal
+*first* and writes the message *after*, and the game says plainly that it stopped
+unexpectedly rather than leaving the player to guess.
+
+The hook that was in place before the game started is put back when the game ends:
+the interface is a library first, and a library must not change the host process's
+panic hook for good.
+
 ---
 
 ## 3. Navigation and controls
@@ -122,6 +157,15 @@ it must never be something they have to go looking for.
 | `s` | **Change how the list is sorted** |
 | `←` `→` | The shift, on the staff screen; the fields of a form, elsewhere |
 | `q` | Quit (with a save prompt) |
+| **`Ctrl+C`** | **Quit, whatever is on the screen** |
+
+**`Ctrl+C` always quits, and no modal may swallow it [D].** The report, the
+manual, the filter, and the order palette each take the keys while they are
+open — and each of them would otherwise take the one key that means "stop". A
+player who presses `Ctrl+C` in a modal and finds the game still running has to
+work out how to leave, and a game that will not let a player leave is a game
+that feels broken. It is handled before everything else in the key handler, so
+it works from any screen and any modal.
 
 **The keymap is on `F1`, and `F1` is the same key on every layout [D].** A
 function key is reported by the terminal from the hardware, not from a character

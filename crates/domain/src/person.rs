@@ -313,22 +313,28 @@ pub enum ProgrammeRole {
 
 impl Assignment {
     /// A short description of where the person is, for the interface.
+    ///
+    /// **No identifier appears here, and that is deliberate.** The domain does
+    /// not know what the programmes and the facilities are called — it holds
+    /// the state's shape, not the state's content — so all it can say is what
+    /// *kind* of thing the person is on. The name is added by
+    /// `sim::derived::assignment_description`, which does have the state.
+    ///
+    /// A player who reads "programme 3" has been shown an implementation
+    /// detail, and an implementation detail in a message is a bug.
     #[must_use]
     pub fn description(&self) -> String {
         match self {
             Self::Unassigned => "Unassigned".to_owned(),
-            Self::Division(id) => format!("Division {}", id.0),
-            Self::Programme { programme, role } => {
-                let role = match role {
-                    ProgrammeRole::Lead => "leads",
-                    ProgrammeRole::Member => "works on",
-                    ProgrammeRole::Adviser => "advises",
-                };
-                format!("{role} programme {}", programme.0)
-            }
-            Self::Project { project } => format!("Project {}", project.0),
-            Self::Facility { facility } => format!("Facility {}", facility.0),
-            Self::TestCampaign { campaign } => format!("Test campaign {}", campaign.0),
+            Self::Division(_) => "a division".to_owned(),
+            Self::Programme { role, .. } => match role {
+                ProgrammeRole::Lead => "leads a programme".to_owned(),
+                ProgrammeRole::Member => "works on a programme".to_owned(),
+                ProgrammeRole::Adviser => "advises on a programme".to_owned(),
+            },
+            Self::Project { .. } => "a research project".to_owned(),
+            Self::Facility { .. } => "a facility".to_owned(),
+            Self::TestCampaign { .. } => "a test campaign".to_owned(),
         }
     }
 }
