@@ -2,11 +2,50 @@
 //!
 //! **How the interface works**, and the handful of rules that are not obvious
 //! from watching it.
+//!
+//! This section is the one the player reads first, and it is the one that has
+//! to answer the question a new player actually has: *what do I do first?*
 
 use crate::manual::{Section, Topic, topic};
 
 /// The topics about the interface.
 pub const TOPICS: &[Topic] = &[
+    topic!(
+        "interface.firsthour",
+        Section::Interface,
+        "The first hour",
+        "What to do, in what order, and what each of those things is for.",
+        "**The opening campaign is small on purpose.** A new agency has a handful of \
+         named people, a treasury of 190,000, and no obligations. Everything below is \
+         the order that works, and the reason for it.\n\n\
+         **1. Look at the staff screen.** Press `2`. The panel on the right names the \
+         **binding factor** - the one thing holding each person back. Every decision \
+         after this one is easier because the game has already told you what the \
+         problem is.\n\n\
+         **2. Put somebody on something.** Press `o` and assign a scientist to a \
+         research project. An unassigned person is a salary and nothing else, and the \
+         project's cost of 12,000 a head is only worth paying when somebody is \
+         contributing.\n\n\
+         **3. Start the project.** It takes a week or two to land, and then it runs at \
+         the rate its team can sustain. **A project with a full team of four takes six \
+         months**, so the sooner it starts the sooner it finishes, and every week it sits \
+         idle is a week of slack spent for nothing.\n\n\
+         **4. Keep an eye on the top bar.** The net is a daily figure. When it goes \
+         red, the runway is what it is worth paying attention to - two months of runway \
+         is one of the things the world reads, and the crisis stages begin to move.\n\n\
+         **5. Set a deadline before you need one.** Press `3`, give the programme an \
+         objective, and give it a horizon. The target is half the horizon and the \
+         commitment is all of it, so the player is given a buffer rather than being \
+         asked to invent one. A promise made is worth four points of approval; a promise \
+         broken costs fourteen, and a deadline missed costs eighteen.\n\n\
+         **6. Do not build anything yet.** A laboratory costs 350,000 and takes fifteen \
+         months to build. The campaign is thirty years long and the treasury is 190,000. \
+         The first building should be the first one the campaign can pay for, not the \
+         first one that sounds right.\n\n\
+         **7. Read the chronicle now and then.** The forecast on the right is the next \
+         twelve months of obligations, with the risk on each. It is the only place the \
+         player can see the future, and it is a future they have already committed to."
+    ),
     topic!(
         "interface.manual",
         Section::Interface,
@@ -20,7 +59,11 @@ pub const TOPICS: &[Topic] = &[
          a one-line explanation of whatever is selected, so most of the time the manual \
          is not needed at all - it is needed when the one line is not enough.\n\n\
          The keymap is on `F1` as well as `?` and `/`, and the key ledger at the bottom of \
-         the screen always shows the common keys."
+         the screen always shows the common keys.\n\n\
+         **The manual is one store, reached three ways**, and that is deliberate: if the \
+         binding factor is explained in the staff screen's information and in the manual, \
+         the two will disagree within a month. There is one binding-factor topic and both \
+         routes reach it."
     ),
     topic!(
         "interface.clock",
@@ -40,7 +83,11 @@ pub const TOPICS: &[Topic] = &[
          clock without dismissing the thing they were reading.\n\n\
          **The dilation never changes the campaign.** It is a pacing control, and the game \
          guarantees that a campaign played at one rate and the same campaign played at \
-         another are the same campaign."
+         another are the same campaign.\n\n\
+         **And stopping does not release a backlog.** The clock consumes the real time it \
+         passed whether or not it was paused, so an hour spent away is not an hour of \
+         campaign. The player who pauses for lunch comes back to the campaign they left, \
+         not to one an hour further on."
     ),
     topic!(
         "interface.order",
@@ -57,7 +104,11 @@ pub const TOPICS: &[Topic] = &[
          world may have moved underneath it. An order that cannot be accepted is refused \
          with a reason, never silently ignored and never half-applied.\n\n\
          The orders in flight are part of the campaign's state, so a campaign saved with a \
-         hire in the air restores it."
+         hire in the air restores it.\n\n\
+         **Every order is a claim about the future.** The order palette shows the lead \
+         time because the player is being asked to say what the world will look like when \
+         it lands - and the game will hold the agency to it, and the world will read it as \
+         a pressure on the programme it lands in."
     ),
     topic!(
         "interface.report",
@@ -69,7 +120,14 @@ pub const TOPICS: &[Topic] = &[
          **The report is a prompt, not a record.** It stays on the screen until it is \
          dismissed, and it is not replaced while it is undismissed - a report that vanished \
          on its own would be a report nobody read. Any key dismisses it, and the clock \
-         controls work while it is up."
+         controls work while it is up.\n\n\
+         **The report is where the refusals are reported.** An order that was accepted \
+         when it was given and refused when it landed - because the person had left, or \
+         the programme had been cancelled - is reported here, and not charged. The player \
+         who reads the report every month knows exactly what the agency did and what it \
+         cost; the player who does not will find out from the treasury.\n\n\
+         The report is also where the warnings are: the state's patience running out, a \
+         deadline coming due with no slack, a facility that has nobody working in it."
     ),
     topic!(
         "interface.chronicle",
@@ -84,7 +142,13 @@ pub const TOPICS: &[Topic] = &[
          the future at all - and it is the future the player has already committed to by \
          the orders in flight.\n\n\
          The chronicle is also the record the game replays. A campaign is forked by \
-         replaying the order log, so the two branches can be compared."
+         replaying the order log, so the two branches can be compared.\n\n\
+         **The history is filtered three ways** - by year, by category, and by text - and \
+         the line above it always says which of them is in force. The filter matters \
+         because the history is long: a campaign of thirty years has hundreds of entries, \
+         and the player is looking for one of them.\n\n\
+         **The forecast is the next twelve months and no further.** The player is planning \
+         *this* year, and a schedule that runs to the end of the campaign is not a plan."
     ),
     topic!(
         "interface.branches",
@@ -98,7 +162,11 @@ pub const TOPICS: &[Topic] = &[
          decision, and not because of anything else. The order log therefore records the \
          campaign's effective time for each order, and the carried fraction has to be \
          reproduced exactly or the branch and the original drift apart.\n\n\
-         The branches screen lists the decisions, and `Enter` forks at the selected one."
+         The branches screen lists the decisions, and `Enter` forks at the selected one.\n\n\
+         **This is the answer to the question the player cannot otherwise ask**: *what \
+         would have happened if I had done the other thing?* The branch is the same world, \
+         the same people, the same seed - the only difference is the decision - so the \
+         comparison is the player's own, and not the engine's."
     ),
     topic!(
         "interface.keys",
@@ -117,7 +185,12 @@ pub const TOPICS: &[Topic] = &[
          `/` and the two must not collide.\n\n\
          The keys that are not in the ledger are `/` to filter a list, `s` to change how it \
          is sorted, and the left and right arrows, which change the selected person's \
-         shift on the staff screen."
+         shift on the staff screen.\n\n\
+         **`Ctrl+C` always quits, whatever is on the screen.** The report, the manual, \
+         the filter, and the order palette each take the keys while they are open, and a \
+         player who presses the key that means *stop* in one of them and finds the game \
+         still running has to work out how to leave. It is handled before everything else, \
+         so it works from anywhere."
     ),
     topic!(
         "interface.names",
@@ -131,7 +204,10 @@ pub const TOPICS: &[Topic] = &[
          demolished, it says what kind of thing it was: *a programme that has closed*, \
          not *programme 3*. A player who is shown an identifier has to learn to read \
          numbers instead of reading the situation, and the whole point of the interface \
-         is that the situation can be read."
+         is that the situation can be read.\n\n\
+         The same rule applies to the messages: a refusal says *there is no programme \
+         called Orbital Survey*, not *no programme 5*. **A message is a sentence about \
+         something the player knows by name.**"
     ),
     topic!(
         "interface.stopping",
@@ -146,6 +222,8 @@ pub const TOPICS: &[Topic] = &[
          game ever fails, it puts the terminal back *first* and says plainly that it \
          stopped unexpectedly, with the place it stopped written underneath. A game that \
          disappears without a word is indistinguishable from a game that decided to \
-         stop, and the player has to be able to tell the difference."
+         stop, and the player has to be able to tell the difference.\n\n\
+         **`Ctrl+C` is the way out, and it always works.** A game that will not let a \
+         player leave is a game that feels broken."
     ),
 ];

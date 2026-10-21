@@ -189,6 +189,22 @@ the start.
 | "The game just shuts down without warning" | A **panic printed its message to the alternate screen** — which is thrown away when the screen is left, so the game vanished with no explanation and the shell came back looking normal | A panic hook restores the terminal *first* and writes the message *after* it, and the game says plainly that it stopped unexpectedly |
 | "I cannot always get out" | **Every modal took the keys** while it was open, and `Ctrl+C` was one of them, so a player who pressed it in the report or the palette found the game still running | `Ctrl+C` quits from any screen and any modal, and is handled before the modals |
 
+**The manual was rewritten in the same pass**, because the first playtest showed
+that it read as a glossary rather than as an explanation. Every topic now has a
+worked example with real numbers, says how the thing ties into the systems
+either side of it, and says what the player can do about it. Nine topics were
+added - the eight factors, the eight weighting contexts, the first hour, the
+capability against reliability, the political capital, the mandate, the
+milestones, the shift as an order, and how the screens fit together - and
+eighteen new tests now guard the figures the manual quotes against the
+balance constants they came from.
+
+**A bug came out of writing the example.** The test campaign's target was a
+hundred points and its progress was scaled, so the first month's points passed
+the target on their own: every test campaign finished in a month, and the
+reliability half of the central tension was nearly free. The target is scaled
+now, and a campaign of four takes five months, which is what the manual says.
+
 The campaign itself was not the cause of the crash: a thirty-year campaign with an
 order every week, and forty seeds run for fifty years, are both clean, and so is the
 interface driven through forty thousand frames of clock, keys, and drawing. What was

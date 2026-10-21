@@ -254,6 +254,22 @@ pub fn project_duration_months(team_size: usize) -> u32 {
     (PROJECT_POINTS_TARGET / (heads * 100)).max(1)
 }
 
+/// How many points a test campaign needs to finish.
+///
+/// **The points are scaled**, like every other progress quantity in the game,
+/// and the target has to be scaled with them. A target of a hundred *unscaled*
+/// points against a hundred-and-twenty-eight scaled points a month would be
+/// passed in the first month, and the reliability half of the central tension
+/// would be free.
+pub const TEST_CAMPAIGN_POINTS_TARGET: u32 = 100;
+
+/// How many points each member of a test campaign adds in a month.
+///
+/// **A campaign of four takes five months**, which is the point: testing has to
+/// cost time as well as money, or the player will always test and the research
+/// half of the game will be pointless.
+pub const TEST_CAMPAIGN_POINTS_PER_HEAD: u32 = 5;
+
 /// The chance, in basis points, that a finished project yields a breakthrough.
 pub const BREAKTHROUGH_CHANCE_BP: u32 = 3_500;
 

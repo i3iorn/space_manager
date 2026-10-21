@@ -113,7 +113,7 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
                 target_capability: *capability,
                 team: Vec::new(),
                 funding: domain::finance::Budget::empty(),
-                progress: Progress::empty(100),
+                progress: Progress::empty(scaled(balance::TEST_CAMPAIGN_POINTS_TARGET)),
                 risk_reduction: 5,
             };
             context.state.test_campaigns.insert(id, campaign);
@@ -279,6 +279,10 @@ fn check_unlock(context: &mut MonthContext<'_>, capability: CapabilityId) {
         .push(format!("{name} is now available."));
 }
 
+/// A progress figure, in the scaled units the progress is kept in.
+fn scaled(points: u32) -> u32 {
+    points * domain::scale::PERCENT_UNITS as u32
+}
 /// Advances every test campaign.
 fn advance_test_campaigns(context: &mut MonthContext<'_>) {
     let campaign_ids: Vec<_> = context.state.test_campaigns.keys().copied().collect();
@@ -287,7 +291,7 @@ fn advance_test_campaigns(context: &mut MonthContext<'_>) {
         if team_size == 0 {
             continue;
         }
-        let points = 5 * domain::scale::PERCENT_UNITS as u32;
+        let points = scaled(balance::TEST_CAMPAIGN_POINTS_PER_HEAD);
         let campaign = context
             .state
             .test_campaigns

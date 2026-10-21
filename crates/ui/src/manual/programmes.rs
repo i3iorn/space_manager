@@ -4,6 +4,9 @@
 //! doing, and an objective is a dated piece of that. The gap between when the
 //! agency would like to finish and when it has promised to finish is the thing
 //! the player manages.
+//!
+//! The vocabulary here is the hardest in the game, because it is the part the
+//! state judges the agency on rather than the part the agency controls.
 
 use crate::manual::{Section, Topic, topic};
 
@@ -19,7 +22,15 @@ pub const TOPICS: &[Topic] = &[
          - a lead, a member - and the programme is run by the lead.\n\n\
          Programmes are what the state funds and what the state judges. The programme \
          screen is where the player sees what has been promised, when it is due, and how \
-         much room there is."
+         much room there is.\n\n\
+         **A programme is a container, and everything the player cares about is inside \
+         one.** The budget, the people, the objectives, the milestones, and the risks are \
+         all attached to a programme rather than to the agency as a whole. A player who \
+         cannot say which programme a commitment belongs to cannot say which budget is \
+         going to be short.\n\n\
+         The category matters too: an orbital programme and a lunar one are judged by the \
+         state on different terms, and the state reads the whole portfolio rather than one \
+         programme at a time."
     ),
     topic!(
         "programme.objective",
@@ -31,7 +42,14 @@ pub const TOPICS: &[Topic] = &[
          whole of the player's problem.\n\n\
          The target is the soft one: when the agency expects to finish, if everything goes \
          well. The commitment is the hard one: when the agency has told the state it will \
-         finish, and will be judged against."
+         finish, and will be judged against.\n\n\
+         **An objective also has a kind** - whether it is a thing that must be done or a \
+         thing that must be true - and an **audience**, which is who the promise was made \
+         to. The audience is what decides what missing it costs, and it is the most \
+         consequential thing on the objective.\n\n\
+         An objective also has a target of 600 points, which is the work the programme \
+         has to get done behind it. A programme with three objectives and no people on it \
+         has three targets and nothing to hit them with."
     ),
     topic!(
         "programme.target",
@@ -43,7 +61,14 @@ pub const TOPICS: &[Topic] = &[
          and missing it costs nothing directly.\n\n\
          A target that keeps moving backwards is a sign that the plan is wrong. The player \
          does not have to defend it to anyone, but the gap between the target and the \
-         commitment is the measure of how wrong it is."
+         commitment is the measure of how wrong it is.\n\n\
+         **The target moves as the world moves.** The projection is recalculated from the \
+         team's rate, so a team that is tired moves the target out, and a person who \
+         leaves moves it out further. This is the most useful thing on the programme \
+         screen: it is the date the work will actually be finished, given everything that \
+         is true now.\n\n\
+         A target the player has to defend to somebody else is a commitment, and the \
+         difference between the two is the whole subject."
     ),
     topic!(
         "programme.committed",
@@ -58,7 +83,13 @@ pub const TOPICS: &[Topic] = &[
          else, and the state keeps the score.\n\n\
          Meeting a commitment is worth +8 points of approval; missing one is worth -18. \
          The gap between those two numbers is the price of promising something \
-         the agency cannot deliver."
+         the agency cannot deliver.\n\n\
+         **The committed instant is also the thing that can be bought back - at a price.** \
+         Postponing a deadline is an order: it costs political capital (40 for a \
+         political promise, 20 for a contractual one, 5 for the agency's own), it \
+         costs goodwill, and it takes a week to land. **Postponing is cheaper than missing, \
+         but it is not free, and the player can postpone their way to being a director \
+         nobody trusts.**"
     ),
     topic!(
         "programme.slack",
@@ -74,7 +105,14 @@ pub const TOPICS: &[Topic] = &[
          Slack can be bought back - by adding people, by starting earlier, by scoping the \
          work down - and the player buys it at a price in money and in time. A programme \
          with no slack left is not a programme that is running well; it is a programme \
-         where the next thing that goes wrong is a missed commitment."
+         where the next thing that goes wrong is a missed commitment.\n\n\
+         **This is the resource the whole strategic layer is about.** A player who is rich \
+         in slack can absorb a bad month; a player who is not cannot. The forecast shows \
+         it directly: a commitment with no slack left is drawn in red, because from that \
+         moment the promise is only as good as the next thing that goes right.\n\n\
+         Slack is also the thing the world takes away. The eight weighting contexts are all \
+         ways of spending it - a tired team, a broken facility, a programme with nothing \
+         left - and a programme with no slack raises the odds of an event landing on it."
     ),
     topic!(
         "programme.promise",
@@ -89,7 +127,32 @@ pub const TOPICS: &[Topic] = &[
          disappointed often. The player who promises everything gets an approval score that \
          says nothing and a political position that is hollow.\n\n\
          A promise is also a scheduling claim: it goes on the same calendar as everything \
-         else, and it is resolved at a definite instant, and the resolution is scored."
+         else, and it is resolved at a definite instant, and the resolution is scored.\n\n\
+         **Approval is not the same as goodwill.** Approval is the state's opinion of the \
+         work, and it is what scales the appropriation - so a promise that raises approval \
+         raises the money the agency gets. Goodwill is the state's patience with the \
+         director, and it is what makes the next order slower and dearer. A player who \
+         keeps promises gets both; a player who only wants the appropriation can have \
+         one without the other."
+    ),
+    topic!(
+        "programme.milestone",
+        Section::Programmes,
+        "Milestones",
+        "The waypoints on the way to an objective. They are not deadlines.",
+        "A milestone is a waypoint: something the programme has to pass on the way to \
+         finishing, with a date on it and a flag that says whether it has been reached.\n\n\
+         **A milestone is not a commitment.** Nobody outside the agency was promised it, and \
+         missing one does not cost approval or goodwill. It is the agency's own note to \
+         itself about how the work is going.\n\n\
+         It is still worth having, for two reasons. It is how the player says *this part \
+         first, that part later* in a way the rest of the game understands, and **a \
+         milestone falling due inside the month raises the odds of an event landing on the \
+         programme** - the world's weighting reads it, because a programme with a \
+         waypoint coming up is a programme under pressure.\n\n\
+         The distinction the player should hold on to: the target is when the agency \
+         expects to finish, the commitment is when it promised to finish, and a milestone \
+         is a waypoint in between that nobody else knows about."
     ),
     topic!(
         "programme.order",
@@ -105,20 +168,29 @@ pub const TOPICS: &[Topic] = &[
          happened. A mission that lands in the same instant as a project completing sees the \
          completed project, and a world event that fires after an order has landed sees the \
          order. This is what makes the history read correctly: the record of an instant is a \
-         sequence, not a set."
+         sequence, not a set.\n\n\
+         **This is also why an order has a lead time at all.** The work is scheduled for a \
+         definite instant in the future, and the world is scheduled around it. A player who \
+         gives an order that lands in three weeks is making a claim about the state of the \
+         world in three weeks, and the game holds them to it."
     ),
     topic!(
         "programme.roles",
         Section::Programmes,
         "Roles within a programme",
         "A programme has a lead and members. The lead is what makes the support factor work.",
-        "A person on a programme has a role: lead or member. The lead is what the other \
-         members work around, and **the support factor - how well the team hangs together - \
-         is largely a function of having one.**\n\n\
+        "A person on a programme has a role: lead, member, or adviser. The lead is what the \
+         other members work around, and **the support factor - how well the team hangs \
+         together - is largely a function of having one.**\n\n\
          A programme with no lead has a poor support factor, which is one of the eight \
          multipliers, which means everything else the programme does is worth less than it \
          looks. Putting a capable manager on a programme is the cheapest performance \
-         improvement in the game."
+         improvement in the game.\n\n\
+         **The adviser is the odd one out.** An adviser does not carry the team and does \
+         not add to it, but counts the same as a member for the support calculation - a \
+         person who is on the team but not doing the work still keeps the team together. \
+         It is the cheapest way to put somebody's name on a programme without taking them \
+         off what they are really doing."
     ),
     topic!(
         "programme.audience",
@@ -127,14 +199,21 @@ pub const TOPICS: &[Topic] = &[
         "The promise was made to somebody, and different somebodies are differently forgiving.",
         "Every deadline has an audience - who it was promised to - and the audience is \
          what decides what breaking it costs.\n\n\
-         | Audience | Missing it costs |\n|---|---|\n\
-         | the agency | nothing outside the agency. The plan was wrong, and nobody was told |\n\
-         | a contractor | some approval, and goodwill |\n\
-         | the state | **18 points of approval**, and goodwill |\n\
-         | the public | **18 points of approval**, and goodwill |\n\
-         | the regulator | **18 points of approval**, and worse |\n\n\
+         | Audience | Missed: approval | Missed: goodwill | Met |\n|---|---|---|---|\n\
+         | the agency | nothing | nothing | +8 |\n\
+         | a contractor | -9 | -4 | +8 |\n\
+         | the state | **-18** | -8 | +8 |\n\
+         | the public | **-18** | -8 | +8 |\n\
+         | the regulator | **-18** | -8 | +8 |\n\n\
          **A deadline met is worth 8 points of approval, whoever it was to.** And an \
          internal deadline that slips costs nothing at all outside the agency, which is the \
-         difference between a plan that was wrong and a promise that was broken."
+         difference between a plan that was wrong and a promise that was broken.\n\n\
+         The audience is therefore the most important thing the player chooses when they \
+         set an objective. An internal objective is free to miss and is worth nothing to \
+         hit; a political one is worth eight points and costs eighteen if it slips. The \
+         regulator is the sharpest of them - a missed regulatory deadline is not a \
+         political embarrassment, it is a serious one, and it is recorded as such.\n\n\
+         Postponing costs in proportion: 40 political capital for a political deadline, \
+         20 for a contractual one, 5 for the agency's own."
     ),
 ];
