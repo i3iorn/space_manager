@@ -55,6 +55,11 @@ pub struct App {
     controls: std::collections::BTreeMap<Screen, list_control::ListControl>,
     /// Whether the keymap is on screen.
     show_help: bool,
+    /// The chronicle's filter: the year, the category, and the text.
+    ///
+    /// **It is kept per screen like every other list control**, so a filter
+    /// the player set survives a trip elsewhere.
+    chronicle_filter: screens::chronicle::ChronicleFilter,
     /// The fork points the player can choose from.
     fork_points: Vec<domain::time::Instant>,
     /// Which fork point is selected.
@@ -79,6 +84,7 @@ impl App {
             manual: manual::Manual::new(),
             manual_open: false,
             controls: std::collections::BTreeMap::new(),
+            chronicle_filter: screens::chronicle::ChronicleFilter::default(),
             show_help: false,
             fork_points: Vec::new(),
             fork_index: 0,
@@ -290,6 +296,14 @@ impl App {
                 self.list_control_mut().start_typing();
                 self.selected = 0;
             }
+            // **The chronicle's filter axes are its own**, and they only act
+            // on the chronicle.
+            Action::FilterYear if self.screen == Screen::Chronicle => {
+                self.cycle_chronicle_year();
+            }
+            Action::FilterCategory if self.screen == Screen::Chronicle => {
+                self.cycle_chronicle_category();
+            }
             Action::Sort => {
                 let count = screens::sort_keys(self.screen).len();
                 self.list_control_mut().next_sort(count);
@@ -310,6 +324,7 @@ impl App {
             Action::Faster => self.clock.faster(),
             Action::Slower => self.clock.slower(),
             Action::SetScale(scale) => self.clock.set_scale(scale),
+            Action::FilterYear | Action::FilterCategory => {}
             Action::Left | Action::Right | Action::Back | Action::None => {
                 // **The staff screen's arrows are the shift.** The throttle on
                 // a person is a control the player reaches for while they are
@@ -361,6 +376,37 @@ impl App {
         &self.manual
     }
 
+    /// The chronicle's filter.
+    #[must_use]
+    pub const fn chronicle_filter(&self) -> &screens::chronicle::ChronicleFilter {
+        &self.chronicle_filter
+    }
+
+    /// The chronicle's filter, to change it.
+    pub fn chronicle_filter_mut(&mut self) -> &mut screens::chronicle::ChronicleFilter {
+        &mut self.chronicle_filter
+    }
+
+    /// Moves the chronicle's filter on to the next year, or back to every year.
+    pub fn cycle_chronicle_year(&mut self) {
+        let years: Vec<u32> = self
+            .sim
+            .state()
+            .chronicle
+            .iter()
+            .map(|entry| self.sim.calendar().date(entry.date).year)
+            .filter_map(|year| u32::try_from(year).ok())
+            .collect();
+        let mut years = years;
+        years.sort_unstable();
+        years.dedup();
+        self.chronicle_filter.cycle_year(&years);
+    }
+
+    /// Moves the chronicle's filter on to the next category.
+    pub fn cycle_chronicle_category(&mut self) {
+        self.chronicle_filter.cycle_category();
+    }
     /// The player's control over the current screen's list.
     #[must_use]
     pub fn list_control(&self) -> &list_control::ListControl {

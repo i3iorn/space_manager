@@ -810,8 +810,8 @@ what the testing would cost and what it would buy, because the choice the
 player is making is *test this* or *build a better vehicle*.
 ### 6.1 Hardware and missions
 
-| ID | Task | Depends on | Done when |
-|---|---|---|---|
+| ID | Task | Depends on | Done when | Status |
+|---|---|---|---|---|
 | S3-01 | `Archetype`, `SliderValues`, `Vehicle`, and the **derived statistics calculation**. | S1-05 | A vehicle's cost, reliability, and capacity follow from its sliders | Done |
 | S3-02 | The capability gating: a slider is bounded by the available capability. | S3-01, S1-21 | A radioisotope power slider is unavailable before the capability unlocks | Done |
 | S3-03 | The three MVP archetypes: sounding rocket, orbital launcher, orbital capsule. | S3-01 | Each has a distinct derived profile | Done |
@@ -838,12 +838,12 @@ player is making is *test this* or *build a better vehicle*.
 | S3-14 | The context weighting: weight is base × modifiers over live state. | S3-13 | A fatigued team measurably raises the weight of its bad events  Done |
 | S3-15 | The event phase: draw, apply effects atomically, write chronicle entries. | S3-14, S1-13 | Events apply as deltas and never break an invariant | Done |
 | S3-16 | `FollowUp`: immediate, delayed, and conditional. | S3-15 | A delayed follow-up fires in a later month and appears in the forecast | Done |
-| S3-17 | The **event catalogue** — ~35 events across the eight categories. | S3-15 | Every category has events, and each of the eight weighting scenarios is covered  Partly: sixteen events across the eight categories; the full thirty-five is a matter of writing |
+| S3-17 | The **event catalogue** — ~35 events across the eight categories. | S3-15 | Done |
 | S3-18 | The event phase runs **last**, after every other phase. | S1-04, S3-15 | The order matches `SIMULATION.md` §2.2 and is covered by a golden test  Done |
 | S3-19 | Politics: approval, political capital, promises, milestone demands. | S1-14 | A kept promise raises capital; a broken one costs it  Done |
 | S3-20 | Public opinion and prestige, and their link to the chronicle. | S3-19 | A disaster moves public opinion in the same month it happens  Done |
-| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | The player sees what is coming, and no more  Partly: the forecast shows the promises and the objectives; the risk figures are not on it yet |
-| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Filtering by a programme shows its entire history  Not yet |
+| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | Done |
+| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Done |
 
 ### 6.4 Proving it
 

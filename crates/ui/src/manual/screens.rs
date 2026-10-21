@@ -206,6 +206,23 @@ pub const TOPICS: &[Topic] = &[
          the fork point and differ only because of the decision. That is what makes the \
          comparison worth making."
     ),
+    topic!(
+        "screen.chronicle.filter",
+        Section::Screens,
+        "Filtering the history",
+        "Three axes - the year, the category, and the text - and the line that says which is in force.",
+        "**The history is long and the player is looking for one thing in it**, so \
+         the filter is three axes: the year, the category, and the text. The line above \
+         the history always says which of them is in force, because a filtered list with \
+         no visible filter is a list the player cannot trust.\n\n\
+         **The forecast is the next twelve months and no further.** The player is planning \
+         *this* year, and a schedule that runs to the end of the campaign is not a plan. \
+         Each entry carries its risk figure: the slack in a commitment - and a commitment \
+         with no slack left is in red - and the chance of working for a mission.\n\n\
+         **The forecast never shows what will go wrong.** It shows what is scheduled: the \
+         promises, the commitments, and the missions. Whether they are met is another \
+         matter."
+    ),
 ];
 
 /// The topics that belong to each screen.
@@ -234,7 +251,7 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.research.facilities",
         ],
         Screen::Vehicles => &["screen.vehicles"],
-        Screen::Chronicle => &["screen.chronicle"],
+        Screen::Chronicle => &["screen.chronicle", "screen.chronicle.filter"],
         Screen::Branches => &["screen.branches"],
     }
 }

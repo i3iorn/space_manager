@@ -40,6 +40,23 @@ pub enum Condition {
     HasCapability(u8),
     /// A capability has not been unlocked.
     LacksCapability(u8),
+    /// The agency's average fatigue is above this.
+    ///
+    /// **The average, not the worst.** A tired agency is a tired agency, and the
+    /// condition is the one the player caused by working everybody too hard.
+    AverageFatigueAbove(u8),
+    /// The treasury has less than this many months of runway.
+    RunwayBelowMonths(u32),
+    /// The public's opinion is below this.
+    PublicOpinionBelow(i16),
+    /// A programme has no slack left.
+    ProgrammeWithoutSlack,
+    /// A milestone falls due within this many months.
+    MilestoneDueWithinMonths(u32),
+    /// A mission's risk of failure is above this percent.
+    LaunchRiskAbove(u8),
+    /// A facility has nobody working in it.
+    FacilityUnstaffed,
 }
 
 /// A modifier on an event's weight.

@@ -83,21 +83,66 @@ fn a_worn_facility_raises_the_odds_of_its_bad_events() {
     let worn = campaign();
     let fresh = Sim::new(&Scenario::first_year()).expect("the campaign starts");
 
-    let weight_of = |sim: &Sim, id: domain::ids::EventId| {
-        sim::phases::events::weighted_pool(sim.state(), sim.effective_now())
-            .into_iter()
+    // **The equipment failure is the event the condition guards.** The weight
+    // is relative - the pool's total is the pressure - so the share is what
+    // moves.
+    let share_of = |sim: &Sim, id: domain::ids::EventId| {
+        let pool = sim::phases::events::weighted_pool(sim.state(), sim.effective_now());
+        let total: u32 = pool.iter().map(|(_, weight)| *weight).sum();
+        let weight = pool
+            .iter()
             .find(|(event, _)| event.id == id)
-            .map_or(0, |(_, weight)| weight)
+            .map_or(0, |(_, weight)| *weight);
+        weight * 10_000 / total.max(1)
     };
 
-    // **The equipment failure is the event the condition guards.**
     let equipment = domain::ids::EventId(0);
     assert!(
-        weight_of(&worn, equipment) > weight_of(&fresh, equipment),
+        share_of(&worn, equipment) > share_of(&fresh, equipment),
         "a worn laboratory raises the odds: {} then {}",
-        weight_of(&fresh, equipment),
-        weight_of(&worn, equipment)
+        share_of(&fresh, equipment),
+        share_of(&worn, equipment)
     );
+}
+
+#[test]
+fn every_weighting_context_is_covered() {
+    // **The fairness rule is checkable.** Every context in `BALANCE.md` §8.2
+    // corresponds to something the player did, and every one of them has to
+    // be read by at least one event - otherwise a bad event can fire for no
+    // reason the player could have prevented.
+    let contexts = [
+        domain::event::Condition::AverageFatigueAbove(70),
+        domain::event::Condition::FacilityConditionBelow(sim::event_catalogue::ANY_FACILITY, 60),
+        domain::event::Condition::RunwayBelowMonths(2),
+        domain::event::Condition::PublicOpinionBelow(-30),
+        domain::event::Condition::ProgrammeWithoutSlack,
+        domain::event::Condition::MilestoneDueWithinMonths(1),
+        domain::event::Condition::LaunchRiskAbove(20),
+        domain::event::Condition::FacilityUnstaffed,
+    ];
+    for context in contexts {
+        let used = sim::event_catalogue::catalogue().iter().any(|event| {
+            event
+                .weight_modifiers
+                .iter()
+                .any(|modifier| modifier.when == context)
+        });
+        assert!(used, "no event reads {context:?}");
+    }
+}
+
+#[test]
+fn the_catalogue_covers_every_category() {
+    // **The catalogue is the world's whole vocabulary**, and a category with no
+    // events is a category the world cannot speak about.
+    let categories: Vec<_> = sim::event_catalogue::catalogue()
+        .iter()
+        .map(|event| event.narrative.category)
+        .collect();
+    for category in domain::chronicle::Category::ALL {
+        assert!(categories.contains(&category), "no events for {category:?}");
+    }
 }
 
 #[test]

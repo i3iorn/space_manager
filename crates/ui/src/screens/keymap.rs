@@ -68,6 +68,8 @@ const ENTRIES: &[(&str, &str)] = &[
     ("I", "the manual, for this screen only"),
     ("/", "filter the list"),
     ("s", "change how the list is sorted"),
+    ("y", "the chronicle's year"),
+    ("c", "the chronicle's category"),
     ("q", "quit"),
 ];
 

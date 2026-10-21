@@ -61,6 +61,10 @@ pub enum Action {
     Filter,
     /// Move to the next sort key for the list on the current screen.
     Sort,
+    /// Move the chronicle's filter on to the next year.
+    FilterYear,
+    /// Move the chronicle's filter on to the next category.
+    FilterCategory,
     /// Leave the game.
     Quit,
     /// Stop or start the clock.
@@ -126,6 +130,11 @@ pub fn action_for(key: KeyEvent, _screen: Screen) -> Action {
         // **The sort key is on `s`**, and it cycles rather than opening a
         // menu, because a menu to choose a sort is a menu to dismiss.
         KeyCode::Char('s' | 'S') => Action::Sort,
+        // **The chronicle's filter axes.** They are on the chronicle screen
+        // and nowhere else, so they are handled by the screen rather than
+        // globally.
+        KeyCode::Char('y' | 'Y') => Action::FilterYear,
+        KeyCode::Char('c' | 'C') => Action::FilterCategory,
         KeyCode::Char('o') => Action::OpenPalette,
         KeyCode::Char('q') => Action::Quit,
         _ => Action::None,

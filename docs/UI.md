@@ -510,6 +510,22 @@ player knows exactly how long they will be watching.
 
 ### 4.6 Chronicle (`6`)
 
+**The history is long and the player is looking for one thing in it**, so the
+filter is three axes — the year, the category, and the text — and the line above
+the history always says which of them is in force. A filtered list with no visible
+filter is a list the player cannot trust.
+
+| Key | What it does |
+|---|---|
+| `y` | The next year, or back to every year |
+| `c` | The next category, or back to everything |
+| `/` | Type into the text filter |
+
+**The forecast is the next twelve months and no further.** The player is planning
+*this* year, and a schedule that runs to the end of the campaign is not a plan.
+Each entry carries its risk figure: the slack in a commitment — and a commitment
+with no slack left is in red — and the chance of working for a mission.
+
 ```
 ┌─ Chronicle ─────────────────────────────┬────────────────────────────────────┐
 │ [ Feed ] [ Timeline ]                     │ 2041-06-11 09:40 · technical  ⚠   │

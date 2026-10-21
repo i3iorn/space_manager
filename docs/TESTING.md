@@ -59,7 +59,7 @@ and a gate on a percentage is a gate that gets disabled. What it is for is
 the slack-meter widget was written, documented as done, and never rendered by
 anything — a whole feature that the roadmap claimed and the game did not have.
 
-The current figure is **88%** of the lines and **91%** of the regions.
+The current figure is **89%** of the lines and **91%** of the regions.
 
 ### 2.2 The suites that exist
 

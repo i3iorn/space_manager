@@ -237,3 +237,45 @@ fn the_vehicles_screen_shows_a_vehicle_and_its_numbers() {
         "and its sliders and its numbers are shown: {text}"
     );
 }
+
+#[test]
+fn the_chronicle_filters_by_year_and_category() {
+    // **The history is long and the player is looking for one thing in it.**
+    let mut app = busy();
+    app.on_key(press(KeyCode::Char('6')));
+    let all = rendered(&mut app);
+    assert!(all.contains("History"), "the history is there");
+
+    // **The filter says which of the three axes is in force**, because a
+    // filtered list with no visible filter is a list the player cannot trust.
+    app.on_key(press(KeyCode::Char('y')));
+    let by_year = rendered(&mut app);
+    assert!(
+        by_year.contains("showing") && by_year != all,
+        "and the year filter is on: {by_year}"
+    );
+
+    app.on_key(press(KeyCode::Char('c')));
+    let by_category = rendered(&mut app);
+    assert!(
+        by_category.contains("showing"),
+        "and the category filter is on too: {by_category}"
+    );
+}
+
+#[test]
+fn the_chronicle_can_be_filtered_by_text() {
+    // **The third axis**, and the one the player reaches for most.
+    let mut app = busy();
+    app.on_key(press(KeyCode::Char('6')));
+    app.on_key(press(KeyCode::Char('/')));
+    for character in "equipment".chars() {
+        app.on_key(press(KeyCode::Char(character)));
+    }
+    app.on_key(press(KeyCode::Enter));
+    let text = rendered(&mut app);
+    assert!(
+        text.contains("History"),
+        "the history is still there: {text}"
+    );
+}

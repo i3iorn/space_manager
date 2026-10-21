@@ -52,7 +52,7 @@ pub fn draw_and_apply(context: &mut MonthContext<'_>, check: u64) -> Option<Even
 
     // **The draw is on the check's index**, which is a stable identifier.
     let mut rng = context.rng.stream(crate::rng::Domain::Events, check, 0);
-    let total: u32 = pool.iter().map(|(_, weight)| weight).sum();
+    let total = total_weight(&pool, context.month);
     if total == 0 {
         return None;
     }
@@ -108,6 +108,44 @@ pub fn weighted_pool(
         .collect()
 }
 
+/// The pool's total weight, normalised to the era.
+///
+/// **The weights are relative and the total is the pressure.** The design
+/// fixes the expected number of events a month — one in the early years, one
+/// and a half in the middle, two in the late — so the pool is scaled to the
+/// era's target and the modifiers decide *which* event the pressure lands on,
+/// not how much of it there is.
+fn total_weight(pool: &[(&'static EventDef, u32)], now: domain::time::Instant) -> u32 {
+    let raw: u64 = pool.iter().map(|(_, weight)| u64::from(*weight)).sum();
+    if raw == 0 {
+        return 0;
+    }
+    let target = u64::from(era_target(now));
+    (raw.saturating_mul(target) / 10_000) as u32
+}
+
+/// The target total weight for the era the campaign is in.
+///
+/// **The early years are quiet and the late years are not**, and the target is
+/// in basis points of the weekly check: a quarter of a month for the early
+/// era, and so on.
+fn era_target(now: domain::time::Instant) -> u32 {
+    let years = era_years(now);
+    match years {
+        0..=4 => 2_500,
+        5..=19 => 3_750,
+        _ => 5_000,
+    }
+}
+
+/// How many years into the campaign the world is.
+///
+/// **The world gets busier as the agency gets bigger**, and the year is the
+/// simplest measure of that.
+fn era_years(now: domain::time::Instant) -> u64 {
+    // The months since the campaign began.
+    now.months() / 12
+}
 /// Whether a condition holds.
 fn holds(state: &CampaignState, condition: &Condition, now: domain::time::Instant) -> bool {
     match condition {
@@ -145,6 +183,60 @@ fn holds(state: &CampaignState, condition: &Condition, now: domain::time::Instan
                 .any(|facility| facility.condition < limit)
                 || matches!(state.facilities.get(facility), Some(facility) if facility.condition < limit)
         }
+        // **The eight weighting contexts.** Every one of them corresponds to
+        // something the player did, and the fairness rule is that a bad event
+        // fires because of one of them.
+        Condition::AverageFatigueAbove(threshold) => {
+            let people = state
+                .people
+                .values()
+                .filter(|person| person.state.fatigue > 0)
+                .count();
+            if people == 0 {
+                return false;
+            }
+            let total: u64 = state
+                .people
+                .values()
+                .map(|person| u64::from(person.state.fatigue_percent()))
+                .sum();
+            (total / people as u64) > u64::from(*threshold)
+        }
+        Condition::RunwayBelowMonths(months) => state.treasury.runway_months() < *months,
+        Condition::PublicOpinionBelow(value) => state.public.opinion.value < *value,
+        Condition::ProgrammeWithoutSlack => state.programmes.values().any(|programme| {
+            programme.objectives.iter().any(|objective| {
+                objective
+                    .commitment
+                    .slack()
+                    .is_some_and(domain::time::Duration::is_zero)
+            })
+        }),
+        Condition::MilestoneDueWithinMonths(months) => {
+            let horizon =
+                now.saturating_add(domain::time::Duration::from_months(u64::from(*months)));
+            state.programmes.values().any(|programme| {
+                programme
+                    .milestones
+                    .iter()
+                    .any(|milestone| milestone.date <= horizon && !milestone.met)
+            }) || state.programmes.values().any(|programme| {
+                programme.objectives.iter().any(|objective| {
+                    objective
+                        .commitment
+                        .committed
+                        .is_some_and(|due| due <= horizon)
+                })
+            })
+        }
+        Condition::LaunchRiskAbove(threshold) => state
+            .missions
+            .values()
+            .any(|mission| mission.probability / 100 < u16::from(*threshold)),
+        Condition::FacilityUnstaffed => state
+            .facilities
+            .values()
+            .any(|facility| facility.staff.is_empty()),
         Condition::HasProject(project) => state.projects.contains_key(project),
         Condition::HasCapability(capability) => state
             .unlocked
