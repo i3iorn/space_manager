@@ -59,7 +59,7 @@ was taken from**, in a way that would take years of play to notice.
 
 ```json
 {
-  "format": 4,
+  "format": 10,
   "sim_version": "a3f1c9e2",
   "saved_at": { "day": 87, "month": 3, "year": 2041 },
   "root_seed": 6125084923715548,
@@ -186,15 +186,26 @@ shows it in plain language, and the player keeps whatever they have.
 
 ### Autosaves
 
-| When | Where |
-|---|---|
-| Before each significant action | `<saves>/autosave.json` |
-| On quit | `<saves>/quitsave.json` |
-| Manually | `<saves>/slot-<n>.json` |
+**There are none, and this is a deliberate gap.** The design has three automatic
+saves — before each significant action, on quit, and into numbered slots — and the
+shipped game has none of them:
 
-**The autosave is written before the action, not after.** If the action then crashes the
-game, the autosave holds the state *before* it, and the player loses nothing they had
-not already seen.
+| When | Where | Built |
+|---|---|---|
+| Before each significant action | `<saves>/autosave.json` | No |
+| On quit | `<saves>/quitsave.json` | No |
+| Manually, into a slot | `<saves>/slot-<n>.json` | No |
+
+**What the game does instead is a manual save, from inside the game.** `F3` writes
+the campaign and `F4` reads it back, and the file is the one named by `--save` on
+the command line, or `campaign.json` beside the game. A player who never thought
+about saving can still save, and a player who never thinks about saving never
+loses more than the last month of work.
+
+**The autosave is the obvious next thing**, and it is in `ROADMAP.md` §8. The
+reason it is not built is that it needs a place to write to — the design's answer
+is the platform's config directory, and the shipped game writes beside itself
+instead, which is the wrong answer on a read-only install.
 
 **Simulated time only advances while the game is open [D].** Closing the game is a
 pause that costs nothing, and it is the only "skip" in a game that has no skip.
@@ -208,7 +219,7 @@ optionally a scripted opening.
 
 ```json
 {
-  "format": 2,
+  "format": 10,
   "id": "first_orbit",
   "name": "First Orbit",
   "description": "Five years from founding to orbit.",
@@ -292,6 +303,13 @@ nobody could explain.
 ## 9. Directory layout
 
 ```
+<beside the game>/
+└─ campaign.json      the file --save named, or this one by default
+```
+
+**What the design intends:**
+
+```
 <saves>/
 ├─ autosave.json
 ├─ quitsave.json
@@ -299,26 +317,30 @@ nobody could explain.
 └─ slot-2.json
 
 <scenarios>/            installed with the game
-├─ ground_game.json
+├─ first_year.json
 ├─ first_orbit.json
 └─ sandbox.json
 ```
 
 The locations come from the platform's standard config directory, not the working
 directory — a game that writes into its own install directory is a game that breaks the
-moment it is installed read-only.
+moment it is installed read-only. **The shipped game writes beside itself instead**,
+which is the one thing the design says not to do, and it is on the list with the
+autosave.
 
 ---
 
 ## 10. Open questions
 
-| # | Question | Why it matters | Blocks |
+**Four of the five have been answered, and the fifth is the autosave.**
+
+| # | Question | The answer | Where it is written |
 |---|---|---|---|
-| 1 | Curated `sim_version` inputs versus the whole source tree | A whole-tree hash invalidates replays on every comment change | S4-04 |
-| 2 | Typed order payloads versus raw JSON in the log | Compile-time safety versus easier extension | S4-01 |
-| 3 | Do old saves migrate forward, or are they refused? | A migration that silently changes outcomes is worse than none | S4-05 |
-| 4 | Is the autosave per-campaign or global? | Global is simpler; per-campaign is safer with multiple campaigns open | S1-26 |
-| 5 | How much of the scheduler is written on every save? | A long campaign has thousands of pending items, and most of them are uninteresting | Persistence |
+| 1 | Curated `sim_version` inputs versus the whole source tree | **Curated.** The version hashes the phase order, the integration quantum, the random algorithms, the order kinds, and the scheduled kinds — and nothing else, so a comment does not invalidate a replay | `sim::version` |
+| 2 | Typed order payloads versus raw JSON in the log | **Both, and deliberately.** The log holds the kind's name and the kind's JSON, and the replay deserialises the JSON back into a typed `OrderKind`. The name is there so the file is readable; the typed order is the source of truth | `sim::Sim::replay` |
+| 3 | Do old saves migrate forward, or are they refused? | **Refused.** A migration that silently changes outcomes is worse than none, so a save of any other format is refused with a reason: *"It was made by an older build of the game, and it cannot be read safely."* | §5 |
+| 4 | Is the autosave per-campaign or global? | **Open, and it waits on a bigger question** — where the game may write at all. The shipped game writes `campaign.json` beside itself, which the design says not to do | §5 and §9 |
+| 5 | How much of the scheduler is written on every save? | **All of it.** The scheduler is part of the save, because a loaded campaign must restore its pending work rather than re-scheduling it — otherwise every month boundary that had already happened fires again | `SIMULATION.md` §8 |
 
 ---
 

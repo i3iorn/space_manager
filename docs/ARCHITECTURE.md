@@ -1,3 +1,12 @@
+# ARCHITECTURE.md
+
+> **Where the code lives, and what each crate may know about the others.**
+>
+> **Status:** Design intent, revision 1. The crate layout, the dependency direction,
+> and the module map below all match the code as it stands.
+
+---
+
 ## 1. Principles
 
 1. **Dependencies point one way.** `ui` → `sim` → `domain`. Never the reverse. `domain`
@@ -130,7 +139,7 @@ src/
 ├─ public.rs           PublicOpinion, Prestige
 ├─ chronicle.rs        ChronicleEntry, Severity, Tag
 ├─ event.rs            EventDef, Effect, Condition, Category
-├─ order.rs            Order, OrderKind, OrderId — a decision not yet implemented
+├─ order.rs            Order, OrderKind, OrderId — a decision, and the policy it can carry
 ├─ report.rs           MonthReport and the report's sections
 ├─ state.rs            CampaignState — the aggregate root — and its invariants
 └─ invariant.rs        the checked constructors and assertions
@@ -163,7 +172,9 @@ src/
 ├─ orders.rs           the order registry: the lead times, the costs, and the handlers
 ├─ derived.rs          every derived value (performance, morale, approval, ...)
 ├─ performance.rs      the C+B model implementation
+├─ shift.rs            the shift: the output, the fatigue, and the morale it costs
 ├─ report.rs           building the month report
+├─ feed.rs             the live feed: the chronicle read live, and the decisions
 ├─ persist.rs          save, load, version checks, the state hash
 ├─ version.rs          the behaviour-defining inputs, and the version they hash to
 ├─ error.rs            SimError and OrderError
@@ -171,6 +182,10 @@ src/
 ├─ branch.rs           replay, forking, and the comparison of two branches
 ├─ balance.rs          all tunable numbers, in one place
 ├─ recruitment.rs      generating the people the agency hires
+├─ names.rs            the name generator, one culture at a time
+├─ deadlines.rs        the commitments, and the slack between a promise and a plan
+├─ harness.rs          the balance harness: three reference policies, played out
+├─ summary.rs          the plain-text report of a campaign
 ├─ rng.rs              stream derivation, the pinned hash, the PRNG wrapper
 └─ events/             the event catalogue (data, one module per category)
    ├─ mod.rs
@@ -193,10 +208,9 @@ the number of sub-steps depends on the dilation. There is no `Rng` in the module
 draw from, so the type system makes the mistake impossible rather than merely
 unlikely.
 
-**Two modules do not exist yet** and are named here so the shape is settled:
-`order_palette.rs` (the modal where the player gives an order, which is Slice 1-37),
-and `sim::time` (which is `domain::time` for now, and moves when the clock's host-side
-half does). The `events/` catalogue is named in the map above and arrives with Slice 3.
+**Every module in the map above exists.** The `events/` catalogue arrived with
+Slice 3 and `order_palette.rs` with Slice 1-37; `sim::time` is still
+`domain::time`, and moves when the clock's host-side half does.
 
 ### `crates/ui` — the terminal interface
 
@@ -204,10 +218,16 @@ half does). The `events/` catalogue is named in the map above and arrives with S
 src/
 ├─ lib.rs              App, run loop, the frame loop
 ├─ app.rs              application state, current screen, focus, the feed
-├─ clock.rs              the host's clock: dilation, pause, real-to-simulated conversion
+├─ clock.rs            the host's clock: dilation, pause, real-to-simulated conversion
 ├─ input.rs            key handling, the global keymap
 ├─ screen.rs           the Screen enum and the screen trait
-├─ order_palette.rs    the modal where the player gives an order — Slice 1-37, not yet
+├─ order_palette.rs    the modal where the player gives an order
+├─ advice.rs           what to do next, read from the campaign
+├─ briefing.rs         the opening briefing
+├─ confirm.rs          the modal that asks before something irreversible
+├─ list_control.rs     the filter and the sort, per screen
+├─ tutorial.rs         the hints that wait until the player acts
+├─ manual/             the manual's topics, one module per domain
 ├─ screens/
 │  ├─ mod.rs
 │  ├─ dashboard.rs
@@ -217,6 +237,8 @@ src/
 │  ├─ vehicles.rs
 │  ├─ chronicle.rs
 │  ├─ branches.rs      forking the campaign, and comparing the two branches
+│  ├─ keymap.rs        the keymap modal
+│  ├─ manual.rs        the manual over the interface
 │  └─ report.rs        the report modal
 ├─ widgets/
 │  ├─ mod.rs
@@ -287,15 +309,25 @@ impl Sim {
     pub fn new(scenario: &Scenario) -> Result<Self, SimError>;
     pub fn state(&self) -> &CampaignState;
     pub fn now(&self) -> Instant;
+    pub fn effective_now(&self) -> Instant;
+    pub fn log(&self) -> &[LoggedOrder];
+    pub fn pending_orders(&self) -> &BTreeMap<OrderId, Order>;
+    pub fn pending_lines(&self) -> &[(Instant, ReportLine)];
 
     /// Advances the simulation to an instant. The only way time moves.
-    pub fn advance_to(&mut self, target: Instant) -> Result<(), SimError>;
+    pub fn advance_to(&mut self, target: Instant) -> Result<Vec<MonthReport>, SimError>;
 
     /// Issues an order. Validated now, scheduled for its lead time.
-    pub fn issue(&mut self, order: OrderKind, at: Instant) -> Result<OrderId, OrderError>;
+    pub fn issue(&mut self, order: OrderKind) -> Result<OrderId, OrderError>;
 
     pub fn save(&self) -> Result<String, SimError>;
     pub fn load(text: &str) -> Result<Self, SimError>;
+    pub fn state_hash(&self) -> u64;
+
+    /// Rebuilds the campaign from the order log alone.
+    pub fn replay(&self) -> Result<Self, SimError>;
+
+    /// The same campaign, up to an instant.
     pub fn fork(&self, at: Instant) -> Result<Self, SimError>;
 }
 ```
@@ -306,7 +338,7 @@ impl Sim {
 
 ```rust
 pub struct App { ... }
-pub fn run(sim: Sim) -> Result<(), UiError>;
+pub fn run(app: &mut App) -> Result<(), UiError>;
 ```
 
 `ui` owns the `Sim` and calls `advance_to`. It cannot reach inside it — `state()` is

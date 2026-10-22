@@ -36,7 +36,8 @@
 | **Cross-system** | `crates/sim/tests/invariants.rs` | Seconds | Every change |
 | **Fuzz** | `crates/sim/tests/fuzz.rs` | Minutes | Nightly |
 | **Balance** | `crates/sim/tests/balance.rs` | Minutes | Nightly, and on demand |
-| **Performance** | `crates/sim/tests/performance.rs` | Seconds | Every change || **UI snapshot** | `crates/ui/tests/` | Seconds | Every change |
+| **Performance** | `crates/sim/tests/performance.rs` | Seconds | Every change |
+| **UI snapshot** | `crates/ui/tests/` | Seconds | Every change |
 
 **The dependency-direction check** is a test too — it lives in CI and fails if `domain`
 grows a dependency on `sim`.
@@ -55,11 +56,16 @@ cargo llvm-cov --workspace -- html            # the report
 
 **It is an on-demand tool, not a CI gate.** The number moves as the code moves,
 and a gate on a percentage is a gate that gets disabled. What it is for is
-**finding the branches no test reaches**, and it earns its keep by finding one:
-the slack-meter widget was written, documented as done, and never rendered by
-anything — a whole feature that the roadmap claimed and the game did not have.
+**finding the branches no test reaches**.
 
-The current figure is **89%** of the lines and **91%** of the regions.
+The current figure is **89.2%** of the lines and **90.5%** of the regions, over
+sixteen thousand lines. **The number is not the point** — the point is that the
+tool finds the branches no test reaches, and it has found two of them. The first
+was the slack-meter widget, which was written, documented as done, and never
+rendered by anything: a whole feature that the roadmap claimed and the game did
+not have. The second is the order palette, which is a thousand lines and is under
+four fifths covered, because the interesting cases are the ones a player has to
+be clever to reach.
 
 ### 2.2 The suites that exist
 
@@ -83,6 +89,13 @@ The current figure is **89%** of the lines and **91%** of the regions.
 | **The messages** | `crates/sim/tests/messages.rs` | Every refusal the engine can make is a sentence to a player, and contains no identifier |
 | **The save files** | `crates/sim/tests/persistence.rs` | A garbled, truncated, empty, or foreign-version file is refused with a reason and never crashes |
 | **The onboarding** | `crates/ui/tests/onboarding.rs` | The game opens with the framing and the first goal, and the world waits while the player reads it |
+| **The advice** | `crates/ui/tests/advice.rs` | The banner says what the campaign needs, it says it again when the situation changes, and the panel pictures are gone |
+| **Staffing a project** | `crates/sim/tests/staffing.rs` and `crates/ui/tests/staffing.rs` | Any number of people can be on one project, an assignment moves a person off their old team, and the whole path works through the palette |
+| **The feed** | `crates/sim/src/feed.rs` | The feed says each thing once, and its timestamps do not move with the clock |
+| **The scaling** | `crates/sim/tests/scaling.rs` | Four times the staff costs less than eight times as much, so the integration stays linear in the size of the agency |
+| **The report** | `crates/sim/tests/report.rs` | The plain-text report names the campaign, its seed, and what happened |
+| **The traits** | `crates/sim/tests/traits.rs` | A trait lands on the factor it describes, and the catalogue is data |
+| **The name generator** | `crates/sim/tests/names.rs` | A hire gets a name from one culture, and never a family name the agency already has |
 
 **The negative cases are the ones that find things.** Every bug this project has
 found in the last month of work was found by a test that expected a refusal: an
@@ -327,19 +340,34 @@ at that instant. If that holds, the replay machinery is sound.
 Performance budgets from `ARCHITECTURE.md` §10, asserted in tests so they cannot
 silently regress.
 
-| Benchmark | Budget |
-|---|---|
-| One instant at 300 staff | < 2 ms |
-| A full 40-year campaign | < 1 s |
-| A fork at any instant | < 100 ms |
+| Benchmark | Budget | Where |
+|---|---|---|
+| A full five-year campaign (60 months) | < 1 s release, < 15 s debug | `crates/sim/tests/performance.rs` |
+| A fork at any instant | The same budget — a fork replays the log | `crates/sim/tests/performance.rs` |
+| One hour of simulation (one grid quantum) | < 20 µs release, < 400 µs debug | `crates/sim/tests/performance.rs` |
+| Four times the staff costs less than eight times as much | A ratio, not a time | `crates/sim/tests/scaling.rs` |
+| A two-year campaign at three hundred people | < 30 s debug, < 4 s release | `crates/sim/tests/scaling.rs` |
 
 **These are tests, not benchmarks [D].** A benchmark reports a number and is run by
 whoever thinks to run it; a test fails the build. A generous margin is fine — the point
 is to catch an order-of-magnitude regression, not to tune microseconds.
 
+**The budget is the criterion in the shipped build.** A debug build is five to
+twenty times slower, and a test that failed in CI and passed in a release build
+would be a test nobody trusted. So the release number is the line, the debug number
+is a loose ceiling, and the CI runs the release check as a job of its own.
+
 **The full-campaign test is the important one [D].** It is the guard on the property
 that makes branching, fast-forward, and scrubbing affordable. If it ever fails, the
 architecture has been broken and the cause needs finding, not the budget raising.
+
+**The scaling test is the second one, and it guards a different thing.** The
+absolute budget says "fast enough at the size we ship"; the ratio says "the cost
+grows with the size of the agency rather than with its square", which is the
+property that will still hold when the game is played with eight hundred people
+rather than three hundred. **A clock alone would not catch it** — an implementation
+that is quadratic at every size passes a generous ceiling for a long time and then
+does not.
 
 ---
 
@@ -444,18 +472,31 @@ that fails only in CI, with the input lost, is a test that gets ignored.
 ## 11. CI
 
 ```yaml
-# Every push
-- fmt:      cargo fmt --check
-- clippy:   cargo clippy --all-targets -- -D warnings
+# Every push, on Linux and on Windows
+- fmt:      cargo fmt --all --check
+- clippy:   cargo clippy --workspace --all-targets -- -D warnings
 - test:     cargo test --workspace
-- deps:     the dependency-direction check
+- deps:     the dependency-direction check, which is one of those tests
 - golden:   included in cargo test, but reported separately
 
-# Nightly
-- fuzz:     cargo test --test fuzz -- --ignored
-- balance:  the harness over N seeds, results posted
-- perf:     the performance tests, reported but not blocking
+# Every push, on Linux
+- perf:     cargo test --release -p sim --test performance
+
+# Every push, on Linux and on Windows
+- determ:   cargo test --workspace determinism
+
+# Nightly, on a schedule
+- fuzz:     cargo test --release -p sim --test fuzz -- --ignored
+- balance:  cargo run --release -p sim --example harness -- first_orbit 40 60
 ```
+
+**The determinism test runs on two operating systems on its own.** A stream that
+differed between Windows and Linux would invalidate every replay made on the other
+one, so it is worth a job of its own rather than riding along with the rest.
+
+**The performance budgets are checked in a release build**, because a debug build
+is five to twenty times slower and a budget that only holds in release is a budget
+that has to be checked in release.
 
 **Golden and determinism failures block the build. The balance harness does not [D]** —
 it is a report, and a failing balance assertion should prompt a decision, not a retry.

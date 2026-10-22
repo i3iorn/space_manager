@@ -51,20 +51,6 @@ for the tutorial, and a **key ledger** at the very bottom.
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Top bar field | Meaning | When it changes colour |
-|---|---|---|
-| Agency name | The player's agency | Never |
-| Date and time | The current instant, to the minute | Never |
-| **Dilation** | The current rate, or `paused` | Never |
-| Treasury | The balance | Red below one day of burn |
-| Net | The daily burn rate, signed | Red when negative |
-| Approval | The state's approval | Red when negative |
-| Goodwill | The institution's patience | Red below -40 |
-| Due | How many things need attention | Yellow when anything is at risk |
-
-**The net is a daily rate, not a monthly one.** The game runs in real time, so the
-player thinks in "per day" - and the number is small enough to read at a glance.
-
 **The key ledger is always on screen [D].** One line, at the bottom, on every
 screen, never changing height:
 
@@ -213,8 +199,6 @@ still consumed, so there is no backlog when the player carries on.
 | **`Ctrl+1` … `Ctrl+9`** | **Set the dilation directly** |
 | `o` | **Open the order palette** |
 | `n` | **Another tip, on the dashboard** |
-| `f` | Jump to the feed — the live feed, Slice 1-37's successor, not yet |
-| `w` | Jump to "what needs attention" — the live feed, Slice 1-37's successor, not yet |
 | **`F1`** | **The keymap, in the game** |
 | `?` or shift-`/` | The keymap, on layouts that have them |
 | **`F2`** | **The manual — everything the game explains** |
@@ -223,7 +207,6 @@ still consumed, so there is no backlog when the player carries on.
 | **`F4`** | **Load the campaign — after asking** |
 | `/` | **Filter the list** |
 | `s` | **Change how the list is sorted** |
-| `←` `→` | The shift, on the staff screen; the chosen option, in a form |
 | `q` | **Quit — after asking** |
 | **`Ctrl+C`** | **Quit, whatever is on the screen** |
 

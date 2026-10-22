@@ -55,7 +55,6 @@ prepared to sit through it.
 | Domain | MVP scope | Notes |
 |---|---|---|
 | **Time** | Continuous simulated time, running in real time at nine dilations, ~5 simulated years | The scheduler, the continuous integration, and all ten phases - because the phase order is the architecture |
-| **Time** | Continuous calendar, monthly resolution, ~5-8 in-game years | The full tick from `SIMULATION.md` §2.2 — all ten phases, because the phase order is the architecture |
 | **Money** | State appropriation (daily accrual, annual true-up), payroll, programme spend, construction spend, upkeep | No investors, no debt, no commercial revenue, no crisis ladder beyond a warning. The **parameterised** revenue model ships with one source wired; the structure is right, the breadth is not |
 | **People** | 40-80 staff, roles: Scientists, Engineers, Astronauts, Administrators, Managers | No relationship graph. 2-3 traits per person, traits modify performance directly |
 | **Performance** | The full **C+B hybrid** | Clamped, saturating, with the **binding factor** shown. This is the MVP's most important single system |
@@ -75,16 +74,17 @@ prepared to sit through it.
 | **Rivals** | **Off** | The toggle exists in the options; the rival model is deferred. The open question in `MANAGEABLE_PARTS.md` §17.1 stays open until the core is proven |
 | **Alien life** | **None in the MVP** | Destinations are lifeless. Bacterial life and planetary protection are a late-game pillar and have no place in a five-year slice |
 
-### TUI screens (6)
+### TUI screens (7)
 
 | Screen | Purpose |
 |---|---|
-| **Dashboard** | The clock, the treasury, the burn rate, the headline, what needs attention, and what is in flight |
+| **Dashboard** | The clock, the treasury, the burn rate, the headline, what needs attention, what is in flight, and **what to do next** |
 | **Staff** | List, filters, detail panel with the modifier breakdown and the **binding factor** |
-| **Programme** | Objectives, target vs. committed dates, slack, budget, progress, risk |
+| **Programme** | Objectives, target vs. committed dates, slack, budget, progress, risk, and **what finishes the objective** |
 | **Research & Facilities** | Projects, test campaigns, facilities, construction progress, outputs |
 | **Vehicles & Missions** | Design, sliders, derived stats, risk, launch authorisation, mission status |
 | **Chronicle** | The live feed and the timeline, filterable |
+| **Branches** | Fork the campaign at any decision, and compare the two timelines |
 
 Plus a persistent top bar (date and time, the dilation, the treasury, the approval, the goodwill, and what is due), the **order palette**, and the pause control.
 
@@ -189,18 +189,21 @@ and wants to try a different path — which is exactly what branching is for.
 The MVP is done when all of these are true. They are deliberately measurable, because
 "it feels good" is not a test.
 
-| # | Criterion | How it is checked |
-|---|---|---|
-| 1 | A new player understands what to do within 5 minutes | Observation, in a recorded playtest |
-| 2 | A 5-year campaign is completable in under 90 minutes of play | Observation, at the dilations the player chooses |
-| 3 | **At least three strategies survive** - cautious/test-heavy, fast/cheap, science-first | The balance harness, across N seeds. If two of the three collapse, the trade-offs are fake |
-| 4 | A failed programme produces a legible aftermath the player can trace | Playtest: ask the player why it failed |
-| 5 | The player opens the chronicle unprompted | Observation - the best proxy for whether the history is worth having |
-| 6 | The binding factor is understood on first sight | Playtest question, or a UI test on the explanation panel |
-| 7 | Replay reproduces byte-identically | Automated, every build |
-| 8 | **The campaign is identical at the base rate and at the top rate** | Automated, at every dilation step |
-| 9 | A full campaign resolves in under a second | Automated performance test |
-| 10 | No crash, no soft-lock, no unrecoverable state, from any order sequence | The fuzz test, nightly |
+| # | Criterion | How it is checked | State |
+|---|---|---|---|
+| 1 | A new player understands what to do within 5 minutes | Observation, in a recorded playtest | **Needs a human** |
+| 2 | A 5-year campaign is completable in under 90 minutes of play | Observation, at the dilations the player chooses | **Needs a human** |
+| 3 | **At least three strategies survive** - cautious/test-heavy, fast/cheap, science-first | The balance harness, across N seeds. If two of the three collapse, the trade-offs are fake | **Met.** The harness plays all three across twenty seeds of "First Orbit"; all three reach orbit, and they are separated on time, money and knowledge |
+| 4 | A failed programme produces a legible aftermath the player can trace | Playtest: ask the player why it failed | **Met, mechanically.** The automated playtest loses a programme, a launch and an engineer, and the chronicle names all three. Whether a *player* can read it is the playtest's question |
+| 5 | The player opens the chronicle unprompted | Observation - the best proxy for whether the history is worth having | **Needs a human** |
+| 6 | The binding factor is understood on first sight | Playtest question, or a UI test on the explanation panel | **Needs a human** |
+| 7 | Replay reproduces byte-identically | Automated, every build | **Met.** `crates/sim/tests/replay.rs` |
+| 8 | **The campaign is identical at the base rate and at the top rate** | Automated, at every dilation step | **Met.** `crates/sim/tests/determinism.rs` |
+| 9 | A full campaign resolves in under a second | Automated performance test | **Met**, and it stays met: `crates/sim/tests/performance.rs` holds the shipped budget, and `crates/sim/tests/scaling.rs` holds the *shape* of the cost at three hundred people |
+| 10 | No crash, no soft-lock, no unrecoverable state, from any order sequence | The fuzz test, nightly | **Met.** `crates/sim/tests/fuzz.rs` plays two thousand campaigns of random orders |
+
+**Six of the ten are met, and the four that are not are the ones that need a
+person.** They are the playtests, and they are in `ROADMAP.md` §8.
 
 Criterion 3 is the one that matters most. If only one strategy works, the game is a
 puzzle with a single answer, and everything the design document says about trade-offs is

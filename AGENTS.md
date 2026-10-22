@@ -27,16 +27,19 @@ below before touching the engine.
 All of these exit 0 today. There is **no `rustfmt.toml`, no `clippy.toml`, no
 `.cargo/config.toml`, and no `rust-toolchain.toml`** — rustfmt and clippy run on
 stock defaults, and the toolchain follows the machine's rustup default. CI lives in
-`.github/workflows/ci.yml` and runs the first four plus the dependency-direction test
-on both Linux and Windows.
+`.github/workflows/ci.yml`: the first four commands plus the dependency-direction
+test run on both Linux and Windows, the performance budgets run in a release build
+on Linux, the determinism test has a job of its own on both operating systems, and
+the fuzz test and the balance harness run on a nightly schedule.
 
 **`cargo test --workspace` currently runs 681 tests and they all pass.** That number
 matters: it is the baseline a change is measured against. If you add behaviour, add
 tests with it, or "green" means nothing.
 
-**`cargo build` alone no longer builds every member** in the usual sense — use
-`cargo build --workspace` when you want to be explicit, and `cargo build -p <crate>`
-when working in one crate.
+**`cargo build` builds the whole workspace** — the root manifest is virtual and its
+`members` glob is `crates/*`, so there is no default member to be surprised by.
+Use `cargo build -p <crate>` when working in one crate, and `cargo build
+--workspace` when you want to be explicit.
 
 **`cargo run -p space_manager` starts the interface and waits for a key forever.** Use
 `cargo run -p space_manager -- --headless 24` for a non-interactive smoke test,

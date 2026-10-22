@@ -383,7 +383,8 @@ below −30 will lose people, and the sim will say so.
 
 **The four causes that are not implemented are listed so the design has a place to
 put them** — and so that nobody reads this table and believes the agency only
-loses staff to unhappiness. They arrive with the personnel work in Slice 2.
+loses staff to unhappiness. **They are not built, and Slice 2 did not build
+them** — it was supposed to, and it is still on the list. `ROADMAP.md` §8.
 
 ---
 
@@ -766,7 +767,9 @@ rungs below it need a revenue model and a debt model, and `MVP.md` §3 defers
 both. **They are the natural next thing after the playtests**, and they are
 the thing to build if the crisis turns out to be too forgiving.
 
----## 11. Time scale
+---
+
+## 11. Time scale
 
 | Milestone | Target | Acceptable range |
 |---|---|---|

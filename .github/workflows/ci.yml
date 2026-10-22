@@ -2,8 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
+  schedule:
+    # **The nightly checks run on a schedule.** The fuzz test plays ten
+    # thousand campaigns of random orders and the balance harness plays a
+    # hundred under each of the three reference policies, and neither is
+    # something to run on every push.
+    - cron: "17 4 * * *"
 
 env:
   CARGO_TERM_COLOR: always
@@ -84,7 +90,7 @@ jobs:
     # fuzz test plays ten thousand campaigns of random orders, and the balance
     # harness plays a hundred of them under each of the three reference
     # policies.
-    if: false
+    if: github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4
 

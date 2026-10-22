@@ -397,7 +397,7 @@ player must be able to make a hundred of them.
 **The shift is per person, and that is not the whole answer at three hundred people.**
 The per-person control is the surgical tool, and it scales because it is one
 keystroke on a screen the player is already looking at. The bulk answer — a shift
-policy for the whole agency — is on the roadmap as S1-48.
+policy for the whole agency — is the standing instruction below.
 
 **The shift policy [D]:** the agency has one standing instruction about shifts, and
 it says two things — **who it covers** and **what they work**.
@@ -1114,7 +1114,8 @@ Scope control, stated explicitly so it is not quietly undone later:
 
 ## 17. Open decisions
 
-Six questions remain from revision 2, and revision 3 added four of its own:
+Six questions remain from revision 2, and revision 3 added four of its own. **Four
+of the ten have since been answered**, and they are listed at the bottom:
 
 | # | Question | Why it matters | Blocks |
 |---|---|---|---|
@@ -1128,6 +1129,22 @@ Six questions remain from revision 2, and revision 3 added four of its own:
 | 8 | **How does a scheduled order behave if its target has changed by the time it lands?** — the project was cancelled, the person left, the vehicle was scrapped | Scheduled orders are a new mechanic and this is its main failure mode | Orders |
 | 9 | **Does a launch window have to be scheduled in advance, or can the player authorise at the last moment?** | Determines whether the player plans a mission months ahead or manages it in the moment | Missions |
 | 10 | **What is the smallest useful dilation step for a player who wants to watch a ninety-minute flight?** | At the base rate it is ninety seconds of real time, which is right; a slower step would be a lifetime | UI, time model |
+
+**Closed by the implementation, since revision 3:**
+
+- **Question 7: goodwill is a single meter.** One number, from −100 to +100, on the
+  dashboard. Three meters would be truer and much harder to read, and the anti-spamming
+  job is done by the scale of the effect rather than by the number of meters.
+- **Question 8: an order is validated twice** — when it is issued and when it lands.
+  One that can no longer be honoured is refused at landing, the cost is not charged,
+  and the player is told why. `SIMULATION.md` §4.1.
+- **Question 9: a launch is authorised at the moment the player chooses.** The
+  authorisation order carries the flight time as its lead time, so the window is
+  the flight itself rather than a date the player has to pick. `SIMULATION.md` §4.2.
+- **Question 10: sixty times is the slowest rate there is.** One second in life is one
+  minute in game, so a ninety-minute flight is ninety seconds of real time at the base
+  rate, and there is nothing slower to get in the way of a player who wants to watch it.
+  `MANAGEABLE_PARTS.md` §3.2.
 
 **Closed in revision 3:** continuous time with player-chosen dilation (§3.2) · real-time
 interaction with a pause and scheduled orders (§3.3) · orders take time to implement

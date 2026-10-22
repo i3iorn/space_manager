@@ -227,6 +227,12 @@ having fixed.
 
 **Not delivered, and why it matters:**
 
+**This table is the state of the world at the end of Slice 1.** Everything in it
+has since arrived — the events in Slice 3, the vehicles and the missions in
+Slice 3, the live feed and the branch comparison view in Slice 4 — and the
+**playtest still has not happened**, because it needs a human. The table is kept
+because it says what each gap cost, which is the argument for closing them.
+
 | Missing | Why it matters |
 |---|---|
 | **No first playtest** (S1-36) | Needs a human. The exit test above is the criterion it must meet, and it is the one thing left in Slice 1 |
@@ -322,13 +328,13 @@ added at the end.
 | S1-40 | **The focus is obvious everywhere.** The selected row is in reverse video and bold, and carries a `▸` marker, so it is findable in a monochrome terminal as well as a colourful one. | — | Every list with a selection shows it, and the test reads the rendered buffer | Done |
 | S1-41 | **The shift.** A per-person work intensity from 0% to 200%, in steps of 10%. It scales the person's output, their fatigue, and their morale, and it replaces "unassign them" as the way to ease the load. | M1-06, S1-27 | A person on light duties recovers while still on the team, and a person on 200% tires twice as fast | Done |
 | S1-42 | **The shift is an order**, with a one-hour lead time and no cost, and it is a control on the staff screen — `←` and `→` — so it is reachable while the player is looking at the person. | S1-41, M1-08 | The player changes a shift from the staff screen and sees it land | Done |
-| S1-43 | **Every list is filterable and sortable.** `/` filters, `s` sorts, and the filter is a mode so it can contain a `q` without the game quitting. | S1-27 | A player can find one person in three hundred by name, and the filter survives a trip to another screen | Done, for the staff list |
+| S1-43 | **Every list is filterable and sortable.** `/` filters, `s` sorts, and the filter is a mode so it can contain a `q` without the game quitting. | S1-27 | A player can find one person in three hundred by name, and the filter survives a trip to another screen | Done, for the staff list. The other lists are S1-50 |
 | S1-44 | **The staff list sorts by name, age, role, fatigue, attrition risk, and shift.** | S1-43 | The list can be ordered by who is about to leave | Done |
 | S1-45 | **The attrition risk is a number the player can see**, on the list and in the detail panel, and it is the same number the simulation rolls against. | M1-10 | The number on the screen is the number the engine uses | Done |
 | S1-46 | **The manual.** One store of topics — every stat, every concept, every order, every screen — reached three ways: `F2` for all of it, `I` for the screen you are on, and the info line for a one-line answer. | S1-27 | Every concept in the game has a topic, and no screen shows a number the manual does not explain | Done |
 | S1-47 | **The tutorial hints stay until the player acts.** A hint marked as seen when the screen was first drawn is on the screen for one frame. | S1-33 | A hint is still on the screen after ten seconds of looking at it | Done |
-| S1-48 | **The shift policy: set everybody's shift at once.** The per-person slider is the surgical tool; this is the tool for three hundred people, and it needs the policy order machinery that does not exist yet. | S1-42, S1-49 | A player can put the whole agency on light duties in one action | Done |
-| S1-49 | **The policy order.** `SetPolicy` has no handler, and the shift policy is the first thing that wants one. | M1-08 | An order with a handler, a lead time, and a cost | Done |
+| S1-48 | **The shift policy: set everybody's shift at once.** The per-person slider is the surgical tool; this is the tool for three hundred people. | S1-42, S1-49 | A player can put the whole agency on light duties in one action | Done |
+| S1-49 | **The policy order.** `SetPolicy` sets the agency's standing instruction, with a week of lead time and a goodwill charge. | M1-08 | An order with a handler, a lead time, and a cost | Done |
 | S1-50 | **Every other list is filterable and sortable.** The machinery is built and only the staff list is wired to it. | S1-43 | The research, programme, chronicle, and branches lists all filter | **Not yet** |
 | S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | S1-43 | A player can find everybody who is in trouble without reading three hundred names | **Not yet** |
 | S1-52 | **The order palette can set a shift**, so the order is offered where every other order is offered. | S1-42 | The palette offers every order kind that has a handler | Done |
@@ -641,8 +647,8 @@ them, and the implemented ones are:
 | Below −40 | Every order takes longer | **The lead time lengthens** — by half at the extreme |
 | Below −40 | Costs rise | **The cost rises** — by a third at the extreme |
 | Below −40 | Staff disengage | **The morale a satisfying assignment holds falls** |
-| Below −40 | Events in which the state asks why | Not yet — the event catalogue is Slice 3 |
-| Below −80 | The state reconsiders the mandate | **A warning on the dashboard**; the crisis itself is Slice 3 |
+| Below −40 | Events in which the state asks why | Not yet — the event catalogue is here, but no event in it watches the goodwill |
+| Below −80 | The state reconsiders the mandate | **A warning on the dashboard**; the crisis itself is not built |
 
 **The effect is zero between the thresholds and grows to its maximum at the
 extremes.** That is what the design table says — "above +40", "below −40" — and it
@@ -670,6 +676,14 @@ decision — it changes the state the decision lands in. The fixture is regenera
 the diff reviewed.
 
 #### 4.4.3 What M1-08 and M1-09 did not do
+
+**This is the record of that moment, and it is kept because it says what the
+order model was missing.** The order palette is here now (S1-37), the event
+catalogue is here now (Slice 3), and the live feed is here now (S1-37's
+successor). **The report lines are still not saved** — they are the things that
+have happened since the last report, the chronicle is the durable record, and a
+loaded campaign starts with an empty buffer. That is the one item here that is
+still true.
 
 - **The goodwill is not on the dashboard yet as a resource the player can read at a
   glance.** It is in the top bar, but the *effects* — the deeper applicant pool, the
@@ -1122,6 +1136,73 @@ campaign, and the rest are behind it.
 keymap whose last entry is cut off is a keymap the player cannot read, and the
 entries that are the same idea are now on one line.
 
+### 7.5 The arrows: up and down navigate, left and right change the value
+
+**The order palette had it the wrong way round, and its own hint said so.** The
+form said "(1 of 4 — ← → to change)" while the code made the left and right
+arrows move between the *parameters* — which are one per line, so moving between
+them looks like moving the highlight down the screen — and made the up and down
+arrows change the value. **The interface was lying about its own keys.**
+
+**The convention is now the same everywhere [D].** Up and down navigate, and
+left and right change the value. On the staff screen the left and right arrows
+are the shift, which is a value and not a field; in the order palette they are
+the chosen option; on a list of orders there is no value to change, so they do
+nothing and the up and down arrows move the highlight.
+
+**Two navigation bugs came out of the same pass.**
+
+- **The selection could walk off the end of a list, and the focus with it.** The
+  down arrow added one to the index with nothing to stop it, so a player who
+  pressed it a few times too often lost the highlight entirely — and had to
+  press up a dozen times to get it back. **The selection is now clamped to the
+  list**, when the arrow is pressed and every time the screen is drawn, because
+  a list can change under the player.
+- **The branches screen's list could not be moved at all.** The screen showed
+  the decisions and marked one of them, but the arrows moved a different index
+  entirely, so the player could not choose which decision to fork at. **There is
+  one selection per screen now**, and the branches screen's is the decision the
+  fork happens at.
+
+**And the test that was supposed to catch it was passing for the wrong reason.**
+"Every screen with a selection moves it" compared the *rendered text* before and
+after the arrow, and the text changed because the tutorial hint had been
+dismissed — not because the selection moved. It now compares the selection
+itself.
+
+### 7.6 The pictures: a terminal is a pixel canvas
+
+**The player wanted some flare, and the finding is that a text terminal cannot
+give them icons.** The ceiling is the character cell, not the tooling.
+
+| Technique | Pixels per cell | Colours per cell |
+|---|---|---|
+| **The half-blocks** `▀▄█` | 1 across, 2 down — two | **two** |
+| **The braille block** `⠿⣿` | 2 across, 4 down — **eight** | one |
+
+**Both give square pixels**, because a cell is about twice as tall as it is wide.
+The braille block is the finest a text terminal goes, and it is what the picture
+converters use — **but the dots have gaps between them**, so a shape drawn in
+braille reads as a dot matrix rather than as a shape. It is the right tool for a
+*photograph*, where the dottiness reads as a gradient, and the wrong one for an
+icon.
+
+**So the finest solid pixel a terminal can draw is a whole cell across**, and a
+picture you can read needs many cells. **An icon in the corner of a panel is
+therefore a blob, or it eats the panel's width** — nine columns of a
+sixty-column panel for a shape too coarse to read, and the panel is where the
+money is.
+
+**Both attempts were tried and both looked bad**, which is the finding: the
+half-blocks are solid but the shapes are too coarse to read, and the braille is
+fine but the shapes are made of dots. **The interface has no pictures.** The flare
+is in the panels, the glyphs and the colours.
+
+**Beyond braille there is only real graphics** — sixel and kitty, which put
+actual pixels on the screen. **Crossterm does not do them**, they work in a
+minority of terminals, and a game that needs a special terminal is not a game
+that runs everywhere.
+
 ### 7.7 An assignment is a move
 
 **The player reported that they could not put multiple scientists on a research
@@ -1194,74 +1275,68 @@ and the thing that decides whether the project needs a rewrite.
   chronicle is the part of it that grows. It is not a problem yet — a
   five-year campaign has two hundred entries — but it is the one to watch.
 
-### 7.5 The arrows: up and down navigate, left and right change the value
+### 7.9 The feed said everything twice, and some of it moved
 
-**The order palette had it the wrong way round, and its own hint said so.** The
-form said "(1 of 4 — ← → to change)" while the code made the left and right
-arrows move between the *parameters* — which are one per line, so moving between
-them looks like moving the highlight down the screen — and made the up and down
-arrows change the value. **The interface was lying about its own keys.**
+**The player noticed that some of the timestamps in the "Just happened" panel
+moved with the clock, and that most of the entries were duplicated.** Both were
+real, and they had the same cause.
 
-**The convention is now the same everywhere [D].** Up and down navigate, and
-left and right change the value. On the staff screen the left and right arrows
-are the shift, which is a value and not a field; in the order palette they are
-the chosen option; on a list of orders there is no value to change, so they do
-nothing and the up and down arrows move the highlight.
+**Every event's headline was written to the chronicle and to the month report.**
+The chronicle is the durable record and the report is the month's summary, so
+the two overlapping is right — but the *live feed* reads both, so it showed
+every event twice: once from the chronicle and once from the report lines
+waiting for the month. The event is a chronicle entry and nothing else now, and
+the month report still shows it, in its events section.
 
-**Two navigation bugs came out of the same pass.**
+**The report lines carried no instant of their own.** The feed stamped them all
+with "now", which is why they slid forward with the clock while the chronicle
+entries stayed where they were. **They carry the instant of the step that
+produced them now**, and a line says when it happened.
 
-- **The selection could walk off the end of a list, and the focus with it.** The
-  down arrow added one to the index with nothing to stop it, so a player who
-  pressed it a few times too often lost the highlight entirely — and had to
-  press up a dozen times to get it back. **The selection is now clamped to the
-  list**, when the arrow is pressed and every time the screen is drawn, because
-  a list can change under the player.
-- **The branches screen's list could not be moved at all.** The screen showed
-  the decisions and marked one of them, but the arrows moved a different index
-  entirely, so the player could not choose which decision to fork at. **There is
-  one selection per screen now**, and the branches screen's is the decision the
-  fork happens at.
+## 8. What is left
 
-**And the test that was supposed to catch it was passing for the wrong reason.**
-"Every screen with a selection moves it" compared the *rendered text* before and
-after the arrow, and the text changed because the tutorial hint had been
-dismissed — not because the selection moved. It now compares the selection
-itself.
+**Everything in this plan is done except the things below**, and they are here
+so that nobody has to read the whole document to find out what the game still
+needs.
 
-### 7.6 The pictures: a terminal is a pixel canvas
+### The four playtests
 
-**The player wanted some flare, and the finding is that a text terminal cannot
-give them icons.** The ceiling is the character cell, not the tooling.
+**These need a person.** A machine cannot tell whether the game is *legible*,
+and that is the only thing the playtests are for. The automated playtest
+(S3-28's exit criterion, in `crates/sim/tests/playtest.rs`) proves the five-year
+arc is possible and that it costs a programme, a launch and an engineer on the
+way — it does not prove that a human can play it.
 
-| Technique | Pixels per cell | Colours per cell |
+| ID | The playtest | What it has to answer |
 |---|---|---|
-| **The half-blocks** `▀▄█` | 1 across, 2 down — two | **two** |
-| **The braille block** `⠿⣿` | 2 across, 4 down — **eight** | one |
+| S1-36 | The first one. Five people, one scenario, one hour each. | Does a new player understand what to do in five minutes? |
+| S2-17 | The commitment mechanic. | Can a player commit to an instant, watch the slack shrink, and name what they lost? |
+| S3-28 | The five-year arc. | Does a player reach orbit, having lost something on the way? |
+| S4-12 | The final one, with someone who has never seen it. | Do they reach orbit in one sitting, and ask to try a different path? |
 
-**Both give square pixels**, because a cell is about twice as tall as it is wide.
-The braille block is the finest a text terminal goes, and it is what the picture
-converters use — **but the dots have gaps between them**, so a shape drawn in
-braille reads as a dot matrix rather than as a shape. It is the right tool for a
-*photograph*, where the dottiness reads as a gradient, and the wrong one for an
-icon.
+### The two filter tasks
 
-**So the finest solid pixel a terminal can draw is a whole cell across**, and a
-picture you can read needs many cells. **An icon in the corner of a panel is
-therefore a blob, or it eats the panel's width** — nine columns of a
-sixty-column panel for a shape too coarse to read, and the panel is where the
-money is.
+| ID | The task | Why it matters |
+|---|---|---|
+| S1-50 | **Every other list is filterable and sortable.** The machinery is built and the staff list is wired to it; the research, programme, chronicle and branches lists are not. | An agency of three hundred people has lists the player cannot search |
+| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | Finding everybody who is in trouble should not mean reading three hundred names |
 
-**Both attempts were tried and both looked bad**, which is the finding: the
-half-blocks are solid but the shapes are too coarse to read, and the braille is
-fine but the shapes are made of dots. **The interface has no pictures.** The flare
-is in the panels, the glyphs and the colours.
+### The things the design says and the game does not do yet
 
-**Beyond braille there is only real graphics** — sixel and kitty, which put
-actual pixels on the screen. **Crossterm does not do them**, they work in a
-minority of terminals, and a game that needs a special terminal is not a game
-that runs everywhere.
+These are named in the design documents and are not built. They are listed here
+so that they are not mistaken for oversights.
 
-## 8. Cross-cutting work
+| What | Where it is promised |
+|---|---|
+| **Retirement, illness, injury and death** | `BALANCE.md` §4.4 — the exits a person can have that are not unhappiness |
+| **The austerity cut itself** | `BALANCE.md` §10 — the crisis ladder shows the notice, and the cut it announces is not taken |
+| **The autosave, and somewhere legal to write** | `PERSISTENCE.md` §5 and §9 — the game saves by hand, from inside the game, and it writes beside itself |
+| **A deeper applicant pool**, and the events in which the state asks why | `ROADMAP.md` §4.4.3 — the goodwill's effects on recruitment |
+| **A mandate crisis** — the state's patience running out | `ROADMAP.md` §4.4.3 |
+| **Rival agencies** | `MANAGEABLE_PARTS.md` §13.2 — the rivals can be switched off, and they are off |
+| **Planetary protection and sample-return contamination** | `MVP.md` §3 — a late-game pillar, and the MVP has no bacterial life |
+
+## 9. Cross-cutting work
 
 These run alongside the slices rather than inside them.
 
@@ -1277,7 +1352,7 @@ These run alongside the slices rather than inside them.
 
 ---
 
-## 9. The critical path
+## 10. The critical path
 
 **The path changed with the time model.** The old critical path ran through the monthly
 tick; the new one runs through the redesign and then through the live interface.
@@ -1291,11 +1366,9 @@ That is: **the clock → the scheduler → the advance loop → the rates → th
 the dilation test → the order model → goodwill → the stable buckets → the host loop → the
 order palette → the government's deadline → the first launch → branching.**
 
-M1-01, M1-04, M1-05, M1-06, and M1-07 are done, so the path now starts at **M1-14,
-the dilation-independence test**, and the order model (M1-08) is the long pole behind
-it.
+**The whole path is done.** M1-01, M1-04, M1-05, M1-06, M1-07, M1-08, M1-09, M1-10, M1-13, M1-14, S1-37, S2-05, S3-05 and S4-02 are all complete, and so is everything else in this plan except the four playtests, which need a human, and the two filter tasks in §3.11. **The path below is the record of how the game was built, and it is here because the order mattered** — each step assumed the one before it.
 
-### 9.1 The three long poles
+### 10.1 The three long poles
 
 Each is early on purpose, because each one invalidates work that comes after it.
 
@@ -1313,7 +1386,7 @@ Each is early on purpose, because each one invalidates work that comes after it.
   decision they cannot take back. It is on the critical path because the order-log
   architecture has to be right from M1-16.
 
-### 9.2 The riskiest single task
+### 10.2 The riskiest single task
 
 **M1-14, the dilation-independence test** — not because it is hard, but because
 **it is the test that can fail for a reason nobody can see.** The numerical integration
@@ -1322,7 +1395,7 @@ enough to flip a decision, two campaigns at different dilations will diverge. Th
 is the only thing standing between that and a game whose outcome depends on the frame
 rate.
 
-### 9.3 The two things that are not on the critical path but must not be skipped
+### 10.3 The two things that are not on the critical path but must not be skipped
 
 - **M1-12, the second validation.** An order that is issued and then finds its target
   has changed is a *new* failure mode, and it is the one the player will hit most
@@ -1332,7 +1405,7 @@ rate.
   form, and they are a handful of numbers.
 
 ---
-## 10. Definition of done
+## 11. Definition of done
 
 A task is done when all of the following hold. This applies to every task in this plan.
 
@@ -1348,7 +1421,11 @@ A task is done when all of the following hold. This applies to every task in thi
 
 ---
 
-## 11. Risks to this plan
+## 12. Risks to this plan
+
+**The plan is delivered, and these are the risks that were retired by it.** They
+are kept because they say what the plan was for: each one would have ended the
+project, and each one has a mitigation that was built rather than hoped for.
 
 | Risk | Effect | Mitigation |
 |---|---|---|
@@ -1362,7 +1439,7 @@ A task is done when all of the following hold. This applies to every task in thi
 
 ---
 
-## 12. Related documents
+## 13. Related documents
 
 - `MVP.md` — the scope this plan delivers.
 - `ARCHITECTURE.md` — the crate and module layout the tasks refer to.

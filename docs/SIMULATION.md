@@ -357,9 +357,10 @@ of the save**: a campaign saved with a hire in flight must restore that hire.
    durable record.
 
 **An order with no registered handler is rejected, never ignored [D].** The kinds
-without handlers yet — the publication and facility-assignment machinery — are refused
-at issue, with a reason. **The policy order has a handler**: it sets the agency's
-standing shift instruction, and it is the first of the policy machinery to exist.
+without handlers yet — the publication, facility-assignment and mission-cancellation
+machinery — are refused at issue, with a reason. **The policy order has a handler**:
+it sets the agency's standing shift instruction, and it is the first of the policy
+machinery to exist.
 
 **A lead time may not be random [D].** An order that landed at a random time would
 make the campaign depend on the draw, and the order log would not replay. The lead
@@ -380,17 +381,30 @@ just the timing.
 | `Hire` | 2-6 weeks, by seniority | One month's salary | 1 |
 | `Fire` | Immediate | Three months' salary | 4 |
 | `Assign` | 1-3 days | — | 2 |
+| `Unassign` | 1-3 days | — | 2 |
+| `AssignFacility` | 1-3 days | — | 2 |
+| `SetShift` | 1 hour | — | 0 |
 | `Promote` | The next quarterly round | — | 3 |
-| `Train` | 3-9 months | The course fee | 2 |
+| `Train` | 6 months | The course fee | 2 |
+| `CreateProgramme` | Immediate | — | 1 |
+| `SetObjective` | Immediate | — | 1 |
+| `PostponeDeadline` | 1 week | — | −8, or −4 or −1 by who holds the promise |
+| `SetBudget` | Immediate | — | 2 |
 | `StartProject` | 1-2 weeks | — | 1 |
 | `StartTestCampaign` | 1 week | — | 1 |
 | `BuildFacility` | 6 months to 3 years | The capital cost | 5-15 |
 | `AuthorizeLaunch` | The mission's flight time | The vehicle and the mission | 3 |
-| `SetObjective` | Immediate | — | 1 |
-| `SetBudget` | Immediate | — | 2 |
-| `SetShift` | 1 hour | — | 0 |
-| `PublishResult` | 1 week | — | 1 |
+| `DesignVehicle` | 3 days | — | 2 |
+| `SetSubsystem` | 3 days | — | 2 |
 | `SetPolicy` | 1 week | — | 5 |
+| `PublishResult` | 1 week | — | 1 |
+| `CancelMission` | Immediate | — | 1 |
+
+**The three kinds with no handler are refused at issue.** `PublishResult`,
+`AssignFacility` and `CancelMission` have a lead time, a price and a place in
+the log, but the phases that would carry them out do not exist yet, so
+`Sim::issue` refuses them with a reason rather than accepting an order that
+would never land. Everything else in the table works.
 
 **The lead time is shown to the player before the order is confirmed**, and the cost and
 goodwill are shown with it. An order the player cannot see the price of is not a
@@ -502,9 +516,20 @@ The month's report becomes:
   failing, or about to fall due. This is the panel the player looks at constantly, and
   it is the real replacement for "end of month, here is your report".
 
-*Not implemented yet.* The top bar carries the **count** of what needs attention
-(`sim::derived::needs_attention`), and the report modal carries the month's
-summary, but the live feed itself is Slice 1-37's successor.
+*Both of these exist.* The live feed is `sim::feed` — the chronicle read live,
+newest first, with the severity, and the decisions the player has taken beside
+it. **What needs attention** is the standing list, and the top bar carries its
+count (`sim::derived::needs_attention`). The month report is still a modal, and
+it is still a prompt: it stays until it is dismissed, and a newer one does not
+replace it.
+
+**The feed says each thing once.** An event's headline is a chronicle entry and
+nothing else — the month report shows it in its events section, and the feed
+reads the chronicle — so an event is not reported twice in two places at once.
+
+**A feed line carries the instant it happened.** The report lines that wait for
+the next month are stamped with the instant of the step that produced them, so
+the feed's timestamps do not slide forward with the clock.
 
 ---
 
@@ -730,13 +755,18 @@ in the world*, not just a number.
 
 ## 12. Open questions
 
-| # | Question | Why it matters | Blocks |
+**Four of the five have been answered by the implementation, and the answers are
+written down where they are normative** — §4.1 for the first, §3.4 for the
+second, §2.3 for the fourth, and `SIMULATION.md` §3.1 for the fifth. The fifth
+question is the one still open.
+
+| # | Question | The answer | Where it is written |
 |---|---|---|---|
-| 1 | What happens to a scheduled order whose target has changed by the time it lands? | The main failure mode of the new order model | Orders |
-| 2 | Is the integration quantum of one hour right, or should it be finer? | A finer quantum is more accurate and more expensive; the accuracy matters most at the base rate | Engine |
-| 3 | Should the player be able to cancel a scheduled order before it lands, and at what cost? | A real-time game needs an undo, and undo has to cost something | Orders |
-| 4 | Does the game advance while a menu or an order palette is open? | It changes what "pausing" means | UI, engine |
-| 5 | Should the event check interval be a constant, or should it scale with the pace of the campaign? | A 30-year campaign with weekly checks has thousands of them | Events |
+| 1 | What happens to a scheduled order whose target has changed by the time it lands? | **It is validated twice.** The order is checked when it is issued and again when it lands; one that can no longer be honoured is refused at landing, the cost is not charged, and the player is told why | §4.1 |
+| 2 | Is the integration quantum of one hour right, or should it be finer? | **One hour, anchored at the start of the campaign, and it is not going to be finer.** The quantum is what makes dilation independence hold: the same campaign advanced in one-hour pieces and in one-week pieces produces the same state hash | §3.4, and `crates/sim/tests/determinism.rs` |
+| 3 | Should the player be able to cancel a scheduled order before it lands, and at what cost? | **Open.** There is no cancel order, and the design has not settled whether cancelling an order should cost goodwill, a fee, or nothing. It matters, because a real-time game needs an undo | — |
+| 4 | Does the game advance while a menu or an order palette is open? | **Yes, while the order palette is open, and no while the player is being asked a question.** The confirmation dialog and the opening briefing hold the world still; the order palette does not, because it is part of the game rather than a modal on top of it | `ui::app::advance` |
+| 5 | Should the event check interval be a constant, or should it scale with the pace of the campaign? | **It scales.** The interval is seven days in a calm campaign and three when the agency is under strain, and the check's *index* — not its instant — is what the random draw is keyed on, so the interval can change without the campaign changing | `sim::Sim::event_check_interval_days` |
 
 ---
 

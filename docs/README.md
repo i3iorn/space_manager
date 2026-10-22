@@ -6,28 +6,28 @@ Design documentation for `space_manager` — a space agency management simulatio
 
 | # | Document | What it is | Status |
 |---|---|---|---|
-| 1 | `PLAYER_INTRO.md` | The in-fiction framing. Who the player is and what the game feels like. | Done |
-| 2 | `DEVELOPER_INTRO.md` | The original vision: pillars, core loop, long-term progression. | Done |
-| 3 | `MANAGEABLE_PARTS.md` | **The management surface** — every system the player can act on, and therefore every system the simulation must model. The scoping document. | Draft (rev 2) |
-| 4 | `MVP.md` | The minimum viable *game*: scope, build order, success criteria, risks. | Proposal (rev 1) |
-| 5 | `SIMULATION.md` | The engine: the clock and resolution order, determinism contract, RNG, orders, event system. | Draft (rev 2) |
-| 6 | `ROADMAP.md` | **The build plan** — task-level, with dependencies and exit criteria. | Plan (rev 1) |
-| 7 | `ARCHITECTURE.md` | Crate layout, module boundaries, dependency direction, the public API of each crate. | Draft (rev 1) |
-| 8 | `DOMAIN_MODEL.md` | The entities, their fields, the invariants, and what is derived rather than stored. | Draft (rev 1) |
-| 9 | `PERSISTENCE.md` | Save format, `sim_version`, the order log, replay, and branching. | Draft (rev 2) |
-| 10 | `TESTING.md` | The test strategy: golden, determinism, property, fuzz, balance harness, performance. | Draft (rev 1) |
-| 11 | `UI.md` | The seven screens, the key map, the binding-factor widget, colour and layout rules. | Draft (rev 2) |
-| 12 | `BALANCE.md` | The numbers, where they live, and how they get tuned. | Draft (rev 1) |
-| 13 | `ECONOMY.md` | Money in depth: income parameters, escalation, the budget-crisis ladder. | Planned |
-| 14 | `PEOPLE.md` | Staff model in depth: careers, development, relationships, attrition. | Planned |
-| 15 | `PROGRAMMES.md` | Programmes in depth: objectives, milestones, risk, failure aftermath. | Planned |
-| 16 | `MISSIONS.md` | Vehicles, subsystem sliders, mission construction, success and failure. | Planned |
-| 17 | `RESEARCH.md` | Disciplines, projects, capability vs. reliability, discovery. | Planned |
-| 18 | `INFRASTRUCTURE.md` | Facilities, the full construction matrix, degradation, industrial capacity. | Planned |
-| 19 | `POLITICS.md` | The state, factions, approval, promises, terms and elections. | Planned |
-| 20 | `PUBLIC.md` | Opinion, prestige, media, heroes, scandals, ceremonies. | Planned |
-| 21 | `WORLD.md` | Rival agencies, relations, suppliers, the alien-life scope. | Planned |
-| 22 | `DECISIONS.md` | The decision log — every settled design decision and why. | Planned |
+| 1 | `PLAYER_INTRO.md` | The in-fiction framing. Who the player is and what the game feels like. | Current |
+| 2 | `DEVELOPER_INTRO.md` | The original vision: pillars, core loop, long-term progression. | Current |
+| 3 | `MANAGEABLE_PARTS.md` | **The management surface** — every system the player can act on, and therefore every system the simulation must model. The scoping document. | Current |
+| 4 | `MVP.md` | The minimum viable *game*: scope, build order, success criteria, risks. | Current |
+| 5 | `SIMULATION.md` | The engine: the clock and resolution order, determinism contract, RNG, orders, event system. | Current |
+| 6 | `ROADMAP.md` | **The build plan** — task-level, with dependencies and exit criteria, and what is still left. | Current |
+| 7 | `ARCHITECTURE.md` | Crate layout, module boundaries, dependency direction, the public API of each crate. | Current |
+| 8 | `DOMAIN_MODEL.md` | The entities, their fields, the invariants, and what is derived rather than stored. | Current |
+| 9 | `PERSISTENCE.md` | Save format, `sim_version`, the order log, replay, and branching. | Current |
+| 10 | `TESTING.md` | The test strategy: golden, determinism, property, fuzz, balance harness, performance. | Current |
+| 11 | `UI.md` | The seven screens, the key map, the binding-factor widget, colour and layout rules. | Current |
+| 12 | `BALANCE.md` | The numbers, where they live, and how they get tuned. | Current |
+| 13 | `ECONOMY.md` | Money in depth: income parameters, escalation, the budget-crisis ladder. | Deferred |
+| 14 | `PEOPLE.md` | Staff model in depth: careers, development, relationships, attrition. | Deferred |
+| 15 | `PROGRAMMES.md` | Programmes in depth: objectives, milestones, risk, failure aftermath. | Deferred |
+| 16 | `MISSIONS.md` | Vehicles, subsystem sliders, mission construction, success and failure. | Deferred |
+| 17 | `RESEARCH.md` | Disciplines, projects, capability vs. reliability, discovery. | Deferred |
+| 18 | `INFRASTRUCTURE.md` | Facilities, the full construction matrix, degradation, industrial capacity. | Deferred |
+| 19 | `POLITICS.md` | The state, factions, approval, promises, terms and elections. | Deferred |
+| 20 | `PUBLIC.md` | Opinion, prestige, media, heroes, scandals, ceremonies. | Deferred |
+| 21 | `WORLD.md` | Rival agencies, relations, suppliers, the alien-life scope. | Deferred |
+| 22 | `DECISIONS.md` | The decision log — every settled design decision and why. | Deferred |
 
 **Start with `MANAGEABLE_PARTS.md`.** It defines the scope of the game; every later
 document elaborates one domain of it, and `SIMULATION.md` is the one that makes it move.
@@ -35,9 +35,10 @@ document elaborates one domain of it, and `SIMULATION.md` is the one that makes 
 
 ### Documents 1-12 form the MVP set
 
-Everything needed to build the MVP is written. Documents 13-22 elaborate domains that
-the MVP deliberately defers — they are written when the MVP proves a domain needs more
-than `MANAGEABLE_PARTS.md` and `BALANCE.md` give it.
+Everything needed to build the MVP is written, and all twelve are kept in step with
+the code. **Documents 13-22 are deferred, not promised** — they are written when the
+game proves a domain needs more than `MANAGEABLE_PARTS.md` and `BALANCE.md` give it,
+and nothing in the build depends on them.
 
 ### Progress
 
@@ -56,11 +57,21 @@ the **live feed** on the dashboard, and the **traits**. It also found that the
 world was reacting at a quarter of the designed rate, because the event pool's
 total was compared against a roll scaled differently from the weights choosing
 the event. `ROADMAP.md` §7.2 has the whole of it.
-**What is left is the four playtests**, and they need a human: the first
-playtest, the commitment playtest, the five-year arc, and the final playtest
-by someone who has never seen the game. Everything that a machine can check
-has been checked, and the machine's findings are in `ROADMAP.md` §3.6, §6.5,
-and §7.1.
+
+**The pass after that answered the questions the first one raised.** A player
+could not tell what to do, so the dashboard says what to do; a player could not
+put two scientists on one project, so an assignment is a move; the order palette
+had the arrows the wrong way round; the feed said everything twice and its
+timestamps slid with the clock; a five-year campaign of three hundred people
+took ten and a half seconds, so it now takes one and a half; and the player asked
+for flare, so the finding was that a text terminal cannot give it and the art
+came back out. `ROADMAP.md` §7.3 to §7.9 has each of them.
+
+**What is left is in `ROADMAP.md` §8, in one place.** It is the four playtests,
+which need a person; the two filter tasks, which are the last of the interface's
+readability work; and the handful of things the design promises and the game has
+not built yet — the retirement and the illness, the deeper applicant pool, the
+mandate crisis, the rivals, and the planetary protection of the late game.
 ## The build plan, in brief
 
 The game is built as a **simulation with a view** — a deterministic core that turns a
@@ -105,7 +116,8 @@ criteria, and a critical path. Read it to start work.
 ## Document conventions
 
 - **Filenames** are `UPPER_SNAKE_CASE.md`, matching the existing two documents.
-- **Status** is stated at the top of each document: `Draft`, `Accepted`, or `Superseded`.
+- **Status** is stated at the top of each document — `Design intent`, `Proposal` or
+  `Plan`, with the revision number.
 - **Decisions** are marked inline: **[D]** settled, **[?]** open, and every open question
   is repeated in that document's "Open decisions" table so it can be answered in one
   place. Answered questions get promoted into a decision log rather than silently edited.
