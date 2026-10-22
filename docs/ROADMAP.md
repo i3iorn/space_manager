@@ -328,15 +328,15 @@ added at the end.
 | S1-40 | **The focus is obvious everywhere.** The selected row is in reverse video and bold, and carries a `▸` marker, so it is findable in a monochrome terminal as well as a colourful one. | — | Every list with a selection shows it, and the test reads the rendered buffer | Done |
 | S1-41 | **The shift.** A per-person work intensity from 0% to 200%, in steps of 10%. It scales the person's output, their fatigue, and their morale, and it replaces "unassign them" as the way to ease the load. | M1-06, S1-27 | A person on light duties recovers while still on the team, and a person on 200% tires twice as fast | Done |
 | S1-42 | **The shift is an order**, with a one-hour lead time and no cost, and it is a control on the staff screen — `←` and `→` — so it is reachable while the player is looking at the person. | S1-41, M1-08 | The player changes a shift from the staff screen and sees it land | Done |
-| S1-43 | **Every list is filterable and sortable.** `/` filters, `s` sorts, and the filter is a mode so it can contain a `q` without the game quitting. | S1-27 | A player can find one person in three hundred by name, and the filter survives a trip to another screen | Done, for the staff list. The other lists are S1-50 |
+| S1-43 | **Every list is filterable and sortable.** `/` filters, `s` sorts, and the filter is a mode so it can contain a `q` without the game quitting. | S1-27 | A player can find one person in three hundred by name, and the filter survives a trip to another screen | Done |
 | S1-44 | **The staff list sorts by name, age, role, fatigue, attrition risk, and shift.** | S1-43 | The list can be ordered by who is about to leave | Done |
 | S1-45 | **The attrition risk is a number the player can see**, on the list and in the detail panel, and it is the same number the simulation rolls against. | M1-10 | The number on the screen is the number the engine uses | Done |
 | S1-46 | **The manual.** One store of topics — every stat, every concept, every order, every screen — reached three ways: `F2` for all of it, `I` for the screen you are on, and the info line for a one-line answer. | S1-27 | Every concept in the game has a topic, and no screen shows a number the manual does not explain | Done |
 | S1-47 | **The tutorial hints stay until the player acts.** A hint marked as seen when the screen was first drawn is on the screen for one frame. | S1-33 | A hint is still on the screen after ten seconds of looking at it | Done |
 | S1-48 | **The shift policy: set everybody's shift at once.** The per-person slider is the surgical tool; this is the tool for three hundred people. | S1-42, S1-49 | A player can put the whole agency on light duties in one action | Done |
 | S1-49 | **The policy order.** `SetPolicy` sets the agency's standing instruction, with a week of lead time and a goodwill charge. | M1-08 | An order with a handler, a lead time, and a cost | Done |
-| S1-50 | **Every other list is filterable and sortable.** The machinery is built and only the staff list is wired to it. | S1-43 | The research, programme, chronicle, and branches lists all filter | **Not yet** |
-| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | S1-43 | A player can find everybody who is in trouble without reading three hundred names | **Not yet** |
+| S1-50 | **Every other list is filterable and sortable.** The machinery is built and only the staff list is wired to it. | S1-43 | The research, programme, chronicle, and branches lists all filter | **Done** |
+| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | S1-43 | A player can find everybody who is in trouble without reading three hundred names | **Done** |
 | S1-52 | **The order palette can set a shift**, so the order is offered where every other order is offered. | S1-42 | The palette offers every order kind that has a handler | Done |
 
 **Why the shift is an order and not a direct control.** The architecture says the
@@ -1391,6 +1391,42 @@ the advice banner do not already carry.
 name for a month, not a word a player has any reason to know. It says "this
 month" now, and so does the line about the commitments that came due.
 
+### 7.13 The filter says more than a name
+
+**"Who is in trouble" is not a name.** The staff list could be searched for
+text, and the other three lists could not be searched at all — so finding the
+tired people, or the project that is nearly finished, or the objectives with no
+slack left, meant reading three hundred rows. The roadmap called this S1-51
+("the filter can express a condition — 'fatigue over 80', 'unassigned' — and
+not only a name") and it was right.
+
+**The filter takes conditions now.** A word is a search, and a condition is a
+question about the row: `fatigue>80`, `morale<-30`, `role:scientist`,
+`unassigned`. **Every term has to hold**, so `fatigue>80 unassigned` means
+*tired and on nothing*, and the terms are separated by spaces. The operators
+are `:` and `=` for a word, `>`, `>=`, `<` and `<=` for a number.
+
+**The fields belong to the list.** The staff list has fatigue, morale, health,
+age, shift, risk, role and unassigned; the research list has progress, team,
+discipline and test; the programme list has progress, slack, programme, met and
+unmet; the branches list has kind; the chronicle has year and severity. **A
+field the list does not have is a word and not an error**, so a filter typed on
+one screen does not become a wall of nothing on another — which is the whole
+of what the "a word is a fallback" rule buys.
+
+**And every list is wired to it now** — the research, programme, chronicle and
+branches lists, which is S1-50. The research and chronicle lists sort as well.
+
+**The vocabulary is on the screen.** The fields are named under the filter
+line, and the manual has the whole of it, because a player who does not know
+the filter takes conditions has no reason to type one.
+
+**One thing the filter could not take before: the punctuation.** The typing
+mode only accepted letters and numbers, so `fatigue>80` was impossible to type
+— the condition language would have been a feature the player could not reach.
+The filter takes the colon, the greater-than, the less-than, the equals, the
+hyphen and the space now, and nothing else.
+
 ## 8. What is left
 
 **Everything in this plan is done except the things below**, and they are here
@@ -1418,10 +1454,13 @@ assignment being a move (§7.7).
 
 ### The two filter tasks
 
-| ID | The task | Why it matters |
-|---|---|---|
-| S1-50 | **Every other list is filterable and sortable.** The machinery is built and the staff list is wired to it; the research, programme, chronicle and branches lists are not. | An agency of three hundred people has lists the player cannot search |
-| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | Finding everybody who is in trouble should not mean reading three hundred names |
+**They are done.** The filter takes conditions and not only names, and every list
+is wired to it. `ROADMAP.md` §7.13 has the whole of it.
+
+| ID | The task | Why it matters | State |
+|---|---|---|---|
+| S1-50 | **Every other list is filterable and sortable.** | An agency of three hundred people has lists the player cannot search | **Done** — the staff, research, programme, chronicle and branches lists all filter |
+| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | Finding everybody who is in trouble should not mean reading three hundred names | **Done** — `fatigue>80`, `morale<-30`, `role:scientist`, `unassigned`, and every term has to hold |
 
 ### The things the design says and the game does not do yet
 

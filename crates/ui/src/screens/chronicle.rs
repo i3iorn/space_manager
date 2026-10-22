@@ -99,6 +99,29 @@ fn slack_figure(slack: Option<domain::time::Duration>) -> String {
         None => "no slack".to_owned(),
     }
 }
+/// The sort keys, in the order they are offered.
+///
+/// **The record reads newest first by default**, because that is how a history
+/// is read, and the other order is there for the player who wants the worst of
+/// it at the top.
+pub const SORTS: &[&str] = &["recent", "severity"];
+
+/// The fields the chronicle can be filtered by.
+pub const FIELDS: &[crate::list_control::Field] = &[
+    crate::list_control::Field::number("year"),
+    crate::list_control::Field::text("severity"),
+];
+
+/// The field names, as one line of help.
+#[must_use]
+pub fn field_names() -> String {
+    FIELDS
+        .iter()
+        .map(|field| field.name)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// The chronicle's filter.
 ///
 /// **The history is long and the player is looking for one thing in it.** The
@@ -119,7 +142,7 @@ impl ChronicleFilter {
     pub fn matches(
         &self,
         entry: &domain::chronicle::ChronicleEntry,
-        text: &str,
+        terms: &[crate::list_control::Term],
         state: &domain::state::CampaignState,
     ) -> bool {
         if let Some(year) = self.year {
@@ -132,16 +155,31 @@ impl ChronicleFilter {
                 return false;
             }
         }
-        if text.is_empty() {
-            return true;
+        // **The terms.** A word is a search, and a condition is a question
+        // about the entry: which year, and how bad.
+        let year = state.calendar().date(entry.date).year;
+        let severity = entry.severity.label().to_lowercase();
+        // **The subject names are only worked out when there is a word to
+        // look for.** A record is about people and places, and a player looking
+        // for one of them is looking for a name.
+        let mut subjects: Vec<String> = Vec::new();
+        if terms.iter().any(crate::list_control::Term::is_text) {
+            subjects = entry
+                .subjects
+                .iter()
+                .map(|subject| subject_label(subject, state))
+                .collect();
         }
-        let needle = text.to_lowercase();
-        entry.headline.to_lowercase().contains(&needle)
-            || entry.subjects.iter().any(|subject| {
-                subject_label(subject, state)
-                    .to_lowercase()
-                    .contains(&needle)
-            })
+        terms.iter().all(|term| {
+            let value = term.field().and_then(|name| match name {
+                "year" => Some(crate::list_control::FieldValue::Number(i64::from(year))),
+                "severity" => Some(crate::list_control::FieldValue::Text(&severity)),
+                _ => None,
+            });
+            let mut texts: Vec<&str> = vec![entry.headline.as_str(), severity.as_str()];
+            texts.extend(subjects.iter().map(String::as_str));
+            term.holds(&texts, value.as_ref())
+        })
     }
 
     /// Moves to the next year, or back to every year.
@@ -240,14 +278,23 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     // and the line above the history says which of them is in force, because a
     // filtered list with no visible filter is a list the player cannot trust.
     let filter = app.chronicle_filter();
-    let text = app.list_control().filter();
+    let control = app.list_control();
+    let terms = control.terms(FIELDS);
     let mut lines = vec![Line::styled(
         format!("  showing {}", filter.summary()),
         theme::historical(),
     )];
 
-    for entry in state.chronicle.iter().rev().take(40) {
-        if !filter.matches(entry, text, state) {
+    // **The record reads newest first, unless the player asks for the worst
+    // of it at the top.**
+    let mut entries: Vec<&domain::chronicle::ChronicleEntry> =
+        state.chronicle.iter().rev().collect();
+    if control.sort() == 1 {
+        entries.sort_by_key(|entry| std::cmp::Reverse(severity_rank(entry.severity)));
+    }
+
+    for entry in entries.into_iter().take(40) {
+        if !filter.matches(entry, &terms, state) {
             continue;
         }
         let meaning = match entry.severity {
@@ -274,6 +321,19 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         format!("  {} entries", state.chronicle.len()),
         theme::historical(),
     ));
+    // **The filter and the sort**, so the player can see what is in force and
+    // what they may type.
+    lines.push(Line::from(vec![
+        Span::styled(" filter ", theme::emphasis()),
+        Span::raw(format!("{:<20}", control.filter())),
+        Span::styled(" sort ", theme::emphasis()),
+        Span::raw(format!("{:<8}", control.sort_name(SORTS))),
+        Span::styled(" s ", theme::historical()),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled(" fields ", theme::historical()),
+        Span::styled(field_names(), theme::historical()),
+    ]));
 
     let history = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title("History"))
@@ -316,6 +376,16 @@ fn legend_lines() -> Vec<Line<'static>> {
         ]));
     }
     lines
+}
+
+/// How bad a chronicle entry is, for the sort.
+fn severity_rank(severity: domain::chronicle::Severity) -> u8 {
+    match severity {
+        domain::chronicle::Severity::Info => 0,
+        domain::chronicle::Severity::Minor => 1,
+        domain::chronicle::Severity::Major => 2,
+        domain::chronicle::Severity::Critical => 3,
+    }
 }
 
 /// What a category of the record means.

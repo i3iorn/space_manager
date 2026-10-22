@@ -22,7 +22,23 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use crate::app::App;
+use crate::list_control::Field;
 use crate::theme;
+
+/// The fields the decisions list can be filtered by.
+///
+/// **"Which of my decisions was a hire?" is not a question about names.**
+pub const FIELDS: &[Field] = &[Field::text("kind")];
+
+/// The field names, as one line of help.
+#[must_use]
+pub fn field_names() -> String {
+    FIELDS
+        .iter()
+        .map(|field| field.name)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
 
 /// Draws the branches screen.
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
@@ -58,6 +74,16 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         }
         lines.push(Line::raw(""));
     }
+
+    // **The filter line**, so the player can see what is in force.
+    let control = app.list_control();
+    lines.push(Line::from(vec![
+        Span::styled(" filter ", theme::emphasis()),
+        Span::raw(format!("{:<24}", control.filter())),
+        Span::styled(" fields ", theme::historical()),
+        Span::styled(field_names(), theme::historical()),
+    ]));
+    lines.push(Line::raw(""));
 
     // The comparison.
     match app.branch() {

@@ -19,11 +19,38 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use sim::derived::{self, TaskKind};
 
 use crate::app::App;
+use crate::list_control::{Field, FieldValue};
 use crate::theme;
 use crate::widgets::binding_factor::BindingFactor;
 
 /// The sort keys, in the order they are offered.
 pub const SORTS: &[&str] = &["name", "age", "role", "fatigue", "risk", "shift"];
+
+/// The fields the staff list can be filtered by.
+///
+/// **The vocabulary belongs to the list.** A player who wants everybody in
+/// trouble types `fatigue>80` or `morale<-30`, and the fields are named in
+/// the manual and under the filter line.
+pub const FIELDS: &[Field] = &[
+    Field::number("fatigue"),
+    Field::number("morale"),
+    Field::number("health"),
+    Field::number("age"),
+    Field::number("shift"),
+    Field::number("risk"),
+    Field::text("role"),
+    Field::flag("unassigned"),
+];
+
+/// The field names, as one line of help.
+#[must_use]
+pub fn field_names() -> String {
+    FIELDS
+        .iter()
+        .map(|field| field.name)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
 
 /// One row of the staff list.
 #[derive(Clone, Debug)]
@@ -44,16 +71,44 @@ pub struct Row {
     pub shift: u32,
     /// The chance they leave this month, in basis points.
     pub risk: u32,
+    /// How well they are.
+    pub health: u32,
+    /// Whether they are on anything.
+    pub unassigned: bool,
+}
+
+impl Row {
+    /// The value of a field, for the filter.
+    ///
+    /// **A row holds the fields the list has and no others**, so a condition
+    /// on a field this list does not have does not hold.
+    #[must_use]
+    pub fn field(&self, name: &str) -> Option<FieldValue<'_>> {
+        match name {
+            "fatigue" => Some(FieldValue::Number(i64::from(self.fatigue))),
+            "morale" => Some(FieldValue::Number(i64::from(self.morale))),
+            "health" => Some(FieldValue::Number(i64::from(self.health))),
+            "age" => Some(FieldValue::Number(i64::from(self.age))),
+            "shift" => Some(FieldValue::Number(i64::from(self.shift))),
+            "risk" => Some(FieldValue::Number(i64::from(self.risk))),
+            "role" => Some(FieldValue::Text(self.role.label())),
+            "unassigned" => Some(FieldValue::Flag(self.unassigned)),
+            _ => None,
+        }
+    }
 }
 
 /// The rows of the staff list, filtered and sorted.
 ///
 /// **The filter matches the name and the role**, because those are what a
-/// player knows about a person before they look at them.
+/// player knows about a person before they look at them, and it takes
+/// conditions on the fields as well — because "who is in trouble" is not a
+/// name.
 #[must_use]
 pub fn rows(app: &App) -> Vec<Row> {
     let state = app.sim().state();
     let control = app.list_control();
+    let terms = control.terms(FIELDS);
     let mut rows: Vec<Row> = state
         .people
         .values()
@@ -66,9 +121,20 @@ pub fn rows(app: &App) -> Vec<Row> {
             fatigue: person.state.fatigue_percent(),
             shift: sim::derived::effective_shift_percent(state, person),
             risk: sim::phases::personnel::attrition_risk(state, person.id),
+            health: person.state.health_percent(),
+            unassigned: !person.is_assigned(),
         })
-        .filter(|row| control.matches(&row.name) || control.matches(row.role.label()))
         .collect();
+
+    // **Every term has to hold.** A filter of "fatigue>80 unassigned" means
+    // "tired and on nothing", and a row that is only one of them is not in
+    // the list.
+    rows.retain(|row| {
+        terms.iter().all(|term| {
+            let value = term.field().and_then(|name| row.field(name));
+            term.holds(&[row.name.as_str(), row.role.label()], value.as_ref())
+        })
+    });
 
     sort(&mut rows, control.sort());
     rows
@@ -278,11 +344,17 @@ fn render_list(app: &App, rows: &[Row], frame: &mut Frame, area: Rect) {
     lines.push(Line::raw(""));
     lines.push(Line::from(vec![
         Span::styled(" filter ", theme::emphasis()),
-        Span::raw(format!("{:<12}", control.filter())),
-        Span::styled(" / ", theme::emphasis()),
-        Span::styled("  sort ", theme::emphasis()),
+        Span::raw(format!("{:<24}", control.filter())),
+        Span::styled(" sort ", theme::emphasis()),
         Span::raw(format!("{:<8}", control.sort_name(SORTS))),
         Span::styled(" s ", theme::historical()),
+    ]));
+    // **The vocabulary is on screen too.** A player who does not know that
+    // the filter takes conditions has no reason to type one, and the fields
+    // are a line long.
+    lines.push(Line::from(vec![
+        Span::styled(" fields ", theme::historical()),
+        Span::styled(field_names(), theme::historical()),
     ]));
 
     let list = Paragraph::new(lines)

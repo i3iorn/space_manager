@@ -52,6 +52,16 @@ fn write_campaign(path: &str, text: &str) -> std::io::Result<()> {
     std::fs::write(path, text)
 }
 
+/// Whether a character belongs in a filter.
+///
+/// **The punctuation is the point.** A condition is written `field:value` or
+/// `field>value`, and a space separates one term from the next, so the filter
+/// has to take all of them. Everything else is left out, so a stray keypress
+/// does not turn the filter into a search for punctuation.
+fn filter_character(character: char) -> bool {
+    character.is_alphanumeric() || matches!(character, ':' | '>' | '<' | '=' | '-' | '_' | ' ')
+}
+
 /// The application state.
 #[derive(Debug)]
 pub struct App {
@@ -417,9 +427,23 @@ impl App {
     /// what the player did.
     #[must_use]
     pub fn decisions(&self) -> Vec<(domain::time::Instant, String)> {
+        // **The list is filtered**, because a campaign with two hundred
+        // decisions is a list the player cannot read, and "which of my
+        // decisions was a hire?" is not a question about dates.
+        let control = self.list_control();
+        let terms = control.terms(screens::branches::FIELDS);
         self.sim
             .log()
             .iter()
+            .filter(|entry| {
+                terms.iter().all(|term| {
+                    let value = term.field().and_then(|name| match name {
+                        "kind" => Some(list_control::FieldValue::Text(&entry.kind)),
+                        _ => None,
+                    });
+                    term.holds(&[entry.kind.as_str()], value.as_ref())
+                })
+            })
             .map(|entry| (entry.issued_at, entry.kind.clone()))
             .collect()
     }
@@ -438,7 +462,9 @@ impl App {
     /// The fork replays the order log, so the branch is the same campaign up
     /// to the fork point.
     pub fn fork(&mut self) {
-        let Some(point) = self.fork_points.get(self.selected).copied() else {
+        // **The fork point is the selected decision on the screen**, so a
+        // filter narrows the list *and* the places the player can fork at.
+        let Some((point, _)) = self.decisions().get(self.selected).cloned() else {
             self.notice = Some("There is nothing to fork yet.".to_owned());
             return;
         };
@@ -777,7 +803,12 @@ impl App {
             }
             KeyCode::Enter => self.list_control_mut().stop_typing(),
             KeyCode::Backspace => self.list_control_mut().backspace(),
-            KeyCode::Char(character) if character.is_alphanumeric() => {
+            // **The filter takes the punctuation of a condition.** A filter
+            // that could only hold letters could not say "fatigue over
+            // eighty", and the whole of the condition language is the
+            // punctuation: the colon, the greater-than, the less-than, and
+            // the space that separates one term from the next.
+            KeyCode::Char(character) if filter_character(character) => {
                 self.list_control_mut().type_char(character);
                 self.selected = 0;
             }

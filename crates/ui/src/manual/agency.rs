@@ -375,6 +375,22 @@ pub const TOPICS: &[Topic] = &[
          abandons it.\n\n\
          The staff list sorts by name, age, role, fatigue, **the chance the person leaves \
          this month**, and shift. The filter survives a trip to another screen and back.\n\n\
+         **A name is not the question a player is asking.** *Who is in trouble* is not \
+         a name, and a filter that can only search for names makes the player read three \
+         hundred rows to answer it. So a filter takes **conditions** as well as words:\n\n\
+         | Typed | Means |\n|---|---|\n\
+         | `okonjo` | anybody whose name or role contains \"okonjo\" |\n\
+         | `fatigue>80` | anybody over eighty percent fatigue |\n\
+         | `morale<-30` | anybody miserable enough to leave |\n\
+         | `role:scientist` | anybody who is a scientist |\n\
+         | `unassigned` | anybody on nothing |\n\n\
+         **Every term has to hold**, so `fatigue>80 unassigned` means *tired and on \
+         nothing*. The fields are named under the filter line, and they differ from list \
+         to list: the staff list has fatigue, morale, health, age, shift, risk, role and \
+         unassigned; the research list has progress, team, discipline and test; the \
+         programme list has progress, slack, programme, met and unmet.\n\n\
+         **A field the list does not have is a word**, not an error — so a filter typed \
+         on one screen does not become a wall of nothing on another.\n\n\
          **The risk is the number worth sorting by.** A person about to leave is a \
          person the agency can still save, and a player who cannot see the risk cannot \
          save them. It is also the number that answers a harder question: when a \

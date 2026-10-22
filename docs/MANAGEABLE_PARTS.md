@@ -442,6 +442,17 @@ has a list that cannot be read top to bottom.
 
 - **The filter is a mode**, not a side effect: the keys go into the filter and nowhere
   else, so a filter can contain a `q` without the game quitting.
+- **The filter takes conditions and not only names [D].** "Who is in trouble" is not a
+  name, and a filter that can only search for names makes the player read three
+  hundred rows to answer it. The staff list takes `fatigue>80`, `morale<-30`,
+  `role:scientist` and `unassigned`; every term has to hold, so
+  `fatigue>80 unassigned` means *tired and on nothing*.
+- **The fields belong to the list.** Each list says which fields it has, and a term
+  that names a field the list does not have is a word to look for rather than an
+  error — so a filter typed on one screen does not become a wall of nothing on
+  another.
+- **The fields are named on the screen**, under the filter line, and in the manual.
+  A player who does not know the filter takes conditions has no reason to type one.
 - **The staff list sorts by name, age, role, fatigue, attrition risk, and shift.**
 - **The attrition risk is the same number the simulation rolls against** — the chance
   the person leaves this month — and a person about to leave is a person the player

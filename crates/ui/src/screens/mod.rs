@@ -41,6 +41,8 @@ pub fn item_count(app: &App, screen: Screen) -> usize {
 pub fn sort_keys(screen: Screen) -> &'static [&'static str] {
     match screen {
         Screen::Staff => staff::SORTS,
+        Screen::Research => research::SORTS,
+        Screen::Chronicle => chronicle::SORTS,
         _ => &[],
     }
 }

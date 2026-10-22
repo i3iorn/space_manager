@@ -491,6 +491,29 @@ the one person about to resign has a screen that does not do its job.
 - **The filter is per screen and it survives a trip elsewhere.** A player who has
   filtered the staff list down to the people in trouble, and who goes to look at a
   project and comes back, should find the filter still in force.
+- **A filter takes conditions and not only names.** "Who is in trouble" is not a
+  name, and a filter that can only search for names makes the player read three
+  hundred rows to answer it.
+
+  | Typed | Means |
+  |---|---|
+  | `okonjo` | anybody whose name or role contains "okonjo" |
+  | `fatigue>80` | anybody over eighty percent fatigue |
+  | `morale<-30` | anybody miserable enough to leave |
+  | `role:scientist` | anybody who is a scientist |
+  | `unassigned` | anybody on nothing |
+
+  **Every term has to hold**, so `fatigue>80 unassigned` means *tired and on
+  nothing*, and the terms are separated by spaces. **The fields belong to the
+  list**: the staff list has fatigue, morale, health, age, shift, risk, role and
+  unassigned; the research list has progress, team, discipline and test; the
+  programme list has progress, slack, programme, met and unmet; the branches list
+  has kind. **A field the list does not have is a word**, not an error, so a
+  filter typed on one screen does not become a wall of nothing on another.
+- **The fields are named under the filter line**, and in the manual, because a
+  player who does not know the filter takes conditions has no reason to type one.
+- **The staff, research, programme, chronicle and branches lists all filter**, and
+  the research and chronicle lists sort as well.
 
 ### 4.3 Programme (`3`)
 
