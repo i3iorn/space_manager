@@ -18,6 +18,7 @@ use crate::clock::Clock;
 use crate::input::{Action, action_for, is_clock_control};
 use crate::list_control;
 use crate::manual;
+use crate::menu;
 use crate::order_palette;
 use crate::screen::Screen;
 use crate::screens;
@@ -142,6 +143,13 @@ pub struct App {
     /// **The game opens with the framing and a clear first goal.** The
     /// briefing is a modal over the dashboard, and any key dismisses it.
     briefing: bool,
+    /// The main menu, if it is open.
+    ///
+    /// **The menu is about the campaign as a whole**, not the screen behind it,
+    /// so it is a modal over whatever the player is looking at. Restarting,
+    /// saving, loading, and changing the clock are decisions about the
+    /// campaign, and they do not belong on a screen about staff or money.
+    menu: Option<menu::Menu>,
 }
 
 impl App {
@@ -187,6 +195,7 @@ impl App {
             last_autosave: None,
             advice_index: 0,
             briefing: false,
+            menu: None,
         }
     }
 
@@ -554,6 +563,13 @@ impl App {
             return Action::Accept;
         }
 
+        // **The main menu is a modal over everything**, and it takes the keys
+        // until it is closed. The clock controls are the exception, because the
+        // clock belongs to the host and not to any screen.
+        if self.menu.is_some() {
+            return self.menu_key(key);
+        }
+
         // **The player has acted, so the hint on this screen has done its
         // job.** It is dismissed here rather than when it was first drawn, so
         // that it stays on the screen until it has been read.
@@ -604,6 +620,7 @@ impl App {
             // the campaign away.
             Action::Save => self.save(),
             Action::Load => self.open_load_confirmation(),
+            Action::OpenMenu => self.open_menu(),
             // **The advice is browsed, not taken.** The player reads what the
             // banner says and presses `n` when they want to know what else
             // the campaign needs.
@@ -986,6 +1003,136 @@ impl App {
         }
     }
 
+    /// Opens the main menu.
+    ///
+    /// **The menu is a modal over the screen behind it**, so the player can see
+    /// the agency while they decide what to do with it.
+    pub fn open_menu(&mut self) {
+        if self.menu.is_none() {
+            self.menu = Some(menu::Menu::new());
+        }
+    }
+
+    /// Whether the main menu is on screen.
+    #[must_use]
+    pub const fn menu_open(&self) -> bool {
+        self.menu.is_some()
+    }
+
+    /// The main menu, if it is open.
+    #[must_use]
+    pub const fn menu(&self) -> Option<&menu::Menu> {
+        self.menu.as_ref()
+    }
+
+    /// A key press, while the main menu is open.
+    ///
+    /// **The menu takes the keys until it is dismissed**, and the clock
+    /// controls are the exception, because the clock belongs to the host and
+    /// not to any screen — the same rule as the confirmation dialog.
+    fn menu_key(&mut self, key: KeyEvent) -> Action {
+        let action = action_for(key, self.screen);
+        if is_clock_control(action) {
+            self.clock_action(action);
+            return action;
+        }
+        let Some(mut menu) = self.menu.take() else {
+            return Action::None;
+        };
+        match action {
+            Action::Up => {
+                menu.up();
+                self.menu = Some(menu);
+            }
+            Action::Down => {
+                menu.down();
+                self.menu = Some(menu);
+            }
+            Action::Accept => {
+                if menu.settings_open() {
+                    menu.close_settings();
+                    self.menu = Some(menu);
+                } else {
+                    let item = menu.item();
+                    self.choose_menu_item(item);
+                }
+            }
+            Action::Back | Action::OpenMenu => {
+                if menu.settings_open() {
+                    menu.close_settings();
+                    self.menu = Some(menu);
+                }
+                // Otherwise the menu closes and the screen behind it takes the
+                // next key.
+            }
+            // **The keys the menu is about still work while it is open.** A
+            // player who opens the menu and presses F3 meant to save, not to
+            // look at the word "Save".
+            Action::Save => {
+                self.menu = None;
+                self.save();
+            }
+            Action::Load => {
+                self.menu = None;
+                self.open_load_confirmation();
+            }
+            Action::Quit => {
+                self.menu = None;
+                self.open_confirmation();
+            }
+            _ => {
+                self.menu = Some(menu);
+            }
+        }
+        action
+    }
+
+    /// Chooses an item on the main menu.
+    fn choose_menu_item(&mut self, item: menu::Item) {
+        self.menu = None;
+        match item {
+            menu::Item::Restart => self.restart(),
+            menu::Item::Save => self.save(),
+            menu::Item::Load => self.open_load_confirmation(),
+            menu::Item::Settings => {
+                let mut menu = menu::Menu::new();
+                menu.open_settings();
+                self.menu = Some(menu);
+            }
+            menu::Item::Quit => self.open_confirmation(),
+            menu::Item::Back => {}
+        }
+    }
+
+    /// Starts the campaign again from its scenario.
+    ///
+    /// **The player asked for a new campaign**, and the scenario is the one the
+    /// campaign started from. A restart is a fresh simulation from the same
+    /// beginning, not a different campaign — and the branch and the fork points
+    /// belong to the campaign that was replaced.
+    pub fn restart(&mut self) {
+        let scenario = self.sim.scenario().clone();
+        match Sim::new(&scenario) {
+            Ok(sim) => {
+                self.sim = sim;
+                self.branch = None;
+                self.fork_points.clear();
+                self.selected = 0;
+                self.report = None;
+                // **A new campaign starts where the old one did**: on the
+                // dashboard, with the briefing. The player asked for the
+                // beginning, and the beginning is what they get.
+                self.screen = Screen::Dashboard;
+                self.briefing = true;
+                self.refresh_fork_points();
+                self.notice = Some("Started a new campaign.".to_owned());
+            }
+            Err(error) => {
+                self.notice = Some(format!("The campaign could not be restarted: {error}"));
+            }
+        }
+    }
+
     /// The keys of the confirmation.
     ///
     /// **Ctrl+C leaves at once.** The player has been asked already, so a
@@ -1176,6 +1323,21 @@ impl App {
                 self.sim.effective_now(),
                 frame,
                 area,
+            );
+        }
+
+        // **The main menu is a modal over the screen behind it**, so the player
+        // can see the agency while they decide what to do with it. It sits over
+        // the palette and under the keymap, because the keymap answers "what
+        // are the keys" and the menu asks "what do you want to do".
+        if let Some(menu) = &self.menu {
+            let area = centred(70, 70, frame.area());
+            crate::menu::render(
+                frame,
+                area,
+                menu,
+                &self.clock.label(),
+                self.clock.is_paused(),
             );
         }
 

@@ -76,6 +76,8 @@ pub enum Action {
     Save,
     /// Load the campaign.
     Load,
+    /// Open the main menu.
+    OpenMenu,
     /// Stop or start the clock.
     TogglePause,
     /// One dilation step faster.
@@ -156,6 +158,11 @@ pub fn action_for(key: KeyEvent, _screen: Screen) -> Action {
         // for when they have read the banner and want another.
         KeyCode::Char('n' | 'N') => Action::NextAdvice,
         KeyCode::Char('o') => Action::OpenPalette,
+        // **The main menu is on `m`,** for "menu". It is a plain letter, so it
+        // is in the same place on every keyboard layout, and it is the key a
+        // player reaches for when they want the things that are about the
+        // campaign rather than about the screen they are on.
+        KeyCode::Char('m' | 'M') => Action::OpenMenu,
         KeyCode::Char('q') => Action::Quit,
         _ => Action::None,
     }

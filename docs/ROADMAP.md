@@ -6,7 +6,7 @@
 > contracts in `SIMULATION.md` and `DOMAIN_MODEL.md`.
 >
 > **Status:** Plan, revision 3. M0, M1, and Slices 1 to 4 are complete, except
-> for the three playtests and the fourth playtest, which need a human.
+> for the four playtests, which need a human.
 
 ---
 
@@ -84,7 +84,7 @@ to complete a task rather than a way to expand the scope:
   engine version.
 - **`ui` has a working terminal shell** - raw mode, the alternate screen, a `Drop`
   guard that restores the terminal even on panic, a render pass, and global key
-  handling. The screens are still placeholders.
+  handling. The screens were placeholders at M0; they are real now.
 - **`domain::ids` is complete**, with the typed id newtypes, the allocation counters,
   and three tests.
 
@@ -178,10 +178,10 @@ year happen *and* act on it.
 sees it complete, sees a breakthrough unlock something, and can explain why their team
 was slow.
 
-**The playtest is running, and it has already found four things worth fixing.** They
-are recorded here because a playtest that finds nothing is a playtest that did not
-happen, and because each of these is a rule the interface should have followed from
-the start.
+**The hands-on play that ran alongside the build found five things worth fixing.**
+They are recorded here because a playtest that finds nothing is a playtest that did
+not happen, and because each of these is a rule the interface should have followed
+from the start.
 
 | What the playtester said | What it actually was | The fix |
 |---|---|---|
@@ -189,7 +189,7 @@ the start.
 | "It is not the only place" | It was not the only place: the refusals, the order notice, the chronicle's subject filter, and the vehicle's build state all had the same fault | Every message that names a thing goes through one function, and the rule is now in `UI.md` §1 and in the manual |
 | "The game just shuts down without warning" | A **panic printed its message to the alternate screen** — which is thrown away when the screen is left, so the game vanished with no explanation and the shell came back looking normal | A panic hook restores the terminal *first* and writes the message *after* it, and the game says plainly that it stopped unexpectedly |
 | "I cannot always get out" | **Every modal took the keys** while it was open, and `Ctrl+C` was one of them, so a player who pressed it in the report or the palette found the game still running | `Ctrl+C` quits from any screen and any modal, and is handled before the modals |
-| "There is no way out of this campaign" | **The game quit on a single `q`, and the campaign is not saved** — a stray key could end an evening's play | There is now a confirmation: a modal over the screen, with the safe answer selected first, that says the campaign is not saved, and the world waits while the player decides | **Every modal took the keys** while it was open, and `Ctrl+C` was one of them, so a player who pressed it in the report or the palette found the game still running | `Ctrl+C` quits from any screen and any modal, and is handled before the modals |
+| "There is no way out of this campaign" | **The game quit on a single `q`, and the campaign is not saved** — a stray key could end an evening's play | There is now a confirmation: a modal over the screen, with the safe answer selected first, that says the campaign is not saved, and the world waits while the player decides |
 
 **The manual was rewritten in the same pass**, because the first playtest showed
 that it read as a glossary rather than as an explanation. Every topic now has a
@@ -314,7 +314,7 @@ before they confirm it — and the **property tests** (S1-35) and the **tutorial
    scenario, one hour each, and an honest answer to "understands what to do in five
    minutes".
 
-### 3.11 The interface the player can read [S1-40 to S1-52]
+### 3.11 The interface the player can read [S1-40 to S1-53]
 
 **These tasks came out of the first hands-on play.** The player could *use* the game
 and could not *read* it: the focus was invisible, the vocabulary was unexplained, and
@@ -338,6 +338,7 @@ added at the end.
 | S1-50 | **Every other list is filterable and sortable.** The machinery is built and only the staff list is wired to it. | S1-43 | The research, programme, chronicle, and branches lists all filter | **Done** |
 | S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | S1-43 | A player can find everybody who is in trouble without reading three hundred names | **Done** |
 | S1-52 | **The order palette can set a shift**, so the order is offered where every other order is offered. | S1-42 | The palette offers every order kind that has a handler | Done |
+| S1-53 | **The main menu.** One modal for the decisions about the campaign as a whole: restart, save, load, change the clock's dilation, quit. Not the first screen; one key away. | S1-27 | A player can restart, save, load, or change the dilation without leaving the screen they are on | Done |
 
 **Why the shift is an order and not a direct control.** The architecture says the
 player never mutates state — they issue orders — and the shift is the most-used
@@ -608,10 +609,12 @@ sees the month's work.
    the report, and in the chronicle, which is the durable record.
 
 **An order with no handler is refused, never ignored.** The kinds without handlers
-yet — the programme, policy, and publication machinery — are refused at issue with a
-reason. **Before M1-08 those kinds were silently dropped**: the intake phase
-validated them, no phase consumed them, and they vanished. The doc's rule was in
-`DOMAIN_MODEL.md` §16 the whole time and the code did not implement it.
+yet — publishing a result, assigning a facility, and cancelling a mission — are
+refused at issue with a reason. **Before M1-08 those kinds were silently dropped**:
+the intake phase validated them, no phase consumed them, and they vanished. The
+doc's rule was in `DOMAIN_MODEL.md` §16 the whole time and the code did not
+implement it. The programme and policy orders have handlers now; the three above are
+the ones still waiting.
 
 **The lead times are in `sim::balance`, and they are deterministic [D].** A hire's
 lead time scales with the seniority of the role being filled, so the agency cannot
@@ -1427,40 +1430,63 @@ mode only accepted letters and numbers, so `fatigue>80` was impossible to type
 The filter takes the colon, the greater-than, the less-than, the equals, the
 hyphen and the space now, and nothing else.
 
+### 7.14 The main menu: the system, not the game
+
+**The game had no one place for the decisions about the campaign as a whole.** Saving,
+loading, restarting, and changing the clock were scattered across keys — `F3`, `F4`, a
+confirmation dialog — and a player who had not memorised the keymap could not find
+them. **The seven screens are the game; the menu is the system.**
+
+**It is a modal over whatever screen the player is on**, opened with `M`, so they can
+look at the agency while they decide what to do with it. It offers restart, save,
+load, the clock's dilation, quit, and back. **The safe answer starts selected** —
+Back to the game — the same rule as the confirmation dialog, so a player who opens it
+and presses Enter without reading it has not restarted anything.
+
+**It is not the first thing the player sees [D].** The game opens with the briefing and
+the campaign, because a main menu between the player and the game is a screen they
+have to dismiss before they can start. It is one key away, and the key is in the keymap
+and the info line.
+
+**The keys the menu is about still work while it is open.** A player who opens the menu
+and presses `F3` meant to save, not to close the menu and then save. `Ctrl+C` still
+leaves from the menu, as it does from every modal. `docs/UI.md` §3.2 has the whole of
+it.
+
 ## 8. What is left
 
-**Everything in this plan is done except the things below**, and they are here
-so that nobody has to read the whole document to find out what the game still
-needs.
-
-**The playtests are done.** They are in §7.10 and in the milestone tables, and
-what they found has been acted on.
+**Everything in this plan is done except the four playtests**, and they are here so
+that nobody has to read the whole document to find out what the game still needs.
 
 ### The playtests
 
-**They have been run.** All four of them, and the game worked: the campaigns
-ran, the objectives were reachable, the order palette did what it said, and
-nothing crashed. The findings were about **understanding the mechanics** rather
-than about anything being broken, and the ones that have been acted on are:
-the shift policy's thermostat (§7.10), the advice banner (§7.4), and the
-assignment being a move (§7.7).
+**They are the one thing a machine cannot supply.** The campaigns run, the objectives
+are reachable, the order palette does what it says, and nothing crashes — the
+automated playtest and the fuzz test prove that much. What is not proven is whether a
+*person* understands the game: whether they find the binding factor on first sight,
+whether the slack meter speaks for itself, and whether the five-year arc is worth one
+sitting. **The automated playtest is not the same thing as a human one**, and the
+milestone tables say so in four places.
 
-| ID | The playtest | What it had to answer | What it said |
+| ID | The playtest | What it must answer | State |
 |---|---|---|---|
-| S1-36 | The first one. Five people, one scenario, one hour each. | Does a new player understand what to do in five minutes? | The mechanics were not obvious; the advice banner and the "done by" line on each objective are the answers |
-| S2-17 | The commitment mechanic. | Can a player commit to an instant, watch the slack shrink, and name what they lost? | The commitment reads; the slack meter does not speak for itself |
-| S3-28 | The five-year arc. | Does a player reach orbit, having lost something on the way? | Yes, and the shift policy was the thing that fought back |
-| S4-12 | The final one, with someone who has never seen it. | Do they reach orbit in one sitting, and ask to try a different path? | Yes |
+| S1-36 | The first one. Five people, one scenario, one hour each. | Does a new player understand what to do in five minutes? | **Not yet** — needs a human |
+| S2-17 | The commitment mechanic. | Can a player commit to an instant, watch the slack shrink, and name what they lost? | **Not yet** — needs a human |
+| S3-28 | The five-year arc. | Does a player reach orbit, having lost something on the way? | **Not yet** — needs a human |
+| S4-12 | The final one, with someone who has never seen it. | Do they reach orbit in one sitting, and ask to try a different path? | **Not yet** — needs a human |
+
+**The hands-on play that ran alongside the build already found five things** — the
+identifiers in the messages, the panic that vanished, the modals that swallowed
+`Ctrl+C`, the single-key quit, and the manual that read as a glossary — and they are
+fixed in §3.6. The advice banner (§7.4), the "done by" line on each objective, the
+shift policy's thermostat (§7.10) and the assignment being a move (§7.7) also came
+from that play. **The formal playtests are what is still outstanding.**
 
 ### The two filter tasks
 
-**They are done.** The filter takes conditions and not only names, and every list
-is wired to it. `ROADMAP.md` §7.13 has the whole of it.
-
-| ID | The task | Why it matters | State |
-|---|---|---|---|
-| S1-50 | **Every other list is filterable and sortable.** | An agency of three hundred people has lists the player cannot search | **Done** — the staff, research, programme, chronicle and branches lists all filter |
-| S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | Finding everybody who is in trouble should not mean reading three hundred names | **Done** — `fatigue>80`, `morale<-30`, `role:scientist`, `unassigned`, and every term has to hold |
+**They are done**, and they were the last thing in §3.11: the filter takes conditions
+and not only names, and every list is wired to it. `ROADMAP.md` §7.13 has the whole of
+it.
 
 ### The things the design says and the game does not do yet
 
@@ -1506,7 +1532,7 @@ That is: **the clock → the scheduler → the advance loop → the rates → th
 the dilation test → the order model → goodwill → the stable buckets → the host loop → the
 order palette → the government's deadline → the first launch → branching.**
 
-**The whole path is done.** M1-01, M1-04, M1-05, M1-06, M1-07, M1-08, M1-09, M1-10, M1-13, M1-14, S1-37, S2-05, S3-05 and S4-02 are all complete, and so is everything else in this plan except the four playtests, which need a human, and the two filter tasks in §3.11. **The path below is the record of how the game was built, and it is here because the order mattered** — each step assumed the one before it.
+**The whole path is done.** M1-01, M1-04, M1-05, M1-06, M1-07, M1-08, M1-09, M1-10, M1-13, M1-14, S1-37, S2-05, S3-05 and S4-02 are all complete, and so is everything else in this plan except the four playtests, which need a human. **The path above is the record of how the game was built, and it is here because the order mattered** — each step assumed the one before it.
 
 ### 10.1 The three long poles
 

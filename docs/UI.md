@@ -211,6 +211,7 @@ still consumed, so there is no backlog when the player carries on.
 | **`F4`** | **Load the campaign — after asking** |
 | `/` | **Filter the list** |
 | `s` | **Change how the list is sorted** |
+| **`M`** | **The main menu** |
 | `q` | **Quit — after asking** |
 | **`Ctrl+C`** | **Quit, whatever is on the screen** |
 
@@ -303,6 +304,41 @@ layout-dependent and the control modifier is not. `+` and `-` are the everyday c
 
 **Screen numbers are fixed [D]:** staff is always `2`, programmes always `3`. A player
 who learns one screen's number keeps it.
+
+### 3.2 The main menu [D]
+
+**The seven screens are the game; the menu is the system.** Restarting, saving,
+loading, and changing the clock are decisions about the campaign as a whole, and
+they do not belong on a screen about staff or money. The menu is a modal over
+whatever screen the player is on, so they can look at the agency while they
+decide what to do with it. It is opened with `M`, and it is there when the player
+wants it.
+
+| Item | What it does |
+|---|---|
+| **Restart the campaign** | Start again from the same scenario. The campaign in progress is lost. |
+| **Save the campaign** | Write the campaign to its file now. |
+| **Load the saved campaign** | Replace the campaign with the one in its file — after asking. |
+| **Change settings** | Open the clock's dilation. The campaign does not care how fast it runs. |
+| **Quit the game** | Leave — after asking. The campaign is saved when the player quits. |
+| **Back to the game** | Close the menu. The campaign carries on. |
+
+**The safe answer is the one that starts selected [D].** A player who opens the
+menu and presses `Enter` without reading it has not restarted anything, saved
+over anything, or left. The selection starts on **Back to the game**, the same
+rule as the confirmation dialog.
+
+**The menu is not the first thing the player sees [D].** The game opens with the
+briefing and the campaign, because a main menu between the player and the game is
+a screen they have to dismiss before they can start. It is one key away, and the
+key is shown in the keymap and in the info line.
+
+**The keys the menu is about still work while it is open [D].** A player who opens
+the menu and presses `F3` meant to save, not to close the menu and then save. The
+menu does not swallow the keys that are about the campaign as a whole.
+
+**`Ctrl+C` still leaves from the menu**, as it does from every modal. The menu is a
+place to decide what to do with the campaign, not a place to be trapped in it.
 
 ---
 

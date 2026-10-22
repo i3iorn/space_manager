@@ -65,6 +65,7 @@ const ENTRIES: &[(&str, &str)] = &[
     ("Enter", "confirm, or fork on the branches screen"),
     ("Esc", "back, or close what is open"),
     ("o", "open the order palette"),
+    ("m", "the main menu - restart, save, load, settings"),
     ("n", "another tip, on the dashboard"),
     ("Space", "pause and resume the clock"),
     ("+ / -", "one dilation step faster or slower"),

@@ -22,6 +22,7 @@
 //! | [`screen`] | The screens and their fixed number keys |
 //! | [`input`] | Key handling, global and per-screen |
 //! | [`list_control`] | Filtering and sorting the lists |
+//! | [`menu`] | The main menu: restart, save, load, settings |
 //! | [`theme`] | Colour, glyphs, and the meaning of each |
 //! | [`manual`] | Everything the game can explain, and the browser over it |
 //! | [`screens`] | One module per screen |
@@ -39,6 +40,7 @@ pub mod confirm;
 pub mod input;
 pub mod list_control;
 pub mod manual;
+pub mod menu;
 pub mod order_palette;
 pub mod screen;
 pub mod screens;
