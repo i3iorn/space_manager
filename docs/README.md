@@ -71,7 +71,8 @@ came back out. `ROADMAP.md` §7.3 to §7.9 has each of them.
 which need a person, and the handful of things the design promises and the game has
 not built yet — retirement, illness, injury and death; the numbered save slots; the
 deeper applicant pool and the events in which the state asks why; the mandate crisis;
-the rivals; the lunar destination; and the planetary protection of the late game.
+the rivals; the press line; the lunar destination; and the planetary protection of the
+late game.
 
 ## The build plan, in brief
 

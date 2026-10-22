@@ -96,9 +96,10 @@ ask what would have happened if they had not cancelled that programme, and a **m
 menu** for the decisions about the campaign as a whole. The **event catalogue** exists,
 so the agency is no longer nearly deterministic in practice.
 
-**What is not done is the four formal playtests**, which need a person. The campaigns
-run, the objectives are reachable, and nothing crashes — but whether a player
-understands the game is still unproven.
+**What is not done of the MVP is the four formal playtests**, which need a person. The
+campaigns run, the objectives are reachable, and nothing crashes — but whether a player
+understands the game is still unproven. The design promises that are not built are in
+`ROADMAP.md` §8's third table.
 
 The build plan is in [`docs/ROADMAP.md`](docs/ROADMAP.md). All four slices are built.
 Slice 1 (*Ground Game*) was the first year of a small agency: a budget, a few
