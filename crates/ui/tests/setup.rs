@@ -143,24 +143,25 @@ fn the_clock_shows_the_campaign_is_running() {
 }
 
 #[test]
-fn the_report_is_a_prompt_and_not_a_record() {
-    // **The report is the month's summary, and it is a prompt.** An undismissed
-    // report is not replaced by a newer one - the player reads one, and the
-    // chronicle keeps the rest.
+fn the_report_is_a_panel_and_not_a_prompt() {
+    // **The report is the month's summary, and it is a panel.** A newer month
+    // replaces the one before it, because the panel says what the last month
+    // was like — and it is never dismissed, because the dashboard is never
+    // blocked.
     let mut app = app();
     // Past the opening month, so the next boundary is a real one.
     app.advance(Duration::from_days(40));
     assert!(app.report().is_some(), "a month has passed");
     let first = app.report().expect("a report").date.clone();
     app.advance(Duration::from_months(2));
-    assert_eq!(
+    assert_ne!(
         app.report().expect("a report").date,
         first,
-        "an undismissed report is not replaced"
+        "a newer month replaces the one before it"
     );
-    // And it is dismissed by any key.
+    // **And no key dismisses it.**
     app.on_key(press(KeyCode::Char('x')));
-    assert!(app.report().is_none());
+    assert!(app.report().is_some(), "the panel is still there");
 }
 
 #[test]
@@ -170,13 +171,12 @@ fn the_report_appears_when_a_month_passes_and_not_otherwise() {
     let mut app = app();
     // Past the opening month.
     app.advance(Duration::from_days(40));
-    app.on_key(press(KeyCode::Char('x')));
-    assert!(app.report().is_none(), "the report was dismissed");
+    assert!(app.report().is_some(), "a month has passed");
 
     app.advance(Duration::from_hours(1));
     assert!(
-        app.report().is_none(),
-        "an hour is not a month, and it reports nothing"
+        app.report().is_some(),
+        "an hour is not a month, and the panel still shows the last one"
     );
     app.advance(Duration::from_days(40));
     assert!(app.report().is_some(), "a month has passed");

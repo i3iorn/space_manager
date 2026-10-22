@@ -9,7 +9,6 @@ pub mod dashboard;
 pub mod keymap;
 pub mod manual;
 pub mod programme;
-pub mod report;
 pub mod research;
 pub mod staff;
 pub mod vehicles;

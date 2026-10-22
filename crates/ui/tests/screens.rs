@@ -151,17 +151,53 @@ fn the_empty_campaign_says_that_it_is_empty() {
 }
 
 #[test]
-fn the_report_can_be_dismissed_and_does_not_come_back() {
-    // **The report is a prompt.** It waits until it is read, and it is not
-    // replaced while it is undismissed.
+fn the_dashboard_has_a_this_month_panel() {
+    // **The month's report is on the dashboard**, and the dashboard is never
+    // blocked by it.
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    app.advance(Duration::from_days(400));
+    let text = words(&rendered(&mut app));
+    assert!(text.contains("Thismonth"), "the panel is there: {text:?}");
+    assert!(
+        text.contains("Justhappened") && text.contains("Duesoon"),
+        "and the panels around it are still there: {text:?}"
+    );
+}
+
+#[test]
+fn the_report_is_a_panel_and_does_not_take_the_keys() {
+    // **The report is a panel and not a prompt.** It used to be a modal over
+    // the whole dashboard, and it took every key until it was dismissed — so a
+    // player who wanted to order something had to dismiss the month first.
+    // The dashboard is never blocked now.
     let mut app =
         App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     app.advance(Duration::from_days(400));
     assert!(app.report().is_some(), "the month has reported");
-    app.on_key(press(KeyCode::Char('x')));
-    assert!(app.report().is_none(), "and one key dismisses it");
-    app.on_key(press(KeyCode::Char('x')));
-    assert!(app.report().is_none(), "and it does not come back");
+
+    // **A key goes to the screen behind it**, not to the report.
+    app.on_key(press(KeyCode::Char('3')));
+    assert_eq!(
+        app.screen(),
+        ui::Screen::Programme,
+        "the key reached the screen"
+    );
+    assert!(app.report().is_some(), "and the report is still there");
+}
+
+#[test]
+fn the_newest_month_replaces_the_one_before_it() {
+    // **The panel says what the last month was like**, so a newer month
+    // replaces an older one rather than waiting for it to be dismissed.
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    app.advance(Duration::from_days(400));
+    let first = app.report().map(|report| report.date.clone());
+    app.advance(Duration::from_days(90));
+    let second = app.report().map(|report| report.date.clone());
+    assert!(first.is_some() && second.is_some(), "both months reported");
+    assert_ne!(first, second, "and the panel shows the newer one");
 }
 
 #[test]

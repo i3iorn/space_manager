@@ -475,15 +475,6 @@ impl App {
             self.manual_key(key, action);
             return Some(action);
         }
-        if self.report.is_some() {
-            let action = action_for(key, self.screen);
-            if is_clock_control(action) {
-                self.clock_action(action);
-                return Some(action);
-            }
-            self.report = None;
-            return Some(Action::Accept);
-        }
         None
     }
 
@@ -888,10 +879,12 @@ impl App {
         self.show_help
     }
 
-    /// The report on screen, if there is one.
+    /// The report of the last month, if there is one.
     ///
-    /// **The report is a prompt, not a record.** It appears when a month
-    /// boundary is crossed, and it stays until the player dismisses it.
+    /// **The report is a panel and not a prompt.** It appears on the dashboard
+    /// when a month boundary is crossed, and it stays there until the next
+    /// one replaces it — because a player who has to dismiss a modal to see
+    /// their agency is a player who has stopped playing.
     #[must_use]
     pub const fn report(&self) -> Option<&MonthReport> {
         self.report.as_ref()
@@ -1070,13 +1063,12 @@ impl App {
         let target = self.sim.effective_now().saturating_add(delta);
         match self.sim.advance_to(target) {
             Ok(reports) => {
-                // **The report is the month's summary, and it is a prompt, not
-                // a record.** An undismissed report is not replaced by a newer
-                // one: the player reads one, and the chronicle keeps the rest.
-                if self.report.is_none() {
-                    if let Some(last) = reports.last() {
-                        self.report = Some(last.clone());
-                    }
+                // **The report is the month's summary, and it is a panel and
+                // not a prompt.** The newest month replaces the one before it:
+                // the panel says what the last month was like, and a month
+                // that has been replaced is history.
+                if let Some(last) = reports.last() {
+                    self.report = Some(last.clone());
                 }
                 // **A month boundary is the game's cue to save itself.** The
                 // campaign the player has been playing for an hour is written
@@ -1142,10 +1134,6 @@ impl App {
         // **The key ledger is on every screen.** The most common keys are
         // always on screen, so a player never has to remember them.
         screens::keymap::render_ledger(frame, areas[3]);
-
-        if let Some(report) = &self.report {
-            screens::report::render(frame, frame.area(), report);
-        }
 
         // **The order palette is a modal over the screen behind it**, so the
         // player can see the agency they are ordering against while they order.

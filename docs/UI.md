@@ -160,7 +160,10 @@ panic hook for good.
 
 ### 2.3 Leaving the game [D]
 
-**The game asks before it quits, because the campaign is not saved.**
+**The game asks before it quits, because quitting should be a decision and not
+an accident.** The campaign is saved — the game saves itself at every month
+boundary, and again when the player quits — so the dialog is not about whether
+the evening is lost.
 
 | Key | What it does |
 |---|---|
@@ -175,9 +178,10 @@ dialog and presses `Enter` without reading it has not quit — that is the
 mistake the dialog exists to catch. The selection is shown in reverse video with
 a marker beside it, so it is findable on a monochrome terminal too.
 
-**The dialog says what is true.** It says that the campaign is not saved and
-that quitting ends it. A dialog that hides the cost of the choice is worse than
-no dialog at all.
+**The dialog says what is true.** It says that the campaign is saved when the
+player quits, and that the game saves itself every month. A dialog that hides
+the cost of the choice is worse than no dialog at all, and a dialog that lies
+about it is worse still.
 
 **The world waits while the player decides.** The campaign does not advance
 underneath the dialog, so the question costs no time — but the real time is
@@ -210,13 +214,14 @@ still consumed, so there is no backlog when the player carries on.
 | `q` | **Quit — after asking** |
 | **`Ctrl+C`** | **Quit, whatever is on the screen** |
 
-**`Ctrl+C` always quits, and no modal may swallow it [D].** The report, the
-manual, the filter, and the order palette each take the keys while they are
+**`Ctrl+C` always quits, and no modal may swallow it [D].** The manual, the
+filter, and the order palette each take the keys while they are
 open — and each of them would otherwise take the one key that means "stop". A
 player who presses `Ctrl+C` in a modal and finds the game still running has to
 work out how to leave, and a game that will not let a player leave is a game
 that feels broken. It is handled before everything else in the key handler, so
-it works from any screen and any modal.
+it works from any screen and any modal. **The month report is not a modal any
+more**, so it does not take the keys at all.
 
 **The keymap is on `F1`, and `F1` is the same key on every layout [D].** A
 function key is reported by the terminal from the hardware, not from a character
@@ -317,19 +322,36 @@ the left, and the money on the right.**
 │  › Reach orbit needs a rocket, │┌─ Headline ──────────────────┐┌─ Budget ───┐
 │    and the agency has not      ││ The science-first authority  ││  balance   │
 │    designed one. Press 5.      │└─────────────────────────────┘│  income    │
-└────────────────────────────────┘┌─ Just happened ─────────────┐│  net       │
-                                 ││ 2044-01-15 ⚳ The mission to  ││            │
-                                 ││ Low orbit succeeded.         ││  Where it  │
-                                 ││ 2043-12-20 » Hire            ││  goes      │
-                                 │└─────────────────────────────┘│            │
-                                 │┌─ Due soon ──────────────────┐│  Where it  │
-                                 ││ ○ Combustion stability — …   ││  comes from│
-                                 ││ ○ Reach orbit. — committed … ││            │
-                                 │└─────────────────────────────┘│            │
-                                 │┌─ Standing ──────────────────┐│  Committed │
-                                 ││ public opinion +0  prestige 0││            │
-                                 │└─────────────────────────────┘└────────────┘
+└────────────────────────────────┘┌─ This month · 2044-01 ──────┐│  net       │
+                                  ││ The treasury will not last  ││            │
+                                  ││ the quarter. Act now.       ││  Where it  │
+                                  ││ ⚠ Two commitments fell due  ││  goes      │
+                                  │└─────────────────────────────┘│            │
+                                  │┌─ Just happened ─────────────┐│  Where it  │
+                                  ││ 2044-01-15 ⚳ The mission to  ││  comes from│
+                                  ││ Low orbit succeeded.         ││            │
+                                  ││ 2043-12-20 » Hire            ││  Committed │
+                                  │└─────────────────────────────┘│            │
+                                  │┌─ Due soon ──────────────────┐│            │
+                                  ││ ○ Combustion stability — …   ││            │
+                                  ││ ○ Reach orbit. — committed … ││            │
+                                  │└─────────────────────────────┘│            │
+                                  │┌─ Standing ──────────────────┐│            │
+                                  ││ public opinion +0  prestige 0││            │
+                                  │└─────────────────────────────┘└────────────┘
 ```
+
+- **This month is the month's report, and it is a panel [D].** It used to be a modal
+  over the whole dashboard, and it took every key until it was dismissed — so a player
+  who wanted to look at the budget had to dismiss the month first, and a player who
+  wanted to order something had to dismiss it twice. **It is a panel now, and the
+  dashboard is never blocked.**
+  - **It carries what the feed does not.** The month's events are in the feed, three
+    rows below, and a thing said twice is a thing said twice. What is here is the
+    month's one thing that needed deciding, the warnings, the refusals, and the
+    opportunities.
+  - **A newer month replaces the one before it**, because the panel says what the last
+    month was like. There is nothing to dismiss, and nothing to be reminded of.
 
 - **The banner says what to do next [D].** It is the one piece of the interface that
   is a *judgement* rather than a readout, and it exists because **a player who does not
@@ -1043,7 +1065,7 @@ contains "2,000", and a guard that thinks it does has no guard in it.
 
 | Not | Why |
 |---|---|
-| **A modal per month** | There is no month. The feed and "needs attention" replace it |
+| **A modal per month** | There is no month to end. The month's report is a panel, and the feed and "needs attention" carry the rest |
 | **A "commit" button** | Orders are issued one at a time, and they take effect on their own schedule |
 | **A calendar of months to click through** | Time is continuous. The player schedules *instants*, not months |
 | **A turn order** | There is no turn. The player acts whenever |

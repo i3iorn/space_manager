@@ -109,7 +109,7 @@ fn headline(context: &MonthContext<'_>, report: &MonthReport) -> String {
         } else {
             "commitments"
         };
-        return format!("{count} {noun} came due this Instant.");
+        return format!("{count} {noun} came due this month.");
     }
 
     if let Some(warning) = report.warnings.first() {
@@ -127,7 +127,7 @@ fn headline(context: &MonthContext<'_>, report: &MonthReport) -> String {
         );
     }
 
-    "Nothing needed your attention this Instant.".to_owned()
+    "Nothing needed your attention this month.".to_owned()
 }
 
 /// The rank of a severity, for finding the most important entry.
@@ -156,10 +156,7 @@ mod tests {
         let rng = Rng::new(29);
         let context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
         let report = build(&context);
-        assert_eq!(
-            report.headline,
-            "Nothing needed your attention this Instant."
-        );
+        assert_eq!(report.headline, "Nothing needed your attention this month.");
     }
 
     #[test]

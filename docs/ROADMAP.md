@@ -1366,6 +1366,31 @@ waits ten seconds of real time between automatic saves.
 **The save slots are still on the list.** A player who wants to keep an old
 campaign has nowhere to put it, and the design's numbered slots are the answer.
 
+### 7.12 The month report is a panel, and the dashboard is never blocked
+
+**The month report was a modal over the whole dashboard, and it took every key
+until it was dismissed.** So a player who wanted to look at the budget had to
+dismiss the month first, and a player who wanted to order something had to
+dismiss it twice, and a player who was somewhere else entirely had to dismiss
+it before they could do anything at all. A report is a summary; a summary that
+interrupts is a prompt, and prompts are for things the player must answer.
+
+**It is a panel on the dashboard now**, and the panel says what the last month
+was like. A newer month replaces the one before it, because the panel is a
+window onto the last month and not a queue of things to be read. **The
+dashboard is never blocked**, and the report module is gone.
+
+**It carries what the feed does not.** The month's events are in the live
+feed, three rows below, and a thing said twice is a thing said twice. What is
+in the panel is the month's one thing that needed deciding, the warnings, the
+refusals, and the opportunities — the parts of the report that the feed and
+the advice banner do not already carry.
+
+**And two sentences of jargon went with it.** The report's headline said
+"nothing needed your attention this Instant", and "Instant" is the engine's
+name for a month, not a word a player has any reason to know. It says "this
+month" now, and so does the line about the commitments that came due.
+
 ## 8. What is left
 
 **Everything in this plan is done except the things below**, and they are here

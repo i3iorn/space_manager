@@ -91,6 +91,7 @@ fn render_agenda(app: &App, frame: &mut Frame, area: Rect, headline_rows: u16, p
             Constraint::Length(headline_rows),
             Constraint::Min(panel_rows),
             Constraint::Min(panel_rows),
+            Constraint::Min(panel_rows),
             Constraint::Length(panel_rows),
         ])
         .split(area);
@@ -102,6 +103,12 @@ fn render_agenda(app: &App, frame: &mut Frame, area: Rect, headline_rows: u16, p
     ))
     .block(Block::default().borders(Borders::ALL).title("Headline"));
     frame.render_widget(headline, rows[0]);
+
+    // **The month, as a panel.** It used to be a modal over the whole
+    // dashboard, and it took every key until it was dismissed — so a player
+    // who wanted to look at the budget had to dismiss the month first, and a
+    // player who wanted to order something had to dismiss it twice.
+    render_month(app, frame, rows[1]);
 
     // **The live feed.** What has just happened, newest first.
     //
@@ -116,7 +123,7 @@ fn render_agenda(app: &App, frame: &mut Frame, area: Rect, headline_rows: u16, p
                 .title("Just happened"),
         )
         .wrap(Wrap { trim: false });
-    frame.render_widget(feed, rows[1]);
+    frame.render_widget(feed, rows[2]);
 
     // What is due.
     let mut lines = Vec::new();
@@ -176,7 +183,7 @@ fn render_agenda(app: &App, frame: &mut Frame, area: Rect, headline_rows: u16, p
     let due = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title("Due soon"))
         .wrap(Wrap { trim: false });
-    frame.render_widget(due, rows[2]);
+    frame.render_widget(due, rows[3]);
 
     // The agency's standing: what the world thinks of it, and how close it is
     // to the crisis.
@@ -184,10 +191,70 @@ fn render_agenda(app: &App, frame: &mut Frame, area: Rect, headline_rows: u16, p
     // **The money is on the other half of the screen**, so this panel is for
     // the things the budget does not cover.
     let standing = Block::default().borders(Borders::ALL).title("Standing");
-    let inner = standing.inner(rows[3]);
-    frame.render_widget(standing, rows[3]);
+    let inner = standing.inner(rows[4]);
+    frame.render_widget(standing, rows[4]);
     let panel = Paragraph::new(standing_panel(state)).wrap(Wrap { trim: false });
     frame.render_widget(panel, inner);
+}
+
+/// The month's report, as a panel.
+///
+/// **The report is not a prompt.** It used to be a modal over the whole
+/// dashboard, and it took every key until it was dismissed — so a player who
+/// wanted to look at the budget had to dismiss the month first, and a player
+/// who wanted to order something had to dismiss it twice. It is a panel now,
+/// and the dashboard is never blocked.
+///
+/// **The events are not repeated here.** They are in the feed, three rows
+/// below, and a thing said twice is a thing said twice. What is here is what
+/// the feed does not carry: the month's one thing that needed deciding, the
+/// warnings, the refusals, and the opportunities.
+fn render_month(app: &App, frame: &mut Frame, area: Rect) {
+    let Some(report) = app.report() else {
+        let panel = Paragraph::new("  The month has not turned yet.")
+            .block(Block::default().borders(Borders::ALL).title("This month"))
+            .wrap(Wrap { trim: false });
+        frame.render_widget(panel, area);
+        return;
+    };
+
+    let mut lines = Vec::new();
+    if !report.headline.is_empty() {
+        lines.push(Line::styled(
+            format!("  {}", report.headline),
+            theme::emphasis(),
+        ));
+    }
+    for warning in &report.warnings {
+        lines.push(Line::styled(
+            format!("  ⚠ {warning}"),
+            theme::Meaning::Attention.style(),
+        ));
+    }
+    for rejection in &report.rejections {
+        lines.push(Line::styled(
+            format!("  ✗ {rejection}"),
+            theme::Meaning::Bad.style(),
+        ));
+    }
+    for opportunity in &report.opportunities {
+        lines.push(Line::styled(
+            format!("  ⓘ {opportunity}"),
+            theme::Meaning::Informational.style(),
+        ));
+    }
+    if lines.is_empty() {
+        lines.push(Line::raw("  Nothing needed saying."));
+    }
+
+    let panel = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(format!(" This month · {} ", report.date)),
+        )
+        .wrap(Wrap { trim: false });
+    frame.render_widget(panel, area);
 }
 
 /// The live feed, as the player reads it.

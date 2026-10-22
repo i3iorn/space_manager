@@ -504,9 +504,10 @@ causal chain stays readable.
 ### 5.5 The feed [D]
 
 **The month report is a summary, not the interface.** It is what the player sees
-when a month boundary is crossed, and it is a prompt: it stays until it is
-dismissed, and the chronicle keeps the rest. It is not the way the player reads
-the campaign.
+when a month boundary is crossed, and it is a **panel on the dashboard**: it
+shows the month's one thing that needed deciding, the warnings, the refusals,
+and the opportunities, and it never takes a key and never covers the screen.
+The chronicle keeps the rest.
 
 The month's report becomes:
 
@@ -519,9 +520,14 @@ The month's report becomes:
 *Both of these exist.* The live feed is `sim::feed` — the chronicle read live,
 newest first, with the severity, and the decisions the player has taken beside
 it. **What needs attention** is the standing list, and the top bar carries its
-count (`sim::derived::needs_attention`). The month report is still a modal, and
-it is still a prompt: it stays until it is dismissed, and a newer one does not
-replace it.
+count (`sim::derived::needs_attention`). The month report is the dashboard's
+**This month** panel, and a newer month replaces the one before it, because the
+panel says what the last month was like.
+
+**The report's events are not repeated on the dashboard.** They are in the feed,
+a few rows below, and a thing said twice is a thing said twice. What the panel
+carries is what the feed does not: the month's headline, the warnings, the
+refusals, and the opportunities.
 
 **The feed says each thing once.** An event's headline is a chronicle entry and
 nothing else — the month report shows it in its events section, and the feed
