@@ -253,11 +253,11 @@ month; the continuous model has no month to resolve. The clock runs the campaign
 whether or not the player is touching anything, and `Space` is how the player stops
 to think.
 
-**Two of these keys are not there yet [D].** The live feed and the "what needs
-attention" screen are Slice 1-37's successors. The top bar already carries the count
-of what needs attention, so the player is not left without the information — but the
-keys are promised in the design and are not in the build, and this document says so
-rather than implying otherwise.
+**One of these keys is not there yet [D].** The "what needs attention" screen is
+Slice 1-37's successor. The top bar already carries the count of what needs attention
+and the dashboard carries the standing list and the live feed, so the player is not
+left without the information — but the key is promised in the design and is not in the
+build, and this document says so rather than implying otherwise.
 
 ### 3.1 The tutorial [D]
 

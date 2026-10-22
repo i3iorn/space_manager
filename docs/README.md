@@ -45,9 +45,9 @@ and nothing in the build depends on them.
 | Milestone | State |
 |---|---|
 | **M0 - Foundation** | **Complete.** The workspace, the four crates, the pinned RNG, the save envelope, the terminal shell, the dependency-direction check, CI, and the README. |
-| **S1 - Ground Game** | **Complete, and rebuilt on the continuous model.** The engine, the domain model, the performance model, the playable loop, the interface - including the order palette, the binding-factor panel, the manual, and the tutorial - and the golden fixture. The first playtest was run, and it found the five things in `ROADMAP.md` §3.6. |
+| **S1 - Ground Game** | **Complete, and rebuilt on the continuous model.** The engine, the domain model, the performance model, the playable loop, the interface - including the order palette, the binding-factor panel, the manual, the tutorial, and the main menu - and the golden fixture. The hands-on play that ran alongside the build found the five things in `ROADMAP.md` §3.6; the formal five-person playtest is still outstanding. |
 | **M1 - Continuous Time** | **Complete.** The clock, the scaled quantities, the host's clock, the scheduler, the advance loop, the draw anchors, the rates, the order model, the goodwill, the stable buckets, the save format and the version, the host loop, the top bar, the dilation-independence test, and the fork. See `ROADMAP.md` §4. |
-| **S2 - The Programme** | **Complete.** The commitment mechanic, the slack, the facilities, the industrial capacity, the budget-crisis warning, and the programme and facilities screens. See `ROADMAP.md` §5. |
+| **S2 - The Programme** | **Complete, except for the playtest.** The commitment mechanic, the slack, the facilities, the industrial capacity, the budget-crisis warning, and the programme and facilities screens. See `ROADMAP.md` §5. |
 | **S3 - First Orbit** | **Complete, except for the playtest.** The vehicles, the missions, the capability gating, the event catalogue, the politics, the **"First Orbit" scenario**, the **balance harness**, the cross-system invariants, the **fuzz test**, and the **performance test**. Six bugs and a balance rewrite came out of it; they are in `ROADMAP.md` §6.5. |
 | **S4 - Proof** | **Complete, except for the playtest.** Replay, branching, the branch comparison view, the onboarding briefing, the balance pass, the strategy check, the error-message pass, the save and load, and the documentation pass. See `ROADMAP.md` §7. |
 
@@ -67,11 +67,12 @@ took ten and a half seconds, so it now takes one and a half; and the player aske
 for flare, so the finding was that a text terminal cannot give it and the art
 came back out. `ROADMAP.md` §7.3 to §7.9 has each of them.
 
-**What is left is in `ROADMAP.md` §8, in one place.** It is the four playtests,
-which need a person; the two filter tasks, which are the last of the interface's
-readability work; and the handful of things the design promises and the game has
-not built yet — the retirement and the illness, the deeper applicant pool, the
-mandate crisis, the rivals, and the planetary protection of the late game.
+**What is left is in `ROADMAP.md` §8, in one place.** It is the four formal playtests,
+which need a person, and the handful of things the design promises and the game has
+not built yet — retirement, illness, injury and death; the numbered save slots; the
+deeper applicant pool and the events in which the state asks why; the mandate crisis;
+the rivals; the lunar destination; and the planetary protection of the late game.
+
 ## The build plan, in brief
 
 The game is built as a **simulation with a view** — a deterministic core that turns a

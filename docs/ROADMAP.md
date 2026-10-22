@@ -1482,12 +1482,6 @@ fixed in §3.6. The advice banner (§7.4), the "done by" line on each objective,
 shift policy's thermostat (§7.10) and the assignment being a move (§7.7) also came
 from that play. **The formal playtests are what is still outstanding.**
 
-### The two filter tasks
-
-**They are done**, and they were the last thing in §3.11: the filter takes conditions
-and not only names, and every list is wired to it. `ROADMAP.md` §7.13 has the whole of
-it.
-
 ### The things the design says and the game does not do yet
 
 These are named in the design documents and are not built. They are listed here
@@ -1499,7 +1493,9 @@ so that they are not mistaken for oversights.
 | **The numbered save slots** | `PERSISTENCE.md` §9 — a player who wants to keep an old campaign has nowhere to put it |
 | **A deeper applicant pool**, and the events in which the state asks why | `ROADMAP.md` §4.4.3 — the goodwill's effects on recruitment |
 | **A mandate crisis** — the state's patience running out | `ROADMAP.md` §4.4.3 |
-| **Rival agencies** | `MANAGEABLE_PARTS.md` §13.2 — the rivals can be switched off, and they are off |
+| **Rival agencies** | `MANAGEABLE_PARTS.md` §13.2 — the rival model is deferred, so there is nothing to switch off yet |
+| **A press line on notable events** | `MVP.md` §2's Public row — the design's original note; the shipped game has press events but no standing line |
+| **A lunar destination** | `MVP.md` §2 and `DEVELOPER_INTRO.md` — the Lunar programme category finishes at low orbit; the Moon is a later slice |
 | **Planetary protection and sample-return contamination** | `MVP.md` §3 — a late-game pillar, and the MVP has no bacterial life |
 
 ## 9. Cross-cutting work

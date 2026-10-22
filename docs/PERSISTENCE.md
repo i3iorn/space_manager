@@ -188,7 +188,8 @@ shows it in plain language, and the player keeps whatever they have.
 
 **There is one, and the game writes it by itself.** The design had three — one
 before each significant action, one on quit, and numbered slots for the player
-— and the shipped game has the first two merged into one:
+— and the shipped game has one: the campaign file, written at every month
+boundary and again when the player quits.
 
 | When | Where | Built |
 |---|---|---|

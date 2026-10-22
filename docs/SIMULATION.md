@@ -682,8 +682,8 @@ A save carries:
 **The scheduler is part of the save [D].** A campaign saved with three launches in
 flight must restore those launches, their phases, and their completion instants.
 
-**Autosaves** are written before each significant action and on quit, and **only while
-the game is open** — simulated time does not advance while the game is closed.
+**Autosaves** are written at every month boundary and when the player quits, and **only
+while the game is open** — simulated time does not advance while the game is closed.
 
 ---
 

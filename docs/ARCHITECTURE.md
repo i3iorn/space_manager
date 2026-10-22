@@ -208,8 +208,8 @@ the number of sub-steps depends on the dilation. There is no `Rng` in the module
 draw from, so the type system makes the mistake impossible rather than merely
 unlikely.
 
-**Every module in the map above exists.** The `events/` catalogue arrived with
-Slice 3 and `order_palette.rs` with Slice 1-37; `sim::time` is still
+**Every module in the map above exists.** The `events/` catalogue and
+`order_palette.rs` are among the modules the slices added; `sim::time` is still
 `domain::time`, and moves when the clock's host-side half does.
 
 ### `crates/ui` — the terminal interface
@@ -222,6 +222,7 @@ src/
 ├─ input.rs            key handling, the global keymap
 ├─ screen.rs           the Screen enum and the screen trait
 ├─ order_palette.rs    the modal where the player gives an order
+├─ menu.rs             the main menu: restart, save, load, settings
 ├─ advice.rs           what to do next, read from the campaign
 ├─ briefing.rs         the opening briefing
 ├─ confirm.rs          the modal that asks before something irreversible
@@ -239,7 +240,7 @@ src/
 │  ├─ branches.rs      forking the campaign, and comparing the two branches
 │  ├─ keymap.rs        the keymap modal
 │  ├─ manual.rs        the manual over the interface
-│  └─ report.rs        the report modal
+│  └─ report.rs        the month report panel
 ├─ widgets/
 │  ├─ mod.rs
 │  ├─ binding_factor.rs     the performance explanation panel

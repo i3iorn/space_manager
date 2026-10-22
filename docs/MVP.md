@@ -58,7 +58,7 @@ prepared to sit through it.
 | **Money** | State appropriation (daily accrual, annual true-up), payroll, programme spend, construction spend, upkeep | No investors, no debt, no commercial revenue, no crisis ladder beyond a warning. The **parameterised** revenue model ships with one source wired; the structure is right, the breadth is not |
 | **People** | 40-80 staff, roles: Scientists, Engineers, Astronauts, Administrators, Managers | No relationship graph. 2-3 traits per person, traits modify performance directly |
 | **Performance** | The full **C+B hybrid** | Clamped, saturating, with the **binding factor** shown. This is the MVP's most important single system |
-| **Programmes** | Create, set objectives, set target and committed dates, set budget, assign staff, track progress | One programme category family: *Orbital* and *Lunar* only |
+| **Programmes** | Create, set objectives, set target and committed dates, set budget, assign staff, track progress | One programme category family: *Orbital* and *Lunar*; both finish at low orbit in the MVP |
 | **Research** | 3 disciplines: Propulsion, Structures & Materials, Life Support | Full capability-vs-reliability tension. Project, PI, funding, duration, breakthrough |
 | **Testing** | Test stand runs a testing campaign against an existing capability | Reduces the risk of what the agency already knows how to build. Not a research project — a separate activity competing for the same staff |
 | **Facilities** | 4 types: Laboratory, Test Stand, Fabrication Plant, Launch Complex. Each individually built, with **method** (Fast & cheap / Standard / Robust) and **scale** (Small / Large) as construction choices | The full 8-choice construction matrix is deferred; the *mechanism* ships, with 2 of the axes |
@@ -66,12 +66,12 @@ prepared to sit through it.
 | **Missions** | Preparation → launch → transit → operations → return. Success and partial failure. Results feed research | No sample return, no contamination, no interstellar |
 | **Events** | ~35 hand-authored events across all 8 categories, with context weighting and follow-ups | The weight is in the *weighting*, not the count |
 | **Politics** | A single state actor: approval, political capital, and one-off milestone demands. A promise tracker | No factions, no elections, no ministers |
-| **Public** | Public opinion and prestige as two numbers, with a press line on notable events | No media outlets, no heroes system, no scandals |
+| **Public** | Public opinion and prestige as two numbers | No press line, no media outlets, no heroes system, no scandals |
 | **Chronicle** | Full. Queryable by year, category, subject. The legend list. The live feed | This is the MVP's best surface and ships complete |
 | **Timeline** | Full. The next few weeks of scheduled obligations, orders in flight, and their known risk figures | Ships complete - it is the other half of the chronicle |
 | **Save / load** | Full, versioned against `sim_version` | |
 | **Replay** | The order log, exact reproduction, and **branching** at any instant | The MVP's most expensive feature and the one that most needs proving |
-| **Rivals** | **Off** | The toggle exists in the options; the rival model is deferred. The open question in `MANAGEABLE_PARTS.md` §17.1 stays open until the core is proven |
+| **Rivals** | **Off** | The rival model is deferred; there is no options screen or toggle yet. The open question in `MANAGEABLE_PARTS.md` §17.1 stays open until the core is proven |
 | **Alien life** | **None in the MVP** | Destinations are lifeless. Bacterial life and planetary protection are a late-game pillar and have no place in a five-year slice |
 
 ### TUI screens (7)

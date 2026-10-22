@@ -91,15 +91,19 @@ time** — a campaign is a running agency on a clock, not a monthly tick — wit
 scheduler, the continuous rates, the order model with its lead times and its two
 validations, the goodwill, and a save format that restores a campaign with work in
 flight. The interface has seven screens, an **order palette** that shows what an order
-will cost before the player commits to it, a tutorial, and a fork that lets the player
-ask what would have happened if they had not cancelled that programme.
+will cost before the player commits to it, a tutorial, a fork that lets the player
+ask what would have happened if they had not cancelled that programme, and a **main
+menu** for the decisions about the campaign as a whole. The **event catalogue** exists,
+so the agency is no longer nearly deterministic in practice.
 
-What does not exist yet is the **event catalogue**, so the agency is still nearly
-deterministic in practice, and the **first playtest** has not happened.
+**What is not done is the four formal playtests**, which need a person. The campaigns
+run, the objectives are reachable, and nothing crashes — but whether a player
+understands the game is still unproven.
 
-The build plan is in [`docs/ROADMAP.md`](docs/ROADMAP.md). Slice 1 (*Ground Game*)
-is the first year of a small agency: a budget, a few scientists, a research project,
-and the first month where the player sees **why their team is slow**.
+The build plan is in [`docs/ROADMAP.md`](docs/ROADMAP.md). All four slices are built.
+Slice 1 (*Ground Game*) was the first year of a small agency: a budget, a few
+scientists, a research project, and the first month where the player sees **why their
+team is slow**. Slices 2 to 4 added the programme, the first orbit, and the proof.
 
 ---
 

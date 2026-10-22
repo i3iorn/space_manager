@@ -4,7 +4,7 @@
 
 A space agency management simulation, in Rust, built as a cargo workspace of four
 crates: `domain` (the data), `sim` (the engine), `ui` (the terminal interface), and
-`space_manager` (the binary). 681 tests pass, and one more that only the nightly run plays.
+`space_manager` (the binary). 730 tests pass, and one more that only the nightly run plays.
 
 **The design is complete, and so is the engine.** Everything in `crates/`
 implements the continuous-time model, and the build plan's four slices are done
@@ -32,7 +32,8 @@ test run on both Linux and Windows, the performance budgets run in a release bui
 on Linux, the determinism test has a job of its own on both operating systems, and
 the fuzz test and the balance harness run on a nightly schedule.
 
-**`cargo test --workspace` currently runs 718 tests and they all pass.** That number
+**`cargo test --workspace` currently runs 730 tests and they all pass, plus one that
+only the nightly schedule plays.** That number
 matters: it is the baseline a change is measured against. If you add behaviour, add
 tests with it, or "green" means nothing.
 

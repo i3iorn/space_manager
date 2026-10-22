@@ -271,8 +271,9 @@ Recorded so that the old assumptions are not quietly carried forward:
   when it will land.
 - **Work does not progress in monthly steps.** It progresses continuously, at a rate
   the player changes by changing who is working on what.
-- **The month report is gone.** It is replaced by a live feed of what has happened and
-  a standing list of what needs attention.
+- **The month report is a panel, not a modal.** It sits on the dashboard beside the
+  live feed of what has happened and the standing list of what needs attention, so
+  the player reads it without the game stopping.
 - **The forecast is now a timeline**, not a list of months.
 - **Nothing is derived from "which month is it".** Every rule that used to ask that now
   asks "what instant is it", and most of them have become rates rather than events.
