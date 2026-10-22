@@ -741,31 +741,44 @@ the institution rather than steering it. That is a better game than a rationing 
 
 ## 10. The budget crisis ladder
 
-**Only the first two rungs are built.** The MVP scopes the ladder to "no crisis
-ladder beyond a warning" (`MVP.md` §2), and that is what the game has: the
-warning, and the austerity notice. The rest of the ladder is the design, and
-the table below says which is which, because a balance document that
-describes a game that does not exist is worse than no balance document.
+**The first three rungs are built.** The MVP scoped the ladder to "no crisis
+ladder beyond a warning" (`MVP.md` §2), and the game has gone one rung further:
+the warning, the austerity notice, and the cut itself. The rest of the ladder is
+the design, and the table below says which is which, because a balance document
+that describes a game that does not exist is worse than no balance document.
 
 | Stage | Trigger | Effect | Built |
 |---|---|---|---|
 | **Warning** | Projected balance below 3 months of runway | Visible on the dashboard and in the top bar | **Yes** |
-| **Austerity** | Balance below 1 month | The state has imposed a cut | **The notice only** - the cut is not taken |
-| **Borrowing** | Balance below zero | A loan at 12% annual interest over 24 months | No |
-| **Attrition** | Two consecutive months in debt | Unpaid staff leave: seniors first, 5-15% a month | No |
-| **Cancellations** | Three consecutive months in debt | The lowest-priority programme is terminated, publicly | No |
-| **Collapse** | Six consecutive months in debt | The campaign ends, and the chronicle is kept | No |
+| **Austerity** | Balance below 1 month | **The state's allocation is cut by 20%** | **Yes** |
+| **Borrowing** | Balance below zero | A loan at 12% annual interest over 24 months | The notice only |
+| **Attrition** | Two consecutive months in debt | Unpaid staff leave: seniors first, 5-15% a month | The notice only |
+| **Cancellations** | Three consecutive months in debt | The lowest-priority programme is terminated, publicly | The notice only |
+| **Collapse** | Six consecutive months in debt | The campaign ends, and the chronicle is kept | The notice only |
 
 **The ladder takes six months to reach the bottom**, and the design gives
 the player time to respond at every stage. The warning appears two months
 before the austerity, and a crisis should be the consequence of a run of bad
 decisions and not a surprise.
 
-**The first two rungs are where the tension is anyway.** A warning the player
-can see and a treasury they can watch drain is the pressure the MVP needs; the
-rungs below it need a revenue model and a debt model, and `MVP.md` §3 defers
-both. **They are the natural next thing after the playtests**, and they are
-the thing to build if the crisis turns out to be too forgiving.
+**The cut is a fifth of the state's allocation, and it is a real cut.** It is
+`AUSTERITY_CUT_PERCENT` in `sim::balance`, it applies from austerity downwards,
+and it is applied where the allocation is computed — so the interface and the
+simulation cannot disagree about how much the agency was given. The state does
+not say which programme to stop; the agency has to find the fifth itself.
+
+**The ladder goes back up.** It falls one step a month while the treasury
+cannot cover a month, and it rises one step a month once the condition that
+caused the step has cleared: the warning lifts at three months of runway, the
+cut lifts at one. A warning that never lifted would be a lie, and a cut that
+could never be undone would be a wound that never closed — and in a campaign
+that runs thirty years, a one-way ratchet is not pressure, it is a sentence.
+
+**The first three rungs are where the tension is anyway.** A warning the player
+can see, a treasury they can watch drain, and a cut they have to find the money
+for are the pressure the MVP needs; the rungs below it need a revenue model and
+a debt model, and `MVP.md` §3 defers both. **They are the natural next thing**,
+and they are the thing to build if the crisis turns out to be too forgiving.
 
 ---
 

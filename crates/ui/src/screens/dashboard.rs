@@ -243,7 +243,7 @@ fn standing_panel(state: &domain::state::CampaignState) -> Vec<Line<'static>> {
     } else {
         theme::historical()
     };
-    vec![
+    let lines = vec![
         Line::from(vec![
             Span::raw("  public opinion "),
             Span::styled(format!("{opinion:+}"), opinion_style),
@@ -253,15 +253,29 @@ fn standing_panel(state: &domain::state::CampaignState) -> Vec<Line<'static>> {
                 theme::historical(),
             ),
         ]),
-        Line::styled(
-            format!("  {}", state.treasury.crisis_stage.label()),
-            if state.treasury.crisis_stage == domain::finance::CrisisStage::None {
-                theme::historical()
+        Line::from(vec![
+            Span::styled(
+                format!("  {}", state.treasury.crisis_stage.label()),
+                if state.treasury.crisis_stage == domain::finance::CrisisStage::None {
+                    theme::historical()
+                } else {
+                    theme::Meaning::Attention.style()
+                },
+            ),
+            // **The cut, on the same line as the stage that caused it.** The
+            // panel is two rows tall and the player must not have to look
+            // somewhere else to find out that the state has stopped paying.
+            if state.treasury.crisis_stage.in_austerity() {
+                Span::styled(
+                    format!(": funding cut {}%", sim::balance::AUSTERITY_CUT_PERCENT),
+                    theme::Meaning::Attention.style(),
+                )
             } else {
-                theme::Meaning::Attention.style()
+                Span::raw("")
             },
-        ),
-    ]
+        ]),
+    ];
+    lines
 }
 
 /// The right half: the budget.
@@ -376,11 +390,23 @@ fn incoming_lines(state: &domain::state::CampaignState) -> Vec<Line<'static>> {
         Line::raw(""),
         Line::styled("  Where it comes from", theme::title()),
     ];
+    // **The cut is shown where the money is.** The state allocation is the
+    // line the cut comes off, and a number that is a fifth lower than it was
+    // last month, with nothing to say why, is the sort of thing a player
+    // concludes is a bug.
+    let cut = state.treasury.crisis_stage.in_austerity();
     for (source, amount) in &state.treasury.income {
-        lines.push(Line::from(vec![
+        let mut spans = vec![
             Span::raw(format!("  {:<18}", source.label())),
             Span::raw(format!("{:>9}", credits(*amount))),
-        ]));
+        ];
+        if cut && *source == domain::finance::IncomeSource::CivilisationBase {
+            spans.push(Span::styled(
+                format!("  -{}% (austerity)", sim::balance::AUSTERITY_CUT_PERCENT),
+                theme::Meaning::Attention.style(),
+            ));
+        }
+        lines.push(Line::from(spans));
     }
     lines
 }

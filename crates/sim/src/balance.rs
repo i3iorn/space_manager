@@ -555,6 +555,19 @@ pub const APPROPRIATION_FLOOR: i64 = 12_000;
 /// it. That is the scale `docs/BALANCE.md` §9.2 describes.
 pub const APPROPRIATION_POLITICAL_SCALE_BP: i64 = 50;
 
+/// How much the state takes off the agency's allocation while the agency is in
+/// austerity, in percent.
+///
+/// **The cut is a fifth of the funding, and it is the state's money to take.**
+/// A fifth is enough to hurt and small enough to be survived: a player who has
+/// been spending everything they were given has to find a fifth of it
+/// somewhere, and a player who has not been has nothing to do about it.
+///
+/// **It is a cut on the allocation and nothing else.** The state does not tell
+/// the agency which programme to stop; it simply pays less, and what the
+/// agency does about that is the agency's business.
+pub const AUSTERITY_CUT_PERCENT: u32 = 20;
+
 /// The ordinary chance, in basis points, that a person leaves each month.
 ///
 /// **Six percent a year**, which is the ordinary turnover of an institution. It

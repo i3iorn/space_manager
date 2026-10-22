@@ -47,6 +47,20 @@ fn empty() -> App {
     app
 }
 
+/// An agency that has run out of money.
+///
+/// **The treasury starts nearly empty and the agency spends more than it is
+/// given**, so the crisis ladder starts moving in the first month and the
+/// agency is in austerity by the second.
+fn broke() -> App {
+    let mut scenario = Scenario::scaling(20, 4, 1);
+    scenario.start_state.treasury.balance = domain::money::Money::from_credits(1_000);
+    let mut app = App::started(sim::Sim::new(&scenario).expect("the campaign starts"));
+    app.advance(Duration::from_days(40 * 4));
+    app.on_key(press(KeyCode::Enter));
+    app
+}
+
 /// The screen, as the player sees it.
 fn rendered(app: &mut App) -> String {
     let backend = TestBackend::new(140, 40);
@@ -140,5 +154,54 @@ fn the_budget_panel_says_nothing_when_nothing_is_spent() {
     assert!(
         text.contains("Nothing is being spent"),
         "and it says that nothing is being spent:\n{text}"
+    );
+}
+
+#[test]
+fn the_austerity_cut_is_shown_where_the_money_is() {
+    // **A cut the player cannot see is a bug they will not report.** The
+    // state's allocation is a fifth lower and the panel says so beside the
+    // money, because a number that is smaller than it was last month with
+    // nothing to say why is the sort of thing a player concludes is a bug.
+    let mut app = broke();
+    let text = rendered(&mut app);
+    assert!(
+        text.contains("austerity"),
+        "the cut is named next to the allocation:\n{text}"
+    );
+    assert!(
+        text.contains(&format!("-{}%", sim::balance::AUSTERITY_CUT_PERCENT)),
+        "and it says how much:\n{text}"
+    );
+}
+
+#[test]
+fn the_crisis_is_on_the_top_bar() {
+    // **The player must not have to go looking for it.** The runway says how
+    // long the agency has, and it turns red when the state has started
+    // intervening.
+    let mut app = broke();
+    let text = rendered(&mut app);
+    assert!(text.contains("runway"), "the runway is on it:\n{text}");
+    assert!(
+        text.contains("Collapse") || text.contains("Austerity"),
+        "and the stage is on the dashboard:\n{text}"
+    );
+}
+
+#[test]
+fn the_dashboard_says_how_to_get_out_of_austerity() {
+    // **A crisis the player cannot act on is a mood, not a crisis.** The
+    // standing panel says the state has cut the funding, and the advice banner
+    // says what would lift the cut.
+    let mut app = broke();
+    let text = rendered(&mut app);
+    assert!(
+        text.contains("funding cut"),
+        "and it says the state has cut the funding:\n{text}"
+    );
+    assert!(
+        text.contains("a month of runway again"),
+        "and the banner says what would lift the cut:\n{text}"
     );
 }

@@ -166,6 +166,58 @@ impl CrisisStage {
             Self::Cancellations | Self::Collapse => Self::Collapse,
         }
     }
+
+    /// The stage above this one on the ladder.
+    ///
+    /// **The ladder goes back up.** A crisis is a run of bad decisions and not a
+    /// sentence: a warning that never lifts is a lie, and a cut that can never
+    /// be undone is a wound that never closes. The agency climbs one step a
+    /// month once the condition that caused the step has cleared.
+    #[must_use]
+    pub const fn previous(self) -> Self {
+        match self {
+            Self::None | Self::Warning => Self::None,
+            Self::Austerity => Self::Warning,
+            Self::Borrowing => Self::Austerity,
+            Self::Attrition => Self::Borrowing,
+            Self::Cancellations => Self::Attrition,
+            Self::Collapse => Self::Collapse,
+        }
+    }
+
+    /// The runway at which this stage lifts.
+    ///
+    /// **Each stage has its own bar, and the bar is the condition that caused
+    /// it.** The warning is a warning about the runway falling below three
+    /// months, so it lifts when the runway is back above three. The austerity
+    /// cut is a cut because the treasury cannot cover a month, so it lifts when
+    /// the treasury can cover one again.
+    #[must_use]
+    pub const fn recovers_at(self) -> u32 {
+        match self {
+            Self::None => 0,
+            Self::Warning => 3,
+            Self::Austerity | Self::Borrowing | Self::Attrition | Self::Cancellations => 1,
+            Self::Collapse => u32::MAX,
+        }
+    }
+
+    /// Whether the state has imposed a cut on the agency's funding.
+    ///
+    /// **The cut is in force from austerity downwards**, because every rung
+    /// below it is a worse version of the same thing: the agency is spending
+    /// money it has not got.
+    #[must_use]
+    pub const fn in_austerity(self) -> bool {
+        matches!(
+            self,
+            Self::Austerity
+                | Self::Borrowing
+                | Self::Attrition
+                | Self::Cancellations
+                | Self::Collapse
+        )
+    }
 }
 
 /// A loan the agency has taken out.

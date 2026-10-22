@@ -42,7 +42,11 @@ pub struct Advice {
 ///
 /// **The order is the order of urgency, and the order of the catalogue is the
 /// tie-break.** A situation that has never been true does not take up a slot.
-pub const ALL: [Advice; 16] = [
+pub const ALL: [Advice; 17] = [
+    Advice {
+        priority: 112,
+        situation: the_state_has_cut_the_funding,
+    },
     Advice {
         priority: 110,
         situation: orbit_needs_the_research,
@@ -151,6 +155,22 @@ pub fn count(sim: &Sim) -> usize {
 }
 
 // --- The situations -------------------------------------------------------
+
+/// The state has cut the agency's funding.
+///
+/// **A cut is not a mood: it is a fifth of the money gone every month, and it
+/// makes the hole worse.** The advice says how much and what would lift it,
+/// because the player's only move is to find the money somewhere else, and a
+/// player who does not know the size of the hole cannot find it.
+fn the_state_has_cut_the_funding(sim: &Sim) -> Option<String> {
+    if !sim.state().treasury.crisis_stage.in_austerity() {
+        return None;
+    }
+    Some(format!(
+        "The state has cut the agency's funding by {}%. Find a month of runway again and the cut lifts.",
+        sim::balance::AUSTERITY_CUT_PERCENT
+    ))
+}
 
 /// The agency cannot reach orbit yet, because it has not done the research.
 ///

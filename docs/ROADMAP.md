@@ -1329,7 +1329,6 @@ so that they are not mistaken for oversights.
 | What | Where it is promised |
 |---|---|
 | **Retirement, illness, injury and death** | `BALANCE.md` §4.4 — the exits a person can have that are not unhappiness |
-| **The austerity cut itself** | `BALANCE.md` §10 — the crisis ladder shows the notice, and the cut it announces is not taken |
 | **The autosave, and somewhere legal to write** | `PERSISTENCE.md` §5 and §9 — the game saves by hand, from inside the game, and it writes beside itself |
 | **A deeper applicant pool**, and the events in which the state asks why | `ROADMAP.md` §4.4.3 — the goodwill's effects on recruitment |
 | **A mandate crisis** — the state's patience running out | `ROADMAP.md` §4.4.3 |

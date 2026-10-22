@@ -53,16 +53,21 @@
 2041-07-06 00:00 | Minor | A sponsor asked awkward questions.
 2041-07-09 00:00 | Minor | Somebody was taken ill.
 2041-07-12 00:00 | Minor | A contractor asked for payment early.
+2041-08-01 00:00 | Info | The treasury will not last the quarter.
 2041-08-12 00:00 | Major | An unexpected bill arrived.
 2041-08-18 00:00 | Major | Equipment failed in a laboratory.
+2041-09-01 00:00 | Major | The state has cut the agency's funding.
+2041-10-01 00:00 | Major | Emergency loans have been taken out.
 2041-10-12 00:00 | Minor | A laboratory ran itself, and did not do it well.
 2041-10-27 00:00 | Major | Equipment failed in a laboratory.
 2041-10-30 00:00 | Minor | The weather turned.
+2041-11-01 00:00 | Critical | Unpaid staff are leaving.
 2041-11-03 00:00 | Minor | The press found an angle.
 2041-11-12 00:00 | Minor | The press found an angle.
 2041-11-15 00:00 | Major | An unexpected bill arrived.
 2041-11-24 00:00 | Minor | A sponsor asked awkward questions.
 2041-11-27 00:00 | Minor | Somebody else got there first.
+2041-12-01 00:00 | Critical | Programmes are being cancelled.
 2041-12-09 00:00 | Minor | A laboratory ran itself, and did not do it well.
 2041-12-15 00:00 | Minor | A laboratory ran itself, and did not do it well.
 2041-12-30 00:00 | Info | A piece about the agency was favourable.

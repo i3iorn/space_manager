@@ -1223,6 +1223,19 @@ impl App {
             theme::title()
         };
 
+        // **The runway is coloured by how much trouble it is in.** The bar has
+        // no room for another field — it is already as long as a narrow
+        // terminal allows — so the crisis shows as a colour on the number the
+        // player is already reading.
+        let crisis = state.treasury.crisis_stage;
+        let runway_style = if crisis != domain::finance::CrisisStage::None {
+            theme::Meaning::Bad.style()
+        } else if runway < 3 {
+            theme::Meaning::Attention.style()
+        } else {
+            theme::title()
+        };
+
         // The bar is a set of spans rather than one line, so that a field can
         // be red without the whole bar shouting.
         let spans = vec![
@@ -1244,7 +1257,7 @@ impl App {
                 } else {
                     "│ ".to_owned()
                 },
-                theme::title(),
+                runway_style,
             ),
             Span::styled(format!("{attention} due"), attention_style),
         ];

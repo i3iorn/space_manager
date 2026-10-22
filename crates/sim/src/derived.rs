@@ -386,6 +386,17 @@ pub fn monthly_income(
     let amount =
         domain::money::Money::from_credits(base).multiply_fraction(multiplier.max(0), 10_000);
 
+    // **The austerity cut.** The state has imposed a cut, and it is a cut on
+    // the state's own money — so it is applied here, where the allocation is
+    // computed, rather than somewhere downstream where two things could
+    // disagree about how much the agency was given.
+    let amount = if state.treasury.crisis_stage.in_austerity() {
+        let kept = 100 - balance::AUSTERITY_CUT_PERCENT.min(100);
+        amount.multiply_fraction(i64::from(kept), 100)
+    } else {
+        amount
+    };
+
     vec![(domain::finance::IncomeSource::CivilisationBase, amount)]
 }
 /// What the agency spends in a month, by line.

@@ -81,7 +81,7 @@ pub const TOPICS: &[Topic] = &[
         "state.crisis",
         Section::State,
         "The crisis stages",
-        "What happens when the money runs out, in order. The stages do not skip.",
+        "What happens when the money runs out, in order — and how to climb back out.",
         "The crisis moves through six stages, and each is worse than the last.\n\n\
          At **warning**, a shortfall is projected and the player can see it coming. At \
          **austerity**, the state has imposed a cut. At **borrowing**, emergency loans have \
@@ -90,11 +90,22 @@ pub const TOPICS: &[Topic] = &[
          campaign is over.\n\n\
          The stages are not a punishment for being poor. They are the consequence of being \
          poor, and the state does not wait politely for the player to notice.\n\n\
-         **The stages move in one direction.** There is no way back up them by spending \
-         more: a player who has reached cancellations has already lost the programmes, and \
-         the money saved is not the programmes regained. The only way back is to get the \
-         net positive again early, which is why the runway is the number to watch and not \
-         the balance."
+         **The ladder goes down one step a month while the treasury cannot cover a month, \
+         and it goes back up one step a month once the crisis has cleared.** A warning that \
+         never lifted would be a lie, and a cut that could never be undone would be a wound \
+         that never closed. Each stage has its own bar for lifting, and the bar is the \
+         condition that caused it: the warning lifts when the treasury can cover three \
+         months again, and the austerity lifts when it can cover one.\n\n\
+         **Austerity is a fifth off the state's allocation, and it is a real cut.** The \
+         agency is paid a fifth less from that month on, and the budget panel says so next \
+         to the money. It is the state's money to take and the state does not say which \
+         programme to stop: the agency has to find the fifth somewhere itself, in the \
+         payroll or in the research, and what it chooses to give up is the decision the \
+         crisis exists to force.\n\n\
+         **The cut is worse than it looks, because it makes the hole worse.** A fifth less \
+         income means the runway falls faster, which means the ladder falls faster. A player \
+         who does nothing in the month the warning appears arrives at austerity with less \
+         money than they had. The runway is the number to watch, and the balance is not."
     ),
     topic!(
         "state.appropriation",
