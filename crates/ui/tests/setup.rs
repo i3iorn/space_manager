@@ -32,7 +32,7 @@ fn shifted(code: KeyCode) -> KeyEvent {
 
 fn app() -> App {
     let scenario = Scenario::first_year();
-    App::new(sim::Sim::new(&scenario).expect("the campaign starts"))
+    App::started(sim::Sim::new(&scenario).expect("the campaign starts"))
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn the_campaign_is_the_same_at_every_dilation() {
     // it is nearly three hours.
     let run = |scale: TimeScale| {
         let scenario = Scenario::first_year();
-        let mut app = App::new(sim::Sim::new(&scenario).expect("the campaign starts"));
+        let mut app = App::started(sim::Sim::new(&scenario).expect("the campaign starts"));
         app.clock_mut().set_scale(scale);
         // The host's frame is a fixed amount of *real* time, and the clock
         // turns it into simulated time.

@@ -28,7 +28,7 @@ fn play(app: &mut App, seconds: u64) {
 #[test]
 fn a_year_of_play_finishes_a_project() {
     let scenario = Scenario::first_year();
-    let mut app = App::new(sim::Sim::new(&scenario).expect("the campaign starts"));
+    let mut app = App::started(sim::Sim::new(&scenario).expect("the campaign starts"));
     app.clock_mut().set_scale(TimeScale::SixHundredThousand);
 
     // The player puts the team on the project. The order takes a lead time, and
@@ -73,7 +73,7 @@ fn the_clock_moves_in_minutes_and_not_just_on_the_hour() {
     // **The grid is an implementation detail.** The player's clock moves
     // smoothly, and the minute is not always zero.
     let scenario = Scenario::first_year();
-    let mut app = App::new(sim::Sim::new(&scenario).expect("the campaign starts"));
+    let mut app = App::started(sim::Sim::new(&scenario).expect("the campaign starts"));
     app.clock_mut().set_scale(TimeScale::SixHundredThousand);
     play(&mut app, 3_600);
     let date = app

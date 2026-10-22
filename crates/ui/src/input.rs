@@ -13,6 +13,9 @@
 //! | `+` / `-` | One dilation step faster or slower |
 //! | `Ctrl+1` … `Ctrl+9` | Set the dilation directly |
 //! | `F1` | The keymap — the same key on every layout |
+//! | `F2` | The manual |
+//! | `F3` | Save the campaign |
+//! | `F4` | Load the campaign |
 //! | `?` or `/` | The keymap, if your layout has them |
 //!
 //! `Ctrl+digit` is used rather than `Shift+digit` because the shifted
@@ -67,6 +70,12 @@ pub enum Action {
     FilterCategory,
     /// Leave the game.
     Quit,
+    /// Show the next piece of advice.
+    NextAdvice,
+    /// Save the campaign.
+    Save,
+    /// Load the campaign.
+    Load,
     /// Stop or start the clock.
     TogglePause,
     /// One dilation step faster.
@@ -123,6 +132,13 @@ pub fn action_for(key: KeyEvent, _screen: Screen) -> Action {
         // same on every keyboard layout.
         KeyCode::F(2) => Action::OpenManual,
         KeyCode::Char('i' | 'I') => Action::OpenInfo,
+        // **Saving and loading are on `F3` and `F4`,** so they are the same
+        // physical key on every keyboard layout. **A player must be able to
+        // save without having planned to** — the campaign they have spent an
+        // evening on is not saved unless they say so, and they should not have
+        // to restart the game to say it.
+        KeyCode::F(3) => Action::Save,
+        KeyCode::F(4) => Action::Load,
         // **The filter is on an unshifted `/`**, which is the key every editor
         // and every browser uses for it, and which is unshifted on the Nordic
         // layouts as well as the American ones.
@@ -135,6 +151,10 @@ pub fn action_for(key: KeyEvent, _screen: Screen) -> Action {
         // globally.
         KeyCode::Char('y' | 'Y') => Action::FilterYear,
         KeyCode::Char('c' | 'C') => Action::FilterCategory,
+        // **The next piece of advice is on `n`,** for "next". It is a plain
+        // letter, so it is on every layout, and it is a key the player reaches
+        // for when they have read the banner and want another.
+        KeyCode::Char('n' | 'N') => Action::NextAdvice,
         KeyCode::Char('o') => Action::OpenPalette,
         KeyCode::Char('q') => Action::Quit,
         _ => Action::None,

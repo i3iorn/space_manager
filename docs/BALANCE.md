@@ -1,6 +1,13 @@
 # BALANCE.md
 
-> **The numbers, where they live, and how they get tuned.**
+> **The numbers, where the
+
+**The approval in that formula is a whole percentage, and the stored approval is
+a scaled integer.** The difference is a factor of 256, and getting it wrong
+made the allocation twenty-six times what the design says it is. **A scaled
+quantity compared against an unscaled number is always wrong**, and this one
+was wrong in the agency's favour: the Slice 3 work found it, and the agency
+was living off a budget nobody had voted for.y live, and how they get tuned.**
 >
 > **Status:** Design intent, revision 1. **Every value below is provisional.** They exist
 > to give the implementation a shape to start from and the harness something to measure.
@@ -97,14 +104,23 @@ paid on return regardless of outcome.
 ### 3.2 Research and testing (credits per month)
 
 ```
-research_project  = 12,000 × |team| + 6,000
-test_campaign     =  7,000 × |team| + 5,000
+research_project  = 1,200 × |team| + 3,000
+test_campaign     =   600 × |team| + 2,500
 ```
 
 **A test campaign is roughly half the cost of a research project of the same size**, and
 produces no new capability. That ratio is the balance of the central tension: if
 testing were as cheap as research, everyone would always test, and the research
 half of the game would be pointless.
+
+**These numbers are a fifth of what they were, and the reason is in §3.6.** A
+research project used to cost twelve thousand credits a head a month, which is
+ten times a salary, and no agency of any size could afford one — the state
+funds the agency at 1,900 a head and pays it 1,200. **A balance number that
+makes the game's central activity unaffordable is not a balance number.**
+The project's cost is now on top of the salary rather than beside it, and a
+four-person project costs 7,800 a month against a surplus of 28,000 for a
+forty-person agency.
 
 ### 3.3 Facilities
 
@@ -138,14 +154,27 @@ lesson, and it is learned rather than told.
 
 ### 3.4 Vehicles
 
+**A vehicle's price is derived from its sliders**, and the build time is the
+price: twenty months for every million credits it costs.
+
 | Archetype | Cost | Build months | Notes |
 |---|---|---|---|
-| Sounding rocket | 250,000 | 6 | Sub-orbital. The agency can reach orbit without one |
-| Orbital launcher | 1,900,000 | 12 | The workhorse |
-| Orbital capsule | 600,000 | 8 | Reusable only with high investment |
+| Sounding rocket | 50,000 | 1 | Cheap, quick, and unreliable. The agency can reach orbit without one |
+| Orbital launcher | 220,000-750,000 | 4-15 | The workhorse |
+| Orbital capsule | 100,000-300,000 | 2-6 | Reusable only with high investment |
 
 **A launch vehicle costs more than a laboratory, a test stand, and a fabrication plant
 put together.** That is deliberate: the first launch should feel like a real commitment.
+
+**The cost is the slider values, times the archetype's multiplier** — three for
+an orbital launcher, two for a capsule, one for a sounding rocket — and the
+build time is `cost × 20 months per million`, so a cheap rocket is built in a
+month and an orbital launcher takes a year.
+
+**The vehicle is charged for when the design lands**, and it is the *derived*
+price that is charged: the sliders are bounded before the price is worked out,
+so the agency pays for the vehicle it will actually get and not for the one it
+asked for.
 
 ### 3.6 The reference economy
 
@@ -468,31 +497,47 @@ tree, and it means a narrow research portfolio has a real opportunity cost.
 
 ### 6.3 Capability thresholds
 
-| Capability | Knowledge required | Unlocks |
-|---|---|---|
-| Atmospheric sounding | 0 | Sounding rockets |
-| Basic re-entry | 300 | Capsule return |
-| Orbital propulsion | 240 | Orbital launchers |
-| Closed-loop life support | 380 | Long-duration missions |
-| Orbital launch | 420 | Orbital missions |
-| Landing systems | 560 | Lunar and planetary landings |
-| In-situ resource use | 720 | Resource extraction |
-| Deep space propulsion | 900 | Interplanetary missions |
-| Megastructure engineering | 1,400 | Megastructures |
-| Interstellar capability | 2,200 | Interstellar missions |
+**The knowledge is per discipline**, and a capability is a threshold on its
+discipline's total. That is what makes the overlapping thresholds meaningful:
+three propulsion projects are three projects' worth of propulsion knowledge, and
+both propulsion capabilities read it.
+
+| Capability | Field | Knowledge required | Unlocks |
+|---|---|---|---|
+| Atmospheric sounding | Propulsion | 0 | Nothing - the agency always had it |
+| Orbital propulsion | Propulsion | 240 | The **Low orbit** destination, and the propulsion slider |
+| Basic re-entry | Structures & Materials | 300 | The heat-shield slider |
+| Closed-loop life support | Life Support | 380 | The **Long duration** destination, and the life-support slider |
+| Orbital launch | Propulsion | 420 | The **Orbital** destination, and the avionics slider |
 
 **The thresholds deliberately do not follow the order they are listed in.** Re-entry
 costs 300 and orbital propulsion 240, so a player can reach orbit without ever
 developing a heat shield — a legitimate strategy with a specific weakness, and the kind
 of shape the capability thresholds should have. A capability with a threshold of zero was
-never *developed*; the agency always had it, and it unlocks silently.
+never *developed*; the agency always had it, and it unlocks silently.
+
+**And a capability gates a slider**, which is the research-to-hardware link
+the whole game rests on: a slider the agency has not researched is pinned at
+zero, whatever the archetype would otherwise allow.
+
+**This is what the Slice 3 work changed.** The knowledge used to be credited to
+the *first* capability that shared a discipline, which was "Atmospheric
+sounding" - a capability with a threshold of zero - and so the flagship
+capability of every field could only be reached through the twenty percent
+adjacency spill, ten projects at a time. **Orbital propulsion was unreachable
+in a five-year campaign**, and the "First Orbit" scenario could not be won.
+The knowledge is per discipline now, and the thresholds mean what they say.
 
 ### 6.4 Testing
 
-A test campaign reduces the failure risk of a specific capability by **3 to 8 percentage
-points**, for the cost in §3.2. **Testing an untested capability is worth less than
-testing a used one** — a capability with no flight history has less to reduce, which
-means a player with an untested, unused capability should test something else first.
+A test campaign reduces the failure risk of a specific capability by **fifteen
+percentage points**, up to forty. **The campaigns stack**: a second campaign on
+the same capability takes out fifteen more, and the third is worth less than
+the second. The cost is in §3.2, and the risk it takes out **outlives the
+campaign that found it** — the people who did the testing can leave the agency
+and the certainty they bought stays bought.
+
+**Testing an untested capability is worth less than testing a used one** — a capability with no flight history has less to reduce, which means a player with an untested, unused capability should test something else first.
 
 ---
 
@@ -521,65 +566,66 @@ the whole rest of the game is spent making sure that is a good use of it.
 
 ### 7.2 Base risk
 
-| Mission type | Base failure risk |
-|---|---|
-| Sounding rocket | 3% |
-| Orbital launch | 8% |
-| Orbital mission with return | 11% |
-| Lunar mission | 22% |
-| Planetary mission | 28% |
-| Interplanetary | 35% |
+**The chance of a mission working is the vehicle's reliability**, and the
+reliability is the weighted average of the three safety sliders:
 
-**Risk modifiers, each applied to the base:**
+```
+reliability = (redundancy x 40 + avionics x 30 + structure x 30) / 100
+probability = reliability x 95%
+```
 
-| Modifier | Effect |
-|---|---|
-| Vehicle reliability, per 10 points above 50 | −1.5 points |
-| Test campaigns on the required capability | −1 to −3 points each |
-| Crew experience, per 100 flight-hours | −0.8 points |
-| Crew fatigue above 70 | +1 point per 10 points of excess |
-| Facility condition below 80 | +0.5 points per point below |
-| Schedule pressure (slack below 2 months) | +2 points |
-| Rushed ground test skipped | +6 points |
-| Morale above 60 | −1 point |
+**A perfectly reliable vehicle still fails five per cent of the time**, because
+a campaign in which nothing ever goes wrong is not a campaign. The testing
+takes points off the top: fifteen per campaign, up to forty.
 
-**Schedule pressure is the most dangerous modifier and the least visible.** A player
-who has let the slack run out is now paying in failure probability whether they
-intended to or not.
+**The design that gets to orbit needs 300 of delta-v**, and the delta-v is
+`propulsion x 12 + structure x 4`. A rocket that cannot leave the atmosphere
+is a sounding rocket whatever the agency calls it, and the engine refuses the
+launch.
 
 ### 7.3 Failure severity distribution
 
-Given a failure:
+**Given a failure, two in three are partial ones.** The share of the failure
+that is partial is fixed, and the size of the failure follows from the
+vehicle.
 
-| Severity | Share | Consequence |
+| Severity | Share of failures | Consequence |
 |---|---|---|
-| Partial | 70% | Objective partly met, delay, cost overrun, no catastrophe |
-| Severe | 25% | Objective failed, programme set back 3-12 months, injuries likely |
-| Catastrophic | 5% | Vehicle and crew lost, programme set back 2-5 years, political crisis |
+| Partial | 67% | The data is degraded, the approval falls, and the vehicle survives |
+| Total | 33% | The vehicle is written off, and the campaign needs another one |
 
-**A catastrophic loss is 5% of failures, and failures are 8-35% of missions.** So
-catastrophe is roughly 0.4-1.8% per mission. Over a 40-launch career, the player will
-lose a vehicle and crew perhaps once or twice. That is rare enough to be a story and
-frequent enough to matter.
+**A partial failure is the common branch**, and it is the branch that makes
+the testing worth paying for: a capability that has been tested is a safer
+capability, and the risk it has taken out comes off the top of the launch's
+chances.
 
 ---
 
 ## 8. Events
 
-### 8.1 Base weights
+### 8.1 The pressure
 
-Each event carries a base weight between 100 and 1,000. Weights are normalised per
-category per month so that the expected number of events per month is:
+**The total is the pressure, and the weights decide which event it lands on.**
+The pool of eligible events is scaled so that its total is the era's target,
+and the individual weights are then read against that same scale.
 
-| Era | Events per month |
-|---|---|
-| Early (years 0-5) | 1.0 |
-| Mid (years 5-20) | 1.5 |
-| Late (years 20+) | 2.0 |
+| Era | The target, per check | Events a month |
+|---|---|---|
+| Early (years 0-5) | 2,500 basis points | about 1.0 |
+| Mid (years 5-20) | 3,750 basis points | about 1.5 |
+| Late (years 20+) | 5,000 basis points | about 2.0 |
 
 **A month with no event is common and legitimate.** The player should not expect
 something to happen every month, or every month becomes noise.
 
+**The scaling is the whole of the rule, and it was wrong for a long time.** The
+earlier code multiplied the pool's raw total by the target instead of dividing
+it, and compared the roll against a scaled total while choosing the event with
+unscaled weights — **the roll was a roll against two different rulers**. The
+world was quieter than the design said by a factor of four, and the record was
+dominated by whichever event happened to have the largest weight. The chronicle
+of a five-year arc now runs to about a hundred entries of a dozen different
+kinds, which is the difference between a history and a log.
 ### 8.2 The weighting contexts
 
 These are the conditions the weight modifiers read:
@@ -694,22 +740,33 @@ the institution rather than steering it. That is a better game than a rationing 
 
 ## 10. The budget crisis ladder
 
-| Stage | Trigger | Effect |
-|---|---|---|
-| **Warning** | Projected balance below 3 months of runway | Visible on the dashboard and in the top bar |
-| **Austerity** | Balance below 1 month | The state withholds 20% of the appropriation; programmes are throttled |
-| **Borrowing** | Balance below zero | A loan is taken at 12% annual interest with a 24-month term |
-| **Attrition** | Two consecutive months in debt | Unpaid staff leave: seniors first, 5-15% per month |
-| **Cancellations** | Three consecutive months in debt | The lowest-priority programme is terminated, publicly |
-| **Collapse** | Six consecutive months in debt | The campaign ends. The chronicle is kept |
+**Only the first two rungs are built.** The MVP scopes the ladder to "no crisis
+ladder beyond a warning" (`MVP.md` §2), and that is what the game has: the
+warning, and the austerity notice. The rest of the ladder is the design, and
+the table below says which is which, because a balance document that
+describes a game that does not exist is worse than no balance document.
 
-**The ladder takes six months to reach the bottom.** The player has time to respond at
-every stage, and the warning appears two months before the austerity. A crisis should
-be the consequence of a run of bad decisions, not a surprise.
+| Stage | Trigger | Effect | Built |
+|---|---|---|---|
+| **Warning** | Projected balance below 3 months of runway | Visible on the dashboard and in the top bar | **Yes** |
+| **Austerity** | Balance below 1 month | The state has imposed a cut | **The notice only** - the cut is not taken |
+| **Borrowing** | Balance below zero | A loan at 12% annual interest over 24 months | No |
+| **Attrition** | Two consecutive months in debt | Unpaid staff leave: seniors first, 5-15% a month | No |
+| **Cancellations** | Three consecutive months in debt | The lowest-priority programme is terminated, publicly | No |
+| **Collapse** | Six consecutive months in debt | The campaign ends, and the chronicle is kept | No |
 
----
+**The ladder takes six months to reach the bottom**, and the design gives
+the player time to respond at every stage. The warning appears two months
+before the austerity, and a crisis should be the consequence of a run of bad
+decisions and not a surprise.
 
-## 11. Time scale
+**The first two rungs are where the tension is anyway.** A warning the player
+can see and a treasury they can watch drain is the pressure the MVP needs; the
+rungs below it need a revenue model and a debt model, and `MVP.md` §3 defers
+both. **They are the natural next thing after the playtests**, and they are
+the thing to build if the crisis turns out to be too forgiving.
+
+---## 11. Time scale
 
 | Milestone | Target | Acceptable range |
 |---|---|---|
@@ -799,6 +856,34 @@ is a measurement rather than a story.
 and a comparable spread in final treasury.** If one policy is strictly better on every
 axis, the trade-offs are broken.
 
+### The measured distribution
+
+**This is what the harness said after the shift policy landed**, over twenty seeds
+of the "First Orbit" scenario, sixty months each:
+
+| Policy | Reached orbit | Median time to orbit | Launches | Vehicle lost | Staff lost | Treasury left |
+|---|---|---|---|---|---|---|
+| Cautious | 19/20 | 38 months | 1 a campaign | 12 | 3 | 1,040,000 |
+| Fast | 20/20 | 36 months | 2 a campaign | 10 | 2 | 1,440,000 |
+| Science first | 20/20 | 32 months | 1 a campaign | 2 | 4 | 775,000 |
+
+**All three survive**, which is the criterion that matters, and they are separated
+on every axis except the one that matters least: the fast strategy gets there
+soonest, the science-first one is the most expensive and the most learned, and the
+cautious one is the one that loses vehicles.
+
+**The cautious policy now uses the shift policy rather than thirty individual
+shift changes**, and it is the one that reaches orbit slightly less often: the
+policy has a week of bureaucracy, so the first few months of a campaign are worked
+at full load. **That is the price of one standing instruction over thirty
+individual ones**, and it is a price the design accepts.
+
+**The spread between the three policies is six months of time to orbit**, which is
+narrower than the ten to twenty the target asks for. The next balance pass should
+look at whether the policies differ enough in their *strategy* — how much they
+test, how much they staff, how many vehicles they build — rather than at the
+shifts.
+
 ---
 
 ## 13. Change procedure
@@ -825,6 +910,7 @@ the diff gets *reviewed*, not that the fixtures are silently refreshed.
 | 4 | Do inflation and salary growth track each other? | A thirty-year campaign with static salaries looks wrong | S4-08 |
 | 5 | Should the political multiplier be linear in approval, or should high approval have diminishing returns? | A linear multiplier makes approval the only political lever worth having | S4-08 |
 | 6 | Should the reference composite be re-derived from the balance harness rather than fixed? | It is a hand-tuned constant, and every rate in the game depends on it | Balance harness |
+| 7 | Should a vehicle be free to design and charge for at the launch instead? | The design is the decision and the build is the cost, and charging twice for one thing is a bad rule | S4-08 |
 
 ---
 

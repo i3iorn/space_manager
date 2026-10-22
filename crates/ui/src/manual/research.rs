@@ -22,11 +22,11 @@ pub const TOPICS: &[Topic] = &[
          discipline, a team, and a target of 2,400 points.\n\n\
          Starting a project is an order, and it takes between 7 and 14 days to \
          land. Once it is running, it advances at the rate its team can sustain, and it \
-         costs 12,000 credits a head every month plus 6,000 of overhead.\n\n\
+         costs 1,200 credits a head every month plus 3,000 of overhead.\n\n\
          **The cost is on top of the salary.** The people on the project are on the \
          payroll either way; the project budget is what it costs to *do* the work - the \
          equipment, the materials, the running of the facility. A four-person project \
-         therefore costs 54,000 a month, on top of what those four people are paid.\n\n\
+         therefore costs 7,800 a month, on top of what those four people are paid.\n\n\
          **A finished project is worth 120 units of knowledge**, and it has a one in \
          three chance of a breakthrough, which is what unlocks a capability and lets \
          the agency do something it could not do before. Everything else the project \
@@ -65,17 +65,18 @@ pub const TOPICS: &[Topic] = &[
         "A test campaign is the reliability side of the work. A research project makes the \
          agency able to do something; a test campaign finds out whether it can actually be \
          done reliably.\n\n\
-         A campaign costs 7,000 credits a head - less than a research project - and \
+         A campaign costs 600 credits a head - less than a research project - and \
          takes 7 days to start. But it needs a capability to test, so the order is not \
          offered until the agency has developed one.\n\n\
          **The arithmetic is smaller and quicker than a project's.** A campaign needs 100 \
          points, and every member of the team adds 5 a month, so four people finish it \
-         in five months for 140,000. A research project of the same four people takes six \
-         months and costs 324,000.\n\n\
-         **What it buys is five points of risk.** A completed campaign takes five \
+         in five months for 19,000. A research project of the same four people takes six \
+         months and costs 31,200.\n\n\
+         **What it buys is fifteen points of risk.** A completed campaign takes fifteen \
          percentage points off the chance of failure of every mission to that \
          destination, and the memory of the testing **outlives the campaign** - the people \
-         who did it can leave, and the risk they took out stays taken out.\n\n\
+         who did it can leave, and the risk they took out stays taken out. A second \
+         campaign on the same capability takes out fifteen more, up to forty.\n\n\
          Testing is where the game bites. A capability that has never been tested is a \
          capability that does not work, and the difference between the two is the \
          difference between a programme and a post-mortem."
@@ -92,9 +93,9 @@ pub const TOPICS: &[Topic] = &[
          of the two they are on. Putting somebody on a project makes the project finish \
          sooner and makes the capability less tested. Putting them on a campaign does the \
          opposite.\n\n\
-         The two are not comparable on money either. A person on a project costs 12,000 a \
+         The two are not comparable on money either. A person on a project costs 1,200 a \
          month and produces points towards a capability; a person on a campaign costs \
-         7,000 a month and produces five points of certainty. **A capability that has \
+         600 a month and produces five points of certainty. **A capability that has \
          never been tested still does not work**, and the missions that depend on it are \
          the most expensive things the agency does.\n\n\
          There is no answer that is right. The design is that capability and reliability pull \
@@ -268,9 +269,13 @@ pub const TOPICS: &[Topic] = &[
          is drawn at a scheduled instant, on the mission's own stream, so nothing else \
          in the simulation can change it.\n\n\
          The chance of success is the vehicle's reliability, and it is visible before the \
-         launch. The base chance is 90%, so a vehicle of ninety reliability gives eighty-one per \
+         launch. The base chance is 95%, so a vehicle of ninety reliability gives eighty-five per \
          cent, and every point of testing takes one more off the risk. A mission on a \
          vehicle that is still being built is refused.\n\n\
+         **And two failures in three are partial ones.** The share of the failure that is \
+         partial is fixed, and the size of the failure follows from the vehicle: a shaky \
+         rocket loses more of itself than a careful one, and a total loss writes the \
+         vehicle off.\n\n\
          **A mission is also the fastest way to make the agency famous** - and fame is \
          what brings the good people to apply for the next one."
     ),
@@ -288,10 +293,10 @@ pub const TOPICS: &[Topic] = &[
          do afterwards:\n\n\
          | Capability | Field | Knowledge needed | What it unlocks |\n|---|---|---|---|\n\
          | Atmospheric sounding | propulsion | 0 | nothing - the agency always had it |\n\
-         | Orbital propulsion | propulsion | 240 | the Orbital and Low orbit destinations |\n\
+         | Orbital propulsion | propulsion | 240 | the Low orbit destination, and the propulsion slider |\n\
          | Basic re-entry | structures and materials | 300 | the heat-shield slider |\n\
-         | Closed-loop life support | life support | 380 | the Long duration destination |\n\
-         | Orbital launch | propulsion | 420 | the orbital launch destination |\n\n\
+         | Closed-loop life support | life support | 380 | the Long duration destination, and the life-support slider |\n\
+         | Orbital launch | propulsion | 420 | the Orbital destination, and the avionics slider |\n\n\
          **A capability is a key, and the keys are what the campaign is for.** Without \
          basic re-entry the agency cannot put a heat shield on a vehicle however much it \
          spends; without orbital propulsion there is nowhere to fly. The sliders a player \

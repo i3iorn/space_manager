@@ -104,6 +104,20 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     }
 }
 
+/// How many objectives there are to move through.
+///
+/// **The objectives of every programme, in the order they are shown**, because
+/// the selection counts across them and not per programme.
+#[must_use]
+pub fn objective_count(app: &App) -> usize {
+    app.sim()
+        .state()
+        .programmes
+        .values()
+        .flat_map(|programme| programme.objectives.iter())
+        .count()
+}
+
 /// The lines for one objective.
 ///
 /// **The two dates are never on the same row.** The typography carries the
@@ -119,6 +133,16 @@ fn objective_lines(
     let selected = *objective_index == app.selected();
     *objective_index += 1;
     lines.push(Line::raw(format!("    -  {}", objective.description)));
+    // **How the objective is done.**
+    //
+    // **"Reach orbit" is not a clue.** A player who is told that the agency
+    // must reach orbit, and not told that a launch is what reaches orbit, has
+    // to guess — and the guessing is the whole of the first hour. The domain
+    // knows what finishes the objective, so the screen says it.
+    lines.push(Line::styled(
+        format!("         done by   {}", objective.completion.phrase()),
+        theme::historical(),
+    ));
     if let Some(target) = objective.commitment.target {
         lines.push(Line::styled(
             format!("         target    {}", app.date(target)),

@@ -52,7 +52,11 @@ pub fn draw_and_apply(context: &mut MonthContext<'_>, check: u64) -> Option<Even
 
     // **The draw is on the check's index**, which is a stable identifier.
     let mut rng = context.rng.stream(crate::rng::Domain::Events, check, 0);
-    let total = total_weight(&pool, context.month);
+    // **The pool is scaled so that its total is the era's pressure.** The
+    // weights decide *which* event the pressure lands on, and not how much of it
+    // there is.
+    let pool = scaled_pool(&pool, context.month);
+    let total = total_weight(&pool);
     if total == 0 {
         return None;
     }
@@ -76,6 +80,35 @@ pub fn draw_and_apply(context: &mut MonthContext<'_>, check: u64) -> Option<Even
 
     apply_event(context, chosen);
     Some((*chosen).clone())
+}
+
+/// The pool, scaled so that its total is the era's pressure.
+///
+/// **The weights are relative and the total is the pressure.** The design
+/// fixes the expected number of events a check — a quarter in the early years,
+/// more later — so the pool is scaled to the era's target and the modifiers
+/// decide *which* event the pressure lands on.
+///
+/// The earlier code multiplied the raw total by the target instead of dividing
+/// it, so the world was quieter than the design said by a factor of four, and
+/// the individual weights were compared against a roll that had been scaled
+/// differently from them. **The total and the weights have to be in the same
+/// scale**, or the roll is a roll against two different rulers.
+fn scaled_pool(
+    pool: &[(&'static EventDef, u32)],
+    now: domain::time::Instant,
+) -> Vec<(&'static EventDef, u32)> {
+    let raw: u64 = pool.iter().map(|(_, weight)| u64::from(*weight)).sum();
+    if raw == 0 {
+        return Vec::new();
+    }
+    let target = u64::from(era_target(now));
+    pool.iter()
+        .map(|(event, weight)| {
+            let scaled = (u64::from(*weight) * target / raw).max(1);
+            (*event, u32::try_from(scaled).unwrap_or(u32::MAX))
+        })
+        .collect()
 }
 
 /// The events that could fire now, and their weights.
@@ -108,20 +141,14 @@ pub fn weighted_pool(
         .collect()
 }
 
-/// The pool's total weight, normalised to the era.
+/// The pool's total weight.
 ///
-/// **The weights are relative and the total is the pressure.** The design
-/// fixes the expected number of events a month — one in the early years, one
-/// and a half in the middle, two in the late — so the pool is scaled to the
-/// era's target and the modifiers decide *which* event the pressure lands on,
-/// not how much of it there is.
-fn total_weight(pool: &[(&'static EventDef, u32)], now: domain::time::Instant) -> u32 {
-    let raw: u64 = pool.iter().map(|(_, weight)| u64::from(*weight)).sum();
-    if raw == 0 {
-        return 0;
-    }
-    let target = u64::from(era_target(now));
-    (raw.saturating_mul(target) / 10_000) as u32
+/// **The total is the pressure, and it is fixed by the era.** The pool has
+/// already been scaled to it, so this is the sum of the scaled weights and it
+/// is the number a roll is measured against.
+fn total_weight(pool: &[(&'static EventDef, u32)]) -> u32 {
+    pool.iter()
+        .fold(0_u32, |total, (_, weight)| total.saturating_add(*weight))
 }
 
 /// The target total weight for the era the campaign is in.
@@ -152,8 +179,15 @@ fn holds(state: &CampaignState, condition: &Condition, now: domain::time::Instan
         Condition::MonthAtLeast(instant) => now >= *instant,
         Condition::TreasuryBelow(money) => state.treasury.balance < *money,
         Condition::TreasuryAbove(money) => state.treasury.balance > *money,
-        Condition::ApprovalBelow(value) => state.political.approval.value < *value,
-        Condition::ApprovalAbove(value) => state.political.approval.value > *value,
+        // **The approval is scaled and the threshold is not**, so the
+        // comparison scales the threshold. A condition that compared a scaled
+        // approval against a whole number was never true.
+        Condition::ApprovalBelow(value) => {
+            state.political.approval.value < *value * domain::scale::PERCENT_UNITS as i16
+        }
+        Condition::ApprovalAbove(value) => {
+            state.political.approval.value > *value * domain::scale::PERCENT_UNITS as i16
+        }
         Condition::HasProgramme(programme) => state.programmes.contains_key(programme),
         Condition::NoProgrammeNamed(name) => !state
             .programmes
@@ -258,9 +292,12 @@ pub fn apply_event(context: &mut MonthContext<'_>, event: &EventDef) {
     let severity = event.narrative.severity;
     let category = event.narrative.category;
 
-    context
-        .programme_lines
-        .push(domain::report::ReportLine::new(headline.clone()).with_severity(severity));
+    // **The event is a chronicle entry and nothing else.**
+    //
+    // It used to be a report line as well, and that put the same headline in
+    // the month report twice and in the live feed twice — once from the
+    // chronicle and once from the report lines. **The chronicle is the record
+    // of what happened**, and the report and the feed both read it.
     context.events.push(domain::chronicle::ChronicleEntry::new(
         context.state.next_chronicle_id(),
         context.month,

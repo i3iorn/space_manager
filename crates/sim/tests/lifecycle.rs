@@ -33,7 +33,7 @@ fn an_order_is_in_flight_and_then_it_lands() {
 
     sim.issue(OrderKind::SetShift {
         person,
-        shift: (120 * domain::scale::PERCENT_UNITS as u16),
+        shift: Some(120 * domain::scale::PERCENT_UNITS as u16),
     })
     .expect("the order is accepted");
 
@@ -50,7 +50,7 @@ fn an_order_is_in_flight_and_then_it_lands() {
     let person = sim.state().people.get(&person).expect("the person");
     assert_eq!(
         person.state.shift,
-        (120 * domain::scale::PERCENT_UNITS as u16),
+        Some(120 * domain::scale::PERCENT_UNITS as u16),
         "and the campaign is different in exactly the way the order said"
     );
 }
@@ -65,7 +65,7 @@ fn an_order_is_validated_again_when_it_lands() {
     let person = someone(&sim);
     sim.issue(OrderKind::SetShift {
         person,
-        shift: (120 * domain::scale::PERCENT_UNITS as u16),
+        shift: Some(120 * domain::scale::PERCENT_UNITS as u16),
     })
     .expect("the order is accepted");
 
@@ -80,7 +80,7 @@ fn an_order_is_validated_again_when_it_lands() {
     let error = sim
         .issue(OrderKind::SetShift {
             person,
-            shift: (130 * domain::scale::PERCENT_UNITS as u16),
+            shift: Some(130 * domain::scale::PERCENT_UNITS as u16),
         })
         .expect_err("the order is refused");
     assert!(
@@ -180,7 +180,7 @@ fn handled_kinds() -> Vec<OrderKind> {
         },
         OrderKind::SetShift {
             person: PersonId(0),
-            shift: 0,
+            shift: Some(0),
         },
         OrderKind::Promote {
             person: PersonId(0),

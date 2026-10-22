@@ -33,7 +33,8 @@ fn rendered(app: &mut App) -> String {
 
 /// The app, with a campaign that has a programme and a person in it.
 fn campaign() -> App {
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     app.advance(domain::time::Duration::from_days(400));
     app.on_key(press(KeyCode::Char('x')));
     app

@@ -181,6 +181,20 @@ pub fn cost(order: &OrderKind, state: &CampaignState) -> Money {
             .get(person)
             .map_or(Money::ZERO, |person| person.contract.salary.percent(300)),
         OrderKind::BuildFacility { plan, .. } => plan.total_cost,
+        // **A vehicle costs what its parts cost.** The price is derived from
+        // the sliders, and a design the agency cannot afford is a decision
+        // with a price on it — not a free launch vehicle.
+        //
+        // The sliders are bounded before the price is worked out, so the
+        // agency is charged for the vehicle it will actually get and not for
+        // the one it asked for.
+        OrderKind::DesignVehicle {
+            archetype, sliders, ..
+        } => {
+            let unlocked: Vec<_> = state.unlocked.iter().copied().collect();
+            let bounded = sliders.bounded(*archetype, &unlocked);
+            domain::vehicle::derive_stats(bounded, *archetype).cost_estimate
+        }
         _ => Money::ZERO,
     }
 }
@@ -246,9 +260,9 @@ pub fn has_handler(order: &OrderKind) -> bool {
         | OrderKind::SetObjective { .. }
         | OrderKind::SetBudget { .. }
         | OrderKind::PostponeDeadline { .. }
+        | OrderKind::SetPolicy { .. }
         | OrderKind::AuthorizeLaunch { .. } => true,
-        OrderKind::SetPolicy { .. }
-        | OrderKind::PublishResult { .. }
+        OrderKind::PublishResult { .. }
         | OrderKind::AssignFacility { .. }
         | OrderKind::CancelMission { .. } => false,
     }
@@ -276,16 +290,24 @@ pub fn validate(kind: &OrderKind, state: &CampaignState) -> Result<(), OrderErro
     match kind {
         OrderKind::Hire { .. }
         | OrderKind::CreateProgramme { .. }
-        | OrderKind::SetPolicy { .. }
         | OrderKind::PublishResult { .. }
         | OrderKind::BuildFacility { .. }
         | OrderKind::DesignVehicle { .. } => Ok(()),
 
+        // **A policy's shift has to be a shift a person can be put on.**
+        OrderKind::SetPolicy { policy } => validate_policy(*policy),
+
         OrderKind::Fire { person }
         | OrderKind::Unassign { person }
-        | OrderKind::SetShift { person, .. }
         | OrderKind::Promote { person }
         | OrderKind::Train { person, .. } => person_must_exist(*person, state),
+
+        // **A shift has to be a shift a person can be put on**, and putting
+        // somebody back on the policy is always legal.
+        OrderKind::SetShift { person, shift } => {
+            person_must_exist(*person, state)?;
+            validate_shift(*shift)
+        }
 
         OrderKind::Assign { person, to } => validate_assign(*person, to, state),
 
@@ -297,21 +319,58 @@ pub fn validate(kind: &OrderKind, state: &CampaignState) -> Result<(), OrderErro
         OrderKind::PostponeDeadline {
             programme,
             objective,
-            ..
+            to,
         } => {
             programme_must_exist(*programme, state)?;
-            objective_must_exist(*programme, *objective, state)
+            let objective = objective_must_exist(*programme, *objective, state)?;
+            // **A postponement pushes a date back.** A new date that is earlier
+            // than the one it replaces is not a postponement, and a date before
+            // the plan inverts the commitment - the promise would come due
+            // before the agency's own plan for it.
+            let commitment = &objective.commitment;
+            if let Some(committed) = commitment.committed {
+                if *to <= committed {
+                    return Err(OrderError::Rejected {
+                        reason: "A deadline can only be moved later, not earlier.".to_owned(),
+                    });
+                }
+            }
+            if commitment.target.is_some_and(|target| *to < target) {
+                return Err(OrderError::Rejected {
+                    reason: "The new date cannot be earlier than the agency's own plan.".to_owned(),
+                });
+            }
+            Ok(())
         }
 
         OrderKind::SetSubsystem { vehicle, .. } => vehicle_must_exist(*vehicle, state),
 
         // **A mission needs a vehicle that is finished.**
-        OrderKind::AuthorizeLaunch { vehicle, .. } => {
+        OrderKind::AuthorizeLaunch {
+            vehicle,
+            destination,
+            ..
+        } => {
             vehicle_must_exist(*vehicle, state)?;
             let state_of = state.vehicles.get(vehicle).expect("the vehicle");
             if state_of.build_state != domain::vehicle::BuildState::Complete {
                 return Err(OrderError::Rejected {
                     reason: format!("{} is not finished being built.", state_of.name),
+                });
+            }
+            validate_destination(state, destination)?;
+            // **A rocket that cannot leave the atmosphere is a sounding
+            // rocket**, whatever the agency calls it. The interface shows the
+            // delta-v next to the risk figure, so the player can see the
+            // number that refuses the order.
+            if state_of.derived.delta_v < balance::ORBIT_DELTA_V_REQUIREMENT {
+                return Err(OrderError::Rejected {
+                    reason: format!(
+                        "{} has a delta-v of {}, and {destination} needs {}. It cannot get there.",
+                        state_of.name,
+                        state_of.derived.delta_v,
+                        balance::ORBIT_DELTA_V_REQUIREMENT
+                    ),
                 });
             }
             Ok(())
@@ -358,6 +417,18 @@ pub fn validate(kind: &OrderKind, state: &CampaignState) -> Result<(), OrderErro
 }
 
 /// The person must exist, and must be free to take the assignment.
+///
+/// **An assignment moves a person.** Somebody who is working in the propulsion
+/// laboratory can be put on the combustion study instead, and they come off
+/// the laboratory's staff list when the order lands. The design's own order
+/// list calls this order "assign / reassign", and the phase that applies it
+/// says "moved from the propulsion laboratory to the combustion study" — the
+/// refusal that used to be here made both of those a lie, and it made the
+/// advice banner's own instruction ("put somebody else on it") impossible to
+/// follow whenever the person the player picked was already busy.
+///
+/// **The one thing refused is a no-op**: putting somebody on what they are
+/// already on is not a move, and it is worth saying so.
 fn validate_assign(
     person: PersonId,
     to: &domain::person::Assignment,
@@ -365,10 +436,10 @@ fn validate_assign(
 ) -> Result<(), OrderError> {
     person_must_exist(person, state)?;
     let current = &state.people[&person];
-    if current.is_assigned() {
+    if &current.assignment == to {
         return Err(OrderError::AlreadyAssigned {
             name: current.name.clone(),
-            current: crate::derived::assignment_description(state, &current.assignment),
+            current: crate::derived::assignment_place(state, &current.assignment),
         });
     }
     match to {
@@ -412,6 +483,26 @@ fn vehicle_must_exist(
     }
 }
 
+/// The destination must be one the agency has earned.
+///
+/// **A destination names a capability, and a capability has to be unlocked.**
+/// The agency cannot fly to a place it has not developed the technology for,
+/// and the refusal says which capability is missing.
+fn validate_destination(state: &CampaignState, destination: &str) -> Result<(), OrderError> {
+    let Some(capability) = domain::research::capability_for_destination(destination) else {
+        return Err(OrderError::Rejected {
+            reason: format!("{destination} is not somewhere the agency can fly to."),
+        });
+    };
+    if state.unlocked.contains(&capability) {
+        Ok(())
+    } else {
+        Err(OrderError::CapabilityUnavailable {
+            capability: domain::research::capability_name(capability).to_owned(),
+        })
+    }
+}
+
 /// The programme must exist.
 fn programme_must_exist(
     programme: domain::ids::ProgrammeId,
@@ -434,17 +525,20 @@ fn objective_must_exist(
     programme: domain::ids::ProgrammeId,
     objective: domain::ids::ObjectiveId,
     state: &CampaignState,
-) -> Result<(), OrderError> {
+) -> Result<&domain::programme::Objective, OrderError> {
     let Some(programme) = state.programmes.get(&programme) else {
-        return programme_must_exist(programme, state);
+        programme_must_exist(programme, state)?;
+        return Err(OrderError::Rejected {
+            reason: "The programme has closed.".to_owned(),
+        });
     };
-    if programme.objectives.iter().any(|o| o.id == objective) {
-        Ok(())
-    } else {
-        Err(OrderError::Rejected {
+    programme
+        .objectives
+        .iter()
+        .find(|o| o.id == objective)
+        .ok_or_else(|| OrderError::Rejected {
             reason: format!("The programme {} has no such objective.", programme.title),
         })
-    }
 }
 
 /// The programme must be one that can still take work or money.
@@ -483,13 +577,51 @@ fn facility_must_exist(
     }
 }
 
+/// The shift must be one a person can be put on.
+///
+/// **`None` is always legal** — it means "put them back on the agency's
+/// policy", and there is nothing illegal about letting the policy decide.
+fn validate_shift(shift: Option<u16>) -> Result<(), OrderError> {
+    let Some(shift) = shift else {
+        return Ok(());
+    };
+    let maximum = domain::person::PersonState::clamped_shift(shift);
+    if maximum != shift {
+        return Err(OrderError::Rejected {
+            reason: "That is not a shift anybody can be put on.".to_owned(),
+        });
+    }
+    Ok(())
+}
+
+/// The policy must say something the agency can do.
+///
+/// **A shift outside the range is refused**, because an order that lands and
+/// does nothing is an order the player was lied to about.
+fn validate_policy(policy: domain::person::Policy) -> Result<(), OrderError> {
+    match policy {
+        domain::person::Policy::Shift { shift, .. } => {
+            let maximum = domain::person::PersonState::clamped_shift(shift);
+            if maximum != shift {
+                return Err(OrderError::Rejected {
+                    reason: "That is not a shift anybody can be put on.".to_owned(),
+                });
+            }
+            Ok(())
+        }
+    }
+}
+
 /// The person must exist.
 fn person_must_exist(person: PersonId, state: &CampaignState) -> Result<(), OrderError> {
     match state.people.get(&person) {
         Some(_found) => Ok(()),
         None => Err(OrderError::PersonGone {
             person,
-            name: "someone who has left".to_owned(),
+            // **The message starts with this name**, so it has to read as the
+            // beginning of a sentence. "someone who has left is no longer with
+            // the agency" does not.
+            name: "That person".to_owned(),
         }),
     }
 }
@@ -535,13 +667,17 @@ mod tests {
     fn assigning_an_unassigned_person_is_valid() {
         let kind = OrderKind::Assign {
             person: PersonId(0),
-            to: Assignment::Unassigned,
+            to: Assignment::Division(domain::ids::DivisionId(0)),
         };
         assert!(validate(&kind, &state()).is_ok());
     }
 
     #[test]
-    fn assigning_an_already_assigned_person_is_refused_with_a_reason() {
+    fn an_assignment_moves_somebody() {
+        // **The order is "assign / reassign"**, and the phase that applies it
+        // says "moved from the propulsion laboratory to the combustion study".
+        // A person who is working somewhere can be put somewhere else, and
+        // they come off the old team when the order lands.
         let mut campaign = state();
         campaign
             .people
@@ -552,6 +688,26 @@ mod tests {
         let kind = OrderKind::Assign {
             person: PersonId(0),
             to: Assignment::Unassigned,
+        };
+        assert!(
+            validate(&kind, &campaign).is_ok(),
+            "moving somebody is allowed, and the order is not refused"
+        );
+    }
+
+    #[test]
+    fn putting_somebody_where_they_already_are_is_refused_with_a_reason() {
+        // **The one thing refused is a no-op**, and it is worth saying so.
+        let mut campaign = state();
+        campaign
+            .people
+            .get_mut(&PersonId(0))
+            .expect("the person exists")
+            .assignment = Assignment::Division(domain::ids::DivisionId(0));
+
+        let kind = OrderKind::Assign {
+            person: PersonId(0),
+            to: Assignment::Division(domain::ids::DivisionId(0)),
         };
         let error = validate(&kind, &campaign).expect_err("the order is refused");
         assert!(matches!(error, OrderError::AlreadyAssigned { .. }));
@@ -653,8 +809,10 @@ mod tests {
         // **Goodwill is the anti-spamming mechanism, and it is deliberately
         // not a cap.**
         let policy = OrderKind::SetPolicy {
-            policy: "Publicity".to_owned(),
-            enabled: true,
+            policy: domain::person::Policy::Shift {
+                shift: (50 * domain::scale::PERCENT_UNITS as u16) / 100,
+                only_over: Some(60),
+            },
         };
         let hire = OrderKind::Hire {
             role: Role::Scientist,
@@ -666,12 +824,12 @@ mod tests {
 
     #[test]
     fn an_order_with_no_handler_is_not_accepted() {
-        // **A policy still has no handler**, and the test is that an order
+        // **Some orders still have no handler**, and the test is that an order
         // with no handler is refused at issue rather than accepted and
         // quietly doing nothing.
-        let kind = OrderKind::SetPolicy {
-            policy: "Open the launch manifest".to_owned(),
-            enabled: true,
+        let kind = OrderKind::PublishResult {
+            result: "The soil survey".to_owned(),
+            mode: domain::order::KnowledgeMode::Open,
         };
         assert!(!has_handler(&kind));
         let hire = OrderKind::Hire {
@@ -679,5 +837,18 @@ mod tests {
             salary: Money::from_credits(1_200),
         };
         assert!(has_handler(&hire));
+    }
+
+    #[test]
+    fn the_policy_order_has_a_handler() {
+        // **The shift policy is the first thing that wanted a policy order**,
+        // and an order with no handler is refused rather than ignored.
+        let kind = OrderKind::SetPolicy {
+            policy: domain::person::Policy::Shift {
+                shift: (50 * domain::scale::PERCENT_UNITS as u16) / 100,
+                only_over: None,
+            },
+        };
+        assert!(has_handler(&kind), "and it has a handler");
     }
 }

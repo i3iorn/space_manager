@@ -14,7 +14,25 @@ pub mod research;
 pub mod staff;
 pub mod vehicles;
 
+use crate::app::App;
 use crate::screen::Screen;
+
+/// How many items the player can move through on a screen.
+///
+/// **A list the player can walk off the end of is a list that loses the
+/// focus**, and the focus is the one thing the player must never lose: it is
+/// how they say which person they mean. A screen with no list of its own has
+/// no items, and its selection is always the first one.
+#[must_use]
+pub fn item_count(app: &App, screen: Screen) -> usize {
+    match screen {
+        Screen::Staff => staff::rows(app).len(),
+        Screen::Programme => programme::objective_count(app),
+        // **The branches screen's list is the decisions the player has made.**
+        Screen::Branches => app.decisions().len(),
+        _ => 0,
+    }
+}
 
 /// The sort keys a screen offers.
 ///

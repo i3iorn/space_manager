@@ -16,7 +16,9 @@
 //!
 //! | Module | Holds |
 //! |---|---|
+//! | [`advice`] | What to do next, read from the campaign |
 //! | [`app`] | The application state and the render pass |
+//! | [`briefing`] | The opening briefing: the framing, and the first goal |
 //! | [`screen`] | The screens and their fixed number keys |
 //! | [`input`] | Key handling, global and per-screen |
 //! | [`list_control`] | Filtering and sorting the lists |
@@ -29,7 +31,9 @@
 
 #![deny(missing_docs)]
 
+pub mod advice;
 pub mod app;
+pub mod briefing;
 pub mod clock;
 pub mod confirm;
 pub mod input;
@@ -151,11 +155,14 @@ type Tui = Terminal<CrosstermBackend<Stdout>>;
 /// and it hands the simulation a span of *simulated* time each frame. The
 /// simulation is never told how fast it is running.
 ///
+/// **The application is borrowed and not consumed**, so the caller can save
+/// the campaign when the game ends.
+///
 /// # Errors
 ///
 /// Returns a [`UiError`] if the terminal cannot be prepared or drawn to. The
 /// terminal is restored either way.
-pub fn run(mut app: App) -> Result<(), UiError> {
+pub fn run(app: &mut App) -> Result<(), UiError> {
     let _guard = TerminalGuard::enter()?;
     let mut terminal: Tui = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 

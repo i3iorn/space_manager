@@ -1,43 +1,68 @@
-2039-01-22 00:00 | Minor | A calibration was found to be wrong.
+2039-01-15 00:00 | Minor | A heatwave went on too long.
+2039-01-22 00:00 | Major | A long shift went badly.
 2039-02-06 00:00 | Major | Equipment failed in a laboratory.
-2039-02-20 00:00 | Major | A launch was scrubbed at the last minute.
-2039-04-23 00:00 | Minor | A test rig gave a reading nobody trusted.
-2039-06-19 00:00 | Minor | A test rig gave a reading nobody trusted.
-2039-07-17 00:00 | Major | Equipment failed in a laboratory.
-2039-10-04 00:00 | Major | Equipment failed in a laboratory.
+2039-02-20 00:00 | Minor | Somebody was taken ill.
+2039-03-25 00:00 | Minor | A heatwave went on too long.
+2039-04-23 00:00 | Minor | Somebody was taken ill.
+2039-06-19 00:00 | Info | A quiet week, and a good one.
+2039-07-17 00:00 | Major | A launch was scrubbed at the last minute.
+2039-10-04 00:00 | Minor | A calibration was found to be wrong.
+2039-11-02 00:00 | Minor | A programme was noted as behind.
+2039-11-08 12:00 | Minor | Research completed: Liquid upper stage.
 2039-11-16 00:00 | Major | Equipment failed in a laboratory.
-2039-12-21 00:00 | Major | Equipment failed in a laboratory.
+2039-11-23 00:00 | Minor | A launch window closed.
+2039-11-30 00:00 | Major | An unexpected bill arrived.
+2039-12-07 00:00 | Minor | The weather turned.
+2039-12-21 00:00 | Info | A result nobody expected.
 2040-02-10 00:00 | Major | Equipment failed in a laboratory.
-2040-03-08 00:00 | Major | Equipment failed in a laboratory.
-2040-03-21 20:00 | Minor | Research completed: Liquid upper stage.
-2040-04-05 00:00 | Major | Equipment failed in a laboratory.
-2040-04-29 00:00 | Major | Equipment failed in a laboratory.
-2040-05-11 00:00 | Major | Equipment failed in a laboratory.
-2040-05-14 00:00 | Major | Equipment failed in a laboratory.
-2040-05-26 00:00 | Major | Equipment failed in a laboratory.
-2040-07-05 00:00 | Major | Equipment failed in a laboratory.
-2040-07-23 00:00 | Major | Equipment failed in a laboratory.
-2040-08-23 00:00 | Major | Equipment failed in a laboratory.
-2040-08-29 00:00 | Major | Equipment failed in a laboratory.
-2040-09-14 00:00 | Major | Equipment failed in a laboratory.
-2040-09-20 00:00 | Major | Equipment failed in a laboratory.
-2040-10-08 00:00 | Major | Equipment failed in a laboratory.
-2040-11-23 00:00 | Major | Equipment failed in a laboratory.
-2040-12-23 00:00 | Major | Equipment failed in a laboratory.
-2041-02-14 00:00 | Major | Equipment failed in a laboratory.
-2041-04-14 00:00 | Major | Equipment failed in a laboratory.
-2041-05-02 00:00 | Major | Equipment failed in a laboratory.
-2041-05-08 00:00 | Major | Equipment failed in a laboratory.
-2041-05-14 00:00 | Major | Equipment failed in a laboratory.
-2041-05-23 00:00 | Major | Equipment failed in a laboratory.
-2041-05-29 00:00 | Major | Equipment failed in a laboratory.
-2041-06-11 00:00 | Major | Equipment failed in a laboratory.
-2041-07-20 00:00 | Major | Equipment failed in a laboratory.
-2041-09-14 00:00 | Major | Equipment failed in a laboratory.
-2041-09-29 00:00 | Major | Equipment failed in a laboratory.
-2041-10-26 00:00 | Major | Equipment failed in a laboratory.
-2041-11-11 00:00 | Major | Equipment failed in a laboratory.
-2041-11-17 00:00 | Major | Equipment failed in a laboratory.
-2041-12-17 00:00 | Major | Equipment failed in a laboratory.
-2041-12-20 00:00 | Major | Equipment failed in a laboratory.
-2041-12-23 00:00 | Major | Equipment failed in a laboratory.
+2040-02-24 00:00 | Minor | A heatwave went on too long.
+2040-04-06 00:00 | Major | Equipment failed in a laboratory.
+2040-05-03 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2040-05-27 00:00 | Major | Equipment failed in a laboratory.
+2040-05-30 00:00 | Minor | A television programme asked awkward questions.
+2040-06-09 00:00 | Major | Equipment failed in a laboratory.
+2040-06-12 00:00 | Info | Somebody's life's work turned out to be right.
+2040-06-24 00:00 | Minor | Somebody was taken ill.
+2040-08-03 00:00 | Minor | Somebody worked through the weekend.
+2040-08-12 00:00 | Info | A local paper mentioned the agency kindly.
+2040-08-18 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2040-08-21 00:00 | Minor | A calibration was found to be wrong.
+2040-09-21 00:00 | Major | Equipment failed in a laboratory.
+2040-09-27 00:00 | Major | Equipment failed in a laboratory.
+2040-10-03 00:00 | Minor | A sponsor asked awkward questions.
+2040-10-12 00:00 | Minor | Somebody was taken ill.
+2040-10-18 00:00 | Major | Equipment failed in a laboratory.
+2040-11-06 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2040-12-21 00:00 | Minor | A calibration was found to be wrong.
+2041-01-21 00:00 | Minor | Somebody was taken ill.
+2041-03-06 00:00 | Minor | A launch window closed.
+2041-03-09 00:00 | Info | A piece about the agency was favourable.
+2041-03-12 00:00 | Minor | Somebody worked through the weekend.
+2041-03-27 00:00 | Minor | A programme was noted as behind.
+2041-04-18 00:00 | Minor | The press found an angle.
+2041-05-09 00:00 | Minor | A sponsor asked awkward questions.
+2041-05-12 00:00 | Major | A long shift went badly.
+2041-05-15 00:00 | Minor | The weather turned.
+2041-05-18 00:00 | Minor | An audit was requested.
+2041-05-30 00:00 | Minor | Somebody was taken ill.
+2041-06-03 00:00 | Minor | The press found an angle.
+2041-06-06 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2041-06-12 00:00 | Minor | Somebody was taken ill.
+2041-06-21 00:00 | Minor | Somebody worked through the weekend.
+2041-06-27 00:00 | Info | A speech mentioned the agency kindly.
+2041-07-06 00:00 | Minor | A sponsor asked awkward questions.
+2041-07-09 00:00 | Minor | Somebody was taken ill.
+2041-07-12 00:00 | Minor | A contractor asked for payment early.
+2041-08-12 00:00 | Major | An unexpected bill arrived.
+2041-08-18 00:00 | Major | Equipment failed in a laboratory.
+2041-10-12 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2041-10-27 00:00 | Major | Equipment failed in a laboratory.
+2041-10-30 00:00 | Minor | The weather turned.
+2041-11-03 00:00 | Minor | The press found an angle.
+2041-11-12 00:00 | Minor | The press found an angle.
+2041-11-15 00:00 | Major | An unexpected bill arrived.
+2041-11-24 00:00 | Minor | A sponsor asked awkward questions.
+2041-11-27 00:00 | Minor | Somebody else got there first.
+2041-12-09 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2041-12-15 00:00 | Minor | A laboratory ran itself, and did not do it well.
+2041-12-30 00:00 | Info | A piece about the agency was favourable.

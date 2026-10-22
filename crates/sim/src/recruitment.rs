@@ -12,41 +12,6 @@ use rand_chacha::ChaCha12Rng;
 
 use crate::rng::draw_below;
 
-/// The given names recruits come from.
-const GIVEN_NAMES: [&str; 24] = [
-    "Marsha", "Ilan", "Tomas", "Anika", "Sune", "Priya", "Kwame", "Yara", "Bela", "Oskar", "Nadia",
-    "Ravi", "Lena", "Tobias", "Yuki", "Marek", "Safiya", "Cormac", "Ines", "Dmitri", "Amara",
-    "Halvor", "Xiulan", "Emeka",
-];
-
-/// The family names recruits come from.
-const FAMILY_NAMES: [&str; 24] = [
-    "Okonjo",
-    "Vance",
-    "Reyes",
-    "Bhatt",
-    "Lindqvist",
-    "Oyelaran",
-    "Marchetti",
-    "Haddad",
-    "Kowalski",
-    "Ferreira",
-    "Nakamura",
-    "Petrov",
-    "Sandoval",
-    "Ashworth",
-    "Bergstrom",
-    "Rahman",
-    "Castellanos",
-    "Duval",
-    "Ivanova",
-    "Mensah",
-    "Kaufmann",
-    "Sorensen",
-    "Zhang",
-    "Adeyemi",
-];
-
 /// The specialisms a recruit can come with.
 const SPECIALISMS: [Specialism; 10] = Specialism::ALL;
 
@@ -67,13 +32,25 @@ const HOMEWORLDS: [&str; 8] = [
 /// The recruit's ability is drawn around the role's normal band, and the
 /// specialisms follow the role: an engineer comes with engineering
 /// specialisms, and a scientist with scientific ones.
+///
+/// **The name is drawn from one culture** and never carries a family name
+/// anybody in the agency already has, so a campaign of three hundred people
+/// has three hundred people the player can tell apart.
+///
+/// The family names already in use are passed in, because the generator cannot
+/// see the campaign and the campaign cannot be in two places at once.
 #[must_use]
-pub fn recruit(rng: &mut ChaCha12Rng, id: PersonId, role: Role, salary: Money) -> Person {
-    let given = GIVEN_NAMES[draw_below(rng, GIVEN_NAMES.len() as u32) as usize];
-    let family = FAMILY_NAMES[draw_below(rng, FAMILY_NAMES.len() as u32) as usize];
+pub fn recruit(
+    rng: &mut ChaCha12Rng,
+    id: PersonId,
+    role: Role,
+    salary: Money,
+    taken: &[String],
+) -> Person {
+    let (name, _culture) = crate::names::name(rng, taken);
     let homeworld = HOMEWORLDS[draw_below(rng, HOMEWORLDS.len() as u32) as usize];
 
-    let mut person = Person::new(id, format!("{given} {family}"), role, salary);
+    let mut person = Person::new(id, name, role, salary);
     person.origin = Origin {
         homeworld: homeworld.to_owned(),
         species: "Human".to_owned(),
@@ -81,7 +58,30 @@ pub fn recruit(rng: &mut ChaCha12Rng, id: PersonId, role: Role, salary: Money) -
     person.age = 24 + draw_below(rng, 18);
     person.attributes = attributes(rng, role);
     person.specialisms = specialisms(rng, role);
+    person.traits = traits(rng);
     person
+}
+
+/// The traits a new recruit comes with.
+///
+/// **Two or three of them, and never the same one twice.** A recruit is a
+/// person, and a person is not made entirely of numbers.
+pub fn traits(rng: &mut ChaCha12Rng) -> Vec<domain::person::TraitId> {
+    let catalogue = &domain::person::TRAITS;
+    if catalogue.is_empty() {
+        return Vec::new();
+    }
+    let count = 2 + usize::try_from(draw_below(rng, 2)).unwrap_or(0);
+    let mut chosen: Vec<domain::person::TraitId> = Vec::new();
+    let mut attempts = 0_u32;
+    while chosen.len() < count && attempts < 64 {
+        attempts += 1;
+        let candidate = catalogue[draw_below(rng, catalogue.len() as u32) as usize].id;
+        if !chosen.contains(&candidate) {
+            chosen.push(candidate);
+        }
+    }
+    chosen
 }
 
 /// A recruit's abilities, drawn around the role's band.
@@ -159,12 +159,14 @@ mod tests {
             PersonId(0),
             Role::Scientist,
             Money::from_credits(1_200),
+            &[],
         );
         let b = recruit(
             &mut second,
             PersonId(0),
             Role::Scientist,
             Money::from_credits(1_200),
+            &[],
         );
         assert_eq!(a, b);
     }
@@ -173,7 +175,7 @@ mod tests {
     fn a_recruit_is_competent_but_not_a_star() {
         let mut rng = Rng::new(7).stream(crate::rng::Domain::Personnel, 0, 0);
         for _ in 0..20 {
-            let person = recruit(&mut rng, PersonId(0), Role::Engineer, Money::ZERO);
+            let person = recruit(&mut rng, PersonId(0), Role::Engineer, Money::ZERO, &[]);
             assert!(person.attributes.technical >= 35);
             assert!(person.attributes.technical <= 75);
         }
@@ -182,7 +184,7 @@ mod tests {
     #[test]
     fn a_recruit_comes_with_a_specialism() {
         let mut rng = Rng::new(9).stream(crate::rng::Domain::Personnel, 0, 0);
-        let person = recruit(&mut rng, PersonId(0), Role::Scientist, Money::ZERO);
+        let person = recruit(&mut rng, PersonId(0), Role::Scientist, Money::ZERO, &[]);
         assert!(!person.specialisms.is_empty());
     }
 }

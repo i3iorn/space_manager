@@ -25,7 +25,8 @@ fn press(code: KeyCode) -> KeyEvent {
 
 /// A campaign with the scenario's people, projects, programme and facilities.
 fn full() -> App {
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     app.advance(Duration::from_days(400));
     app.on_key(press(KeyCode::Char('x')));
     app
@@ -39,7 +40,7 @@ fn empty() -> App {
     scenario.start_state.programmes.clear();
     scenario.start_state.facilities.clear();
     scenario.start_state.political.promises.clear();
-    App::new(sim::Sim::new(&scenario).expect("the campaign starts"))
+    App::started(sim::Sim::new(&scenario).expect("the campaign starts"))
 }
 
 /// The whole interface, as text.
@@ -153,7 +154,8 @@ fn the_empty_campaign_says_that_it_is_empty() {
 fn the_report_can_be_dismissed_and_does_not_come_back() {
     // **The report is a prompt.** It waits until it is read, and it is not
     // replaced while it is undismissed.
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     app.advance(Duration::from_days(400));
     assert!(app.report().is_some(), "the month has reported");
     app.on_key(press(KeyCode::Char('x')));

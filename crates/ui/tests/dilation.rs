@@ -39,7 +39,7 @@ fn run_at(scale: TimeScale) -> (u64, Vec<String>) {
     let mut scenario = Scenario::by_id("first_year").expect("the scenario exists");
     scenario.seed = 4_242;
 
-    let mut app = App::new(sim::Sim::new(&scenario).expect("the scenario starts"));
+    let mut app = App::started(sim::Sim::new(&scenario).expect("the scenario starts"));
     app.clock_mut().set_scale(scale);
 
     // The host's frame: a fixed amount of *real* time, which the clock turns

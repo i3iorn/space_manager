@@ -64,7 +64,7 @@ pub fn rows(app: &App) -> Vec<Row> {
             age: person.age,
             morale: person.state.morale_percent(),
             fatigue: person.state.fatigue_percent(),
-            shift: person.state.shift_percent(),
+            shift: sim::derived::effective_shift_percent(state, person),
             risk: sim::phases::personnel::attrition_risk(state, person.id),
         })
         .filter(|row| control.matches(&row.name) || control.matches(row.role.label()))
@@ -116,7 +116,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     let rows_area = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(12), Constraint::Min(10)])
+        .constraints([Constraint::Length(14), Constraint::Min(10)])
         .split(columns[1]);
 
     let team_size = team_size_for(state, person.id);
@@ -126,14 +126,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     // **The shift, and what it does.** The player needs to see the
     // consequence of the throttle, not just the setting, and they need to see
     // that a change is in flight.
-    let shift_line = match app.pending_shift(person.id) {
-        Some(pending) => format!(
-            "{}% → {}% (pending)",
-            person.state.shift_percent(),
-            percent_of(pending)
-        ),
-        None => format!("{}%", person.state.shift_percent()),
-    };
+    let shift_line = shift_line(app, state, person);
 
     let details = Paragraph::new(vec![
         Line::styled(
@@ -168,6 +161,18 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
                 .collect::<Vec<_>>()
                 .join(", ")
         )),
+        // **The traits.** They are the reason two people with the same
+        // numbers are not the same, and the player has to be able to see them
+        // to believe the difference.
+        Line::raw(format!(
+            "  traits: {}",
+            person
+                .traits
+                .iter()
+                .map(|trait_id| domain::person::trait_name(*trait_id))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
         Line::raw(format!("  salary {}", person.contract.salary)),
         Line::from(vec![
             Span::styled("  shift ", theme::emphasis()),
@@ -175,8 +180,12 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         ]),
         Line::raw(format!(
             "  output {}%   fatigue {}%/month",
-            percent_of_scaled(sim::shift::output_factor(person.state.shift)),
-            percent_of_scaled(sim::shift::fatigue_rate(person.state.shift)),
+            percent_of_scaled(sim::shift::output_factor(sim::derived::effective_shift(
+                state, person
+            ))),
+            percent_of_scaled(sim::shift::fatigue_rate(sim::derived::effective_shift(
+                state, person
+            ))),
         )),
         Line::raw(format!("  leaves this month: {}", percent_of_bp(row.risk))),
     ])
@@ -186,6 +195,33 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     // The performance explanation.
     BindingFactor::new(&result).render(frame, rows_area[1]);
+}
+
+/// The shift line of the detail panel.
+///
+/// **The player needs to see the consequence of the throttle, not just the
+/// setting**, and they need to see that a change is in flight.
+///
+/// **And they need to know whether the agency policy is the reason.** A person
+/// on a light shift because the policy eased them off is a different thing
+/// from a person the manager moved, and the player has to be able to tell them
+/// apart.
+fn shift_line(
+    app: &App,
+    state: &domain::state::CampaignState,
+    person: &domain::person::Person,
+) -> String {
+    let percent = sim::derived::effective_shift_percent(state, person);
+    if let Some(pending) = app.pending_shift(person.id) {
+        return match pending {
+            Some(pending) => format!("{percent}% → {}% (pending)", percent_of(pending)),
+            None => format!("{percent}% → policy (pending)"),
+        };
+    }
+    if person.state.shift_override().is_none() && state.shift_policy.is_some() {
+        return format!("{percent}% (policy)");
+    }
+    format!("{percent}%")
 }
 
 /// The list of people.

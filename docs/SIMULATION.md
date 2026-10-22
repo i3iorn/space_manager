@@ -357,8 +357,9 @@ of the save**: a campaign saved with a hire in flight must restore that hire.
    durable record.
 
 **An order with no registered handler is rejected, never ignored [D].** The kinds
-without handlers yet — the programme, policy, and publication machinery — are refused
-at issue, with a reason.
+without handlers yet — the publication and facility-assignment machinery — are refused
+at issue, with a reason. **The policy order has a handler**: it sets the agency's
+standing shift instruction, and it is the first of the policy machinery to exist.
 
 **A lead time may not be random [D].** An order that landed at a random time would
 make the campaign depend on the draw, and the order log would not replay. The lead
@@ -387,6 +388,7 @@ just the timing.
 | `AuthorizeLaunch` | The mission's flight time | The vehicle and the mission | 3 |
 | `SetObjective` | Immediate | — | 1 |
 | `SetBudget` | Immediate | — | 2 |
+| `SetShift` | 1 hour | — | 0 |
 | `PublishResult` | 1 week | — | 1 |
 | `SetPolicy` | 1 week | — | 5 |
 

@@ -44,13 +44,23 @@ than `MANAGEABLE_PARTS.md` and `BALANCE.md` give it.
 | Milestone | State |
 |---|---|
 | **M0 - Foundation** | **Complete.** The workspace, the four crates, the pinned RNG, the save envelope, the terminal shell, the dependency-direction check, CI, and the README. |
-| **S1 - Ground Game** | **Mostly complete, on the old monthly model.** The engine, the domain, the performance model, the playable loop, the interface, and the golden fixture are built; 175 tests pass. The interface cannot yet *give an order*, and the tutorial and the first playtest are outstanding. See `ROADMAP.md` §3.7 for exactly what is missing. |
-| **M1 - Continuous Time** | **Complete.** The clock, the scaled quantities, the host's clock, the scheduler, the advance loop, the draw anchors, the rates, the order model, the goodwill, the stable buckets, the save format and the version, the host loop, the top bar, the dilation-independence test, and the fork. The order palette — the interface's ability to give an order — is S1-37. See `ROADMAP.md` §4. |
+| **S1 - Ground Game** | **Complete, and rebuilt on the continuous model.** The engine, the domain model, the performance model, the playable loop, the interface - including the order palette, the binding-factor panel, the manual, and the tutorial - and the golden fixture. The first playtest was run, and it found the five things in `ROADMAP.md` §3.6. |
+| **M1 - Continuous Time** | **Complete.** The clock, the scaled quantities, the host's clock, the scheduler, the advance loop, the draw anchors, the rates, the order model, the goodwill, the stable buckets, the save format and the version, the host loop, the top bar, the dilation-independence test, and the fork. See `ROADMAP.md` §4. |
+| **S2 - The Programme** | **Complete.** The commitment mechanic, the slack, the facilities, the industrial capacity, the budget-crisis warning, and the programme and facilities screens. See `ROADMAP.md` §5. |
+| **S3 - First Orbit** | **Complete, except for the playtest.** The vehicles, the missions, the capability gating, the event catalogue, the politics, the **"First Orbit" scenario**, the **balance harness**, the cross-system invariants, the **fuzz test**, and the **performance test**. Six bugs and a balance rewrite came out of it; they are in `ROADMAP.md` §6.5. |
+| **S4 - Proof** | **Complete, except for the playtest.** Replay, branching, the branch comparison view, the onboarding briefing, the balance pass, the strategy check, the error-message pass, the save and load, and the documentation pass. See `ROADMAP.md` §7. |
 
-> **The code is behind the design.** Everything in `crates/` still implements the
-> monthly-turn model. It compiles and its tests pass, but it is the wrong shape, and
-> Milestone M1 rebuilds it. The design documents are the authority.
-
+**The last pass added the three things a human playtest would have found
+first**: the **automated playtest** (the Slice 3 exit test, run by a machine),
+the **live feed** on the dashboard, and the **traits**. It also found that the
+world was reacting at a quarter of the designed rate, because the event pool's
+total was compared against a roll scaled differently from the weights choosing
+the event. `ROADMAP.md` §7.2 has the whole of it.
+**What is left is the four playtests**, and they need a human: the first
+playtest, the commitment playtest, the five-year arc, and the final playtest
+by someone who has never seen the game. Everything that a machine can check
+has been checked, and the machine's findings are in `ROADMAP.md` §3.6, §6.5,
+and §7.1.
 ## The build plan, in brief
 
 The game is built as a **simulation with a view** — a deterministic core that turns a

@@ -414,9 +414,16 @@ so the lint is declared once at the workspace level and inherited by every membe
 | Operation | Budget |
 |---|---|
 | One instant, 300 staff, 10 projects | < 2 ms |
+| A five-year campaign, integrated at one-hour quanta | **< 1 s** in a release build |
 | A 30-year campaign, integrated at one-hour quanta | < 5 s of computation in total |
 | A fork at any instant | < 100 ms |
 | UI redraw | < 16 ms, so input never feels laggy |
+
+**The one-second budget is the MVP's success criterion nine, and it is
+asserted by `crates/sim/tests/performance.rs`.** The budget is about the
+shipped build, so the release-mode check is a job of its own in CI; a debug
+build is five to twenty times slower and the test allows for it rather than
+failing for it.
 
 **The integration is the cost.** 30 years at a one-hour quantum is about 263,000
 sub-steps, each touching every assigned person and every project — roughly 80 million

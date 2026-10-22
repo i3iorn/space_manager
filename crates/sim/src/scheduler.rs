@@ -181,6 +181,16 @@ impl Scheduler {
         self.queue.iter().next()
     }
 
+    /// Everything waiting, in the order it will happen.
+    ///
+    /// **The queue is a set, and this is its order.** The interface's forecast
+    /// and the cross-system invariants both need to see what is waiting, and
+    /// they must see it in the order the scheduler will pop it.
+    #[must_use]
+    pub fn items(&self) -> Vec<&ScheduledItem> {
+        self.queue.iter().collect()
+    }
+
     /// Removes and returns the next item, if it falls at or before `now`.
     pub fn pop_due(&mut self, now: Instant) -> Option<ScheduledItem> {
         let is_due = self.queue.iter().next().is_some_and(|item| item.at <= now);

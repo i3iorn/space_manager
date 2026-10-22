@@ -5,7 +5,8 @@
 > Implements `MVP.md` on the architecture in `ARCHITECTURE.md`, against the
 > contracts in `SIMULATION.md` and `DOMAIN_MODEL.md`.
 >
-> **Status:** Plan, revision 2. Milestones M0 and S1 are complete; M1 is in progress.
+> **Status:** Plan, revision 3. M0, M1, and Slices 1 to 4 are complete, except
+> for the three playtests and the fourth playtest, which need a human.
 
 ---
 
@@ -326,11 +327,11 @@ added at the end.
 | S1-45 | **The attrition risk is a number the player can see**, on the list and in the detail panel, and it is the same number the simulation rolls against. | M1-10 | The number on the screen is the number the engine uses | Done |
 | S1-46 | **The manual.** One store of topics — every stat, every concept, every order, every screen — reached three ways: `F2` for all of it, `I` for the screen you are on, and the info line for a one-line answer. | S1-27 | Every concept in the game has a topic, and no screen shows a number the manual does not explain | Done |
 | S1-47 | **The tutorial hints stay until the player acts.** A hint marked as seen when the screen was first drawn is on the screen for one frame. | S1-33 | A hint is still on the screen after ten seconds of looking at it | Done |
-| S1-48 | **The shift policy: set everybody's shift at once.** The per-person slider is the surgical tool; this is the tool for three hundred people, and it needs the policy order machinery that does not exist yet. | S1-42, S1-49 | A player can put the whole agency on light duties in one action | **Not yet** |
-| S1-49 | **The policy order.** `SetPolicy` has no handler, and the shift policy is the first thing that wants one. | M1-08 | An order with a handler, a lead time, and a cost | **Not yet** |
+| S1-48 | **The shift policy: set everybody's shift at once.** The per-person slider is the surgical tool; this is the tool for three hundred people, and it needs the policy order machinery that does not exist yet. | S1-42, S1-49 | A player can put the whole agency on light duties in one action | Done |
+| S1-49 | **The policy order.** `SetPolicy` has no handler, and the shift policy is the first thing that wants one. | M1-08 | An order with a handler, a lead time, and a cost | Done |
 | S1-50 | **Every other list is filterable and sortable.** The machinery is built and only the staff list is wired to it. | S1-43 | The research, programme, chronicle, and branches lists all filter | **Not yet** |
 | S1-51 | **The filter can express a condition** — "fatigue over 80", "unassigned" — and not only a name. | S1-43 | A player can find everybody who is in trouble without reading three hundred names | **Not yet** |
-| S1-52 | **The order palette can set a shift**, so the order is offered where every other order is offered. | S1-42 | The palette offers every order kind that has a handler | **Not yet** |
+| S1-52 | **The order palette can set a shift**, so the order is offered where every other order is offered. | S1-42 | The palette offers every order kind that has a handler | Done |
 
 **Why the shift is an order and not a direct control.** The architecture says the
 player never mutates state — they issue orders — and the shift is the most-used
@@ -342,6 +343,27 @@ from the log reproduces it.
 **Why the shift is not the whole answer to three hundred people.** It is the
 *surgical* tool, and it scales because it is one keystroke on a screen the player is
 already looking at. It is not the *policy* tool, and the policy tool is S1-48.
+
+**How the policy is built (S1-48, S1-49, S1-52).** **A policy is a standing
+instruction, not a one-off.** The agency's shift policy says two things: **who it
+covers** and **what they work**. With no threshold, everybody works the shift. With
+one — "anybody over 60% fatigue" — only the people who are tireder than it are eased
+off, and the people who are fresher keep their own shift. That threshold makes the
+policy a **thermostat**: an eased-off person recovers, comes back up to the threshold,
+and is eased off again, so the agency never has anybody work themselves to pieces.
+**A person the manager has moved individually is moved off the policy** and the staff
+screen says so.
+
+**The per-person shift is now an override of the policy**, and the state says which
+of the two is in force: a person's `shift` is `None` when the policy decides and a
+value when the manager has decided better. That is why the policy is a *standing*
+instruction and not a bulk write — a bulk write would have to be repeated, and the
+"tired ones" version would only ever catch the tired ones *at that moment*.
+
+**The policy order has a week of bureaucracy and costs five goodwill**, because a
+standing instruction about how the whole agency works is a public act, and the
+design's order table says so. The per-person shift remains free and immediate: a
+player must be able to make a hundred of them.
 
 ---
 
@@ -805,26 +827,31 @@ than it has room for works with worse tools — and the tools factor says so.
 | S2-17 | **The second playtest**, focused on the commitment mechanic. | S2-16 | A playtester commits to an instant, watches the slack shrink, and can name what they lost | **Not yet** |
 
 ---
-## 6. Slice 3 — *First Orbit* (months 36-96)
+## 6. Slice 3 - *First Orbit* (months 36-96)
 
 *The payoff, and the danger.*
 
-**Status: the hardware is there; the flying is not.** S3-01, S3-02 and S3-03 are
-done: a vehicle is a set of sliders, the numbers follow from the sliders and are
-never stored as an authority, and two things bound a slider — the archetype, which
-says what kind of machine it is, and the capabilities, which say what the agency
-has developed. **A slider the agency has not researched is worth zero**, whatever
-the archetype would otherwise allow.
+**Status: complete, except for the playtest.** S3-01 to S3-22 were already
+built; the Slice 3 work added S3-23 to S3-27, and **S3-28 needs a human**.
+
+**A vehicle is a set of sliders, the numbers follow from the sliders, and
+they are never stored as an authority.** Two things bound a slider: the
+archetype, which says what kind of machine it is, and the capabilities, which
+say what the agency has developed. **A slider the agency has not researched is
+pinned at zero**, whatever the archetype would otherwise allow, and the
+capability behind each of the gated sliders is now named in the catalogue:
+orbital propulsion for the propulsion slider, basic re-entry for the heat
+shield, closed-loop life support for the life support, and orbital launch for
+the avionics.
 
 **A mission is a chain of scheduled instants, not a monthly step.** The phases
-have real durations — three weeks of preparation, ninety minutes of launch, four
+have real durations - three weeks of preparation, ninety minutes of launch, four
 days of transit, a week of operations, four days of return, a fortnight of
-archival — and each phase schedules the next. The outcome is drawn at a scheduled
+archival - and each phase schedules the next. The outcome is drawn at a scheduled
 instant, on the mission's own stream, and **a partial failure is the common
 branch**: the capsule comes back, the data is partial, and the agency learns
-something and loses something. The findings go to the research that asked for
-them, because a mission's destination names a capability and a capability has a
-discipline.
+something and loses something. **Two failures in three are partial ones**, and
+the third writes the vehicle off.
 
 **A vehicle is built, and the build takes real time.** The time is its cost: a
 cheap sounding rocket is built in a month and an orbital launcher takes a year.
@@ -839,87 +866,400 @@ points and they add up to the chance that a check produces anything at all, so
 most weeks produce nothing.
 
 **Testing is what makes the difference.** A completed test campaign takes
-points of failure risk out of the capability it tested, and the risk stays
-taken out after the campaign that found it is gone. The vehicles screen says
-what the testing would cost and what it would buy, because the choice the
-player is making is *test this* or *build a better vehicle*.
+fifteen points of failure risk out of the capability it tested, the campaigns
+stack, and the risk stays taken out after the campaign that found it is gone.
+The vehicles screen says what the testing would cost and what it would buy,
+because the choice the player is making is *test this* or *build a better
+vehicle*.
+
+**And the launch is the point.** A launch is authorised against a risk figure
+and a delta-v, and the engine refuses the impossible ones: a vehicle that is
+not finished, a destination the agency has not developed the technology for,
+and a rocket without the delta-v to get there. **The orbital programme's
+objective is finished by reaching orbit**, and the objective's progress is the
+programme's staff working while the launch is the thing that completes it.
+
 ### 6.1 Hardware and missions
 
 | ID | Task | Depends on | Done when | Status |
 |---|---|---|---|---|
 | S3-01 | `Archetype`, `SliderValues`, `Vehicle`, and the **derived statistics calculation**. | S1-05 | A vehicle's cost, reliability, and capacity follow from its sliders | Done |
-| S3-02 | The capability gating: a slider is bounded by the available capability. | S3-01, S1-21 | A radioisotope power slider is unavailable before the capability unlocks | Done |
+| S3-02 | The capability gating: a slider is bounded by the available capability. | S3-01, S1-21 | A radioisotope power slider is unavailable before the capability unlocks | Done, and the gate was extended to four sliders |
 | S3-03 | The three MVP archetypes: sounding rocket, orbital launcher, orbital capsule. | S3-01 | Each has a distinct derived profile | Done |
 | S3-04 | `Mission` and the phase machine, with the flight phases in their real durations. | M1 | A mission advances through its phases, and the ascent takes 60-90 minutes | Done |
-| S3-05 | Success resolution, with partial failure as the common branch, resolved at a scheduled instant. | S3-04 | A failed mission usually produces partial results, not a total loss | Done |
+| S3-05 | Success resolution, with partial failure as the common branch, resolved at a scheduled instant. | S3-04 | A failed mission usually produces partial results, not a total loss | Done, and the partial band is now two thirds of the failures |
 | S3-06 | Results feeding research: a successful mission's data advances a discipline. | S3-05, S1-21 | A mission's outcome measurably advances knowledge | Done |
-| S3-07 | The `DesignVehicle`, `SetSubsystem`, `AuthorizeLaunch` handlers. | S1-06, S3-04 | A player can design, build, and launch | Done |
+| S3-07 | The `DesignVehicle`, `SetSubsystem`, `AuthorizeLaunch` handlers. | S1-06, S3-04 | A player can design, build, and launch | Done, and the palette now offers all three |
 | S3-08 | Vehicle construction, using industrial capacity, as a rate. | S2-11, S3-07 | A vehicle takes real time and capacity to build | Done |
 | S3-09 | The vehicles and missions screen: sliders, derived stats, risk, authorisation, and the time to orbit. | M1-18, S3-01 | The risk figure and the flight time are visible before authorisation | Done |
 
 ### 6.2 Capability against reliability
 
-| ID | Task | Depends on | Done when |
-|---|---|---|---|
+| ID | Task | Depends on | Done when | Status |
+|---|---|---|---|---|
 | S3-10 | `TestCampaign` as a distinct activity from a research project. | S1-11 | A test campaign consumes staff and money like a project, but produces no new capability | Done |
 | S3-11 | Test campaigns reducing the risk of existing capability. | S3-10, S3-01 | A tested capability measurably lowers a launch's failure probability | Done |
 | S3-12 | The capability-versus-reliability decision surfaced in the UI: what testing would cost and what it would buy. | S3-11, S3-09 | The player can see the trade before choosing | Done |
 
 ### 6.3 The world reacts
 
-| ID | Task | Depends on | Done when |
-|---|---|---|---|
+| ID | Task | Depends on | Done when | Status |
+|---|---|---|---|---|
 | S3-13 | `EventDef`, `Condition`, `Effect`, `WeightMod` and the event registry. | S1-05 | An event can be defined purely as data | Done |
-| S3-14 | The context weighting: weight is base × modifiers over live state. | S3-13 | A fatigued team measurably raises the weight of its bad events  Done |
+| S3-14 | The context weighting: weight is base x modifiers over live state. | S3-13 | A fatigued team measurably raises the weight of its bad events | Done |
 | S3-15 | The event phase: draw, apply effects atomically, write chronicle entries. | S3-14, S1-13 | Events apply as deltas and never break an invariant | Done |
 | S3-16 | `FollowUp`: immediate, delayed, and conditional. | S3-15 | A delayed follow-up fires in a later month and appears in the forecast | Done |
-| S3-17 | The **event catalogue** — ~35 events across the eight categories. | S3-15 | Done |
-| S3-18 | The event phase runs **last**, after every other phase. | S1-04, S3-15 | The order matches `SIMULATION.md` §2.2 and is covered by a golden test  Done |
-| S3-19 | Politics: approval, political capital, promises, milestone demands. | S1-14 | A kept promise raises capital; a broken one costs it  Done |
-| S3-20 | Public opinion and prestige, and their link to the chronicle. | S3-19 | A disaster moves public opinion in the same month it happens  Done |
-| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | Done |
-| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Done |
+| S3-17 | The **event catalogue** - ~35 events across the eight categories. | S3-15 | Done | Done |
+| S3-18 | The event phase runs **last**, after every other phase. | S1-04, S3-15 | The order matches `SIMULATION.md` §2.2 and is covered by a golden test | Done |
+| S3-19 | Politics: approval, political capital, promises, milestone demands. | S1-14 | A kept promise raises capital; a broken one costs it | Done |
+| S3-20 | Public opinion and prestige, and their link to the chronicle. | S3-19 | A disaster moves public opinion in the same month it happens | Done |
+| S3-21 | The forecast: the next twelve months of scheduled obligations and their risk figures. | S3-16 | Done | Done |
+| S3-22 | The full chronicle screen: filter by year, category, and subject. | S1-32, S3-15 | Done | Done |
 
 ### 6.4 Proving it
 
-| ID | Task | Depends on | Done when |
-|---|---|---|---|
-| S3-23 | The **"First Orbit" scenario**: a tuned seed and start state that reliably produces a five-year arc with real decisions in it. | S3-21, S3-17 | Starting from the scenario, a competent player reaches orbit |
-| S3-24 | The balance harness: run N seeds under a reference policy, report the outcome distribution. | S3-23 | The harness prints outcome distributions and runs in minutes |
-| S3-25 | Extend the property tests: invariants that span systems (no orphaned references, every committed date reaches a resolution). | S1-35 | The cross-system invariants are covered |
-| S3-26 | The fuzz test: random directive sequences never panic and always resolve. | S1-06 | A nightly run of thousands of random sequences finds nothing |
-| S3-27 | The performance test: a full campaign resolves in under a second. | S3-23 | The test asserts the budget in `ARCHITECTURE.md` §10 |
-| S3-28 | **The third playtest** — the whole five-year arc. | S3-24 | A playtester reaches orbit, and has lost a programme, a launch, and an engineer along the way |
+| ID | Task | Depends on | Done when | Status |
+|---|---|---|---|---|
+| S3-23 | The **"First Orbit" scenario**: a tuned seed and start state that reliably produces a five-year arc with real decisions in it. | S3-21, S3-17 | Starting from the scenario, a competent player reaches orbit | **Done** |
+| S3-24 | The balance harness: run N seeds under a reference policy, report the outcome distribution. | S3-23 | The harness prints outcome distributions and runs in minutes | **Done** |
+| S3-25 | Extend the property tests: invariants that span systems (no orphaned references, every committed date reaches a resolution). | S1-35 | The cross-system invariants are covered | **Done** |
+| S3-26 | The fuzz test: random directive sequences never panic and always resolve. | S1-06 | A nightly run of thousands of random sequences finds nothing | **Done** |
+| S3-27 | The performance test: a full campaign resolves in under a second. | S3-23 | The test asserts the budget in `ARCHITECTURE.md` §10 | **Done** |
+| S3-28 | **The third playtest** - the whole five-year arc. | S3-24 | A playtester reaches orbit, and has lost a programme, a launch, and an engineer along the way | **Not yet** |
 
-**Slice 3 exit test:** a playtester gets to orbit, and on the way loses a programme, a
-launch, and an engineer — and can read all three in the chronicle.
+**Slice 3 exit test:** a playtester gets to orbit, and on the way loses a
+programme, a launch, and an engineer - and can read all three in the chronicle.
+**Everything except the playtest is done**, and the playtest needs a human.
 
----
+### 6.5 What the Slice 3 work found
 
-## 7. Slice 4 — *Proof*
+**The Slice 3 work was supposed to be a scenario, a harness, and three test
+suites. It was six bugs and a balance rewrite, and every one of them was
+found by the thing the slice was about.**
+
+| What | Why it mattered |
+|---|---|
+| **A programme's staffing list was never maintained.** Assigning somebody to a programme set their assignment and nothing else, so the programme's rate - which reads the staffing list - never moved. | **The commitment mechanic did not work at all.** The whole of Slice 2 was a promise the simulation never counted |
+| **A person who resigned stayed on every team they were on.** | An orphaned reference, and a campaign counting staff it did not have |
+| **The knowledge of a research project went to the wrong capability.** The first capability that shared the discipline was credited, and that was "Atmospheric sounding" - a capability with a threshold of zero. | **Orbital propulsion was unreachable in five years.** The flagship capability of every field could only be reached through a twenty percent spill, ten projects at a time |
+| **The appropriation multiplied the *scaled* approval by the political scale.** | The agency was funded at 1,900 a head and paid twenty-six times that, and the balance was measured against a budget nobody had voted for |
+| **The programme's objective rate was multiplied by its own target.** | Every objective completed in about a month, whatever it was worth. The target cancelled itself out of the rate |
+| **The chronicle's identifiers came from the length of the chronicle**, and a batch of entries written in one phase all got the same number. | The chronicle's own filter could not tell two entries apart |
+
+**And the fuzzer found four more**, which is the argument for having one:
+a postponement could invert a commitment, two recruits could have the same
+name, the chronicle's dangling-subject rule caught people who had *left*,
+and a project's lead could be moved off the project while the project still
+named them.
+
+**The balance was rewritten around what the harness said.** The research cost
+was a fifth of what it was, because at the old figure no agency could afford
+a project at all. The vehicle costs were reduced and the build time made to
+follow the price. The mission's base chance, the partial-failure band, and
+the risk the testing takes out were all reworked, and the numbers are in
+`BALANCE.md` §3, §6, and §7.
+
+
+## 7. Slice 4 - *Proof*
 
 *Make it a product, not a build.*
 
-| ID | Task | Depends on | Done when |
-|---|---|---|---|
-| S4-01 | **Replay**: the order log is persisted and reproduces a campaign exactly. | M1-16 | A replayed campaign produces an identical state hash |
-| S4-02 | **Branching**: fork at any month, re-simulate with a different decision, compare. | S4-01 | The player can fork at month 30 and see a different year 3 |
-| S4-03 | The branch comparison view: two timelines side by side. | S4-02 | The difference between two branches is legible |
-| S4-04 | `sim_version`: hash the resolution order, event definitions, directive handlers, the RNG algorithm, and the stream hash. | S1-01 | A change to any of them changes the version |
-| S4-05 | Save files carry `sim_version`; replays against a mismatched version are refused with a clear message. | S4-04 | The refusal message is actionable |
-| S4-06 | The **onboarding**: the `PLAYER_INTRO.md` framing as an in-game opening. | S3-23 | The game opens with the framing and a clear first goal |
-| S4-07 | The first-month tutorial, teaching the binding factor. | S1-33 | Sits alongside S1-33 rather than replacing it |
-| S4-08 | Balance pass 1: read the harness output, tune the constants in `sim::balance`. | S3-24 | At least three strategies survive with comparable outcomes |
-| S4-09 | The **strategy check**: the harness must run three reference policies — cautious, fast, and science-first — and all three must be viable. | S4-08 | The harness reports three viable strategies. This is the MVP's most important test |
-| S4-10 | Error-message pass: every rejection and error reads as a sentence to a player, not a developer. | S1-07 | A full read-through of every message in the game |
-| S4-11 | Save/load robustness: corrupted, truncated, and foreign-version files fail gracefully. | S1-26 | No crash, and the message says what to do |
-| S4-12 | The **final playtest** with someone who has never seen it. | S4-09, S4-10 | They reach orbit in one sitting and ask to try a different path |
-| S4-13 | Documentation pass: bring `docs/` in line with the shipped behaviour. | S4-12 | No doc describes behaviour the code does not have |
+**Status: complete, except for the final playtest.** Every task except S4-12
+is done, and S4-12 needs a human.
+
+| ID | Task | Depends on | Done when | Status |
+|---|---|---|---|---|
+| S4-01 | **Replay**: the order log is persisted and reproduces a campaign exactly. | M1-16 | A replayed campaign produces an identical state hash | **Done** |
+| S4-02 | **Branching**: fork at any month, re-simulate with a different decision, compare. | S4-01 | The player can fork at month 30 and see a different year 3 | **Done** |
+| S4-03 | The branch comparison view: two timelines side by side. | S4-02 | The difference between two branches is legible | **Done** |
+| S4-04 | `sim_version`: hash the resolution order, event definitions, directive handlers, the RNG algorithm, and the stream hash. | S1-01 | A change to any of them changes the version | Done |
+| S4-05 | Save files carry `sim_version`; replays against a mismatched version are refused with a clear message. | S4-04 | The refusal message is actionable | Done, and the message now names both versions |
+| S4-06 | The **onboarding**: the `PLAYER_INTRO.md` framing as an in-game opening. | S3-23 | The game opens with the framing and a clear first goal | **Done** |
+| S4-07 | The first-month tutorial, teaching the binding factor. | S1-33 | Sits alongside S1-33 rather than replacing it | Done |
+| S4-08 | Balance pass 1: read the harness output, tune the constants in `sim::balance`. | S3-24 | At least three strategies survive with comparable outcomes | **Done** |
+| S4-09 | The **strategy check**: the harness must run three reference policies - cautious, fast, and science-first - and all three must be viable. | S4-08 | The harness reports three viable strategies. This is the MVP's most important test | **Done** |
+| S4-10 | Error-message pass: every rejection and error reads as a sentence to a player, not a developer. | S1-07 | A full read-through of every message in the game | **Done** |
+| S4-11 | Save/load robustness: corrupted, truncated, and foreign-version files fail gracefully. | S1-26 | No crash, and the message says what to do | **Done** |
+| S4-12 | The **final playtest** with someone who has never seen it. | S4-09, S4-10 | They reach orbit in one sitting and ask to try a different path | **Not yet** |
+| S4-13 | Documentation pass: bring `docs/` in line with the shipped behaviour. | S4-12 | No doc describes behaviour the code does not have | **Done** |
 
 **Slice 4 exit test:** a new player, given nothing but the game, reaches orbit in one
-sitting and wants to try a different path.
+sitting and wants to try a different path - which is exactly what branching is for.
+**Everything except the playtest is done**, and the playtest needs a human.
 
----
+### 7.1 What the Slice 4 work produced
+
+**The replay is an engine feature and not a test.** `Sim::replay` rebuilds a
+campaign from the scenario and the order log alone, and the result is the same
+campaign down to the state hash. **It is the same mechanism the fork uses**,
+which is why the fork is exact: the branch is the same campaign up to the fork
+point, and every difference after it is a difference the player caused.
+
+**The branch comparison is two columns and a list of decisions.** The screen
+shows the timeline of the campaign - the decisions, with their dates and their
+names - and then the two campaigns side by side: the money, the people, the
+knowledge, the approval, and the chronicle entries that only one of them has.
+**A difference the player cannot see is a difference the player cannot use.**
+
+**The game opens with a briefing.** The `PLAYER_INTRO.md` framing, the
+campaign's name, and the first goal - *reach orbit before the state expects
+you to* - and the world waits while the player reads it. It is a modal over
+the dashboard, and any key dismisses it.
+
+**The save and load are on the command line.** `--save <FILE>` writes the
+campaign when the game ends, and `--load <FILE>` starts from one. A damaged
+file is a message and not a crash, and the message says which of the three
+things is wrong: it is not a campaign, it is truncated, or it was made by
+another build of the game.
+
+### 7.2 The last pass: the playtest work, the live feed, and the traits
+
+**Three things were left, and they are the three that a human playtest would
+have found first.** A human playtest was running alongside this work, so the
+machine did the parts a machine can do and the human did the rest.
+
+| The work | What it is |
+|---|---|
+| **The automated playtest** | The Slice 3 exit test, run by a machine: the five-year arc reaches orbit, loses a programme, a launch and an engineer, and **the chronicle names all three**. A machine cannot tell whether the game is fun. It can tell whether the arc is possible |
+| **The live feed** | The dashboard's "Just happened" panel: the newest thing at the top, appearing the moment it happens, **with the player's own decisions in it** |
+| **The traits** | Fourteen of them, two or three per person, each landing on the factor it describes |
+
+**And the feed found a bug the playtest would have found too.** The world was
+quieter than the design said by a factor of four, because the event pool's
+total was compared against a roll scaled differently from the weights choosing
+the event — **the roll was a roll against two different rulers**. The
+chronicle of a five-year arc was dominated by whichever event had the largest
+weight; it is now about a hundred entries of a dozen different kinds, which is
+the difference between a history and a log.
+
+**Two smaller things fell out of the same pass.** A missed primary objective
+now **fails the programme**, because a programme the player has lost is a
+programme with an aftermath and the aftermath starts with the programme being
+marked as failed; and the chronicle entry for a deadline now **names the
+programme** rather than the objective, because "Orbital Launch: a deadline the
+state was promised was missed" is legible and "Reach orbit: a deadline the
+state was promised was missed" is not.
+**And every message was read.** The pass is now a test: every refusal the
+engine can make is checked for being a sentence, for starting with a capital
+letter, for ending with a full stop, and for containing no identifier. **The
+pass found two**: a refusal about somebody who had left began with a
+lowercase letter, and the message for an order the agency has no way to take
+named the order kind - "SetPolicy" - which is the engine's name for it and not
+the player's.
+
+### 7.3 The last pass of all: the shift policy, the report, and saving from inside
+
+**Three things, and the first of them is the oldest gap in the design.**
+
+| The work | What it is |
+|---|---|
+| **The shift policy** | S1-48, S1-49 and S1-52: a standing instruction about shifts for the whole agency, the order that sets it, and the palette recipe that offers it |
+| **The report** | `--report <FILE>` writes a plain-text summary of the campaign: the money, the staff, the programmes, the missions, what the agency knows, the worst of the chronicle, and every decision. **It is what a playtester sends back** |
+| **Saving from inside the game** | `F3` saves and `F4` loads, so a player who never thought about saving can still save |
+
+**The policy is a standing instruction and the per-person shift is an override
+of it.** That is the whole design, and it is the opposite of a bulk write: a
+bulk write has to be repeated, and the "tired ones" version of it would only
+ever catch the tired ones *at that moment*. A standing instruction keeps
+working as people tire, and the threshold makes it a **thermostat** — an
+eased-off person recovers, comes back up to the threshold, and is eased off
+again. **A person the manager has moved individually is moved off the policy**,
+and the staff screen says so, because a person on a light shift because the
+policy eased them off is a different thing from a person the manager put on
+light duties.
+
+**And the player can put somebody back on the policy**, which is the other half
+of the override: "she works flat out until she is tired, and then she eases
+off". The shift order's payload is `Option<u16>`, and `None` is that answer.
+
+**The balance moved a little, and the measured table in `BALANCE.md` says so.**
+The reference policies now manage the whole agency with one standing
+instruction rather than thirty individual changes, and the cautious policy
+reaches orbit one campaign in twenty less often — the policy has a week of
+bureaucracy, so the first weeks of a campaign are worked at full load. **That is
+the price of one order over thirty**, and the design accepts it.
+
+**The report and the in-game save exist for the same reason: a playtester is a
+person with an evening and a job to get back to.** The report is a file they can
+paste into an email, and it names the seed so the campaign can be reproduced
+exactly. The save is a key, because **a player must be able to save without
+having planned to** — the campaign they have spent an evening on is not saved
+unless they say so, and they should not have to restart the game to say it.
+**And a headless run saves too**, because a headless run is a campaign that
+ended like any other.
+
+### 7.4 The advice banner: the game says what to do next
+
+**The complaint was that the game was unclear, and the example was the first
+programme.** "Reach orbit" is not a clue: it does not say that a launch is what
+reaches orbit, and it does not say that the agency cannot design a launch rocket
+until it has done the research that unlocks the destination. **A player who
+cannot tell what the game wants has to guess, and the guessing is the whole of
+the first hour.**
+
+Two things came out of it, and they are different jobs.
+
+| The work | What it is |
+|---|---|
+| **The objective says how it is done** | Every objective carries a line, `done by`, naming what finishes it: a successful launch to Low orbit, or the programme's own staff. **The domain already knew this and the screen was not showing it** |
+| **The advice banner** | A panel at the top of the dashboard that says what the agency should be doing next, read from the campaign as it stands |
+
+**The banner is not a tutorial, and that is the whole design.** A tutorial says
+"now do this", and a player who came here to do something else has to ignore
+it. **The banner looks at the campaign and finds the thing that is wrong or
+missing right now**: an agency without orbital propulsion is told that it is
+180 points of research short; an agency whose treasury has four months left is
+told about the money; an agency with a rocket on the pad is told to launch it.
+
+**It is read from the campaign every time the screen is drawn, and it is never
+stored.** So the banner always matches the campaign the player is actually in,
+and doing the thing it said changes what it says next. **The most urgent
+advice is the one that is showing, and `n` shows the next one** — the advice
+that is showing is the one about the thing that is actually costing the
+campaign, and the rest are behind it.
+
+**The keymap had to be trimmed to fit a twenty-four-row terminal**, because a
+keymap whose last entry is cut off is a keymap the player cannot read, and the
+entries that are the same idea are now on one line.
+
+### 7.7 An assignment is a move
+
+**The player reported that they could not put multiple scientists on a research
+project.** The mechanic was there — the points are summed, and a project with
+two people on it finishes twice as fast — but the order refused to give a
+person a second job.
+
+**Everything around it said the opposite.** The design's own order list calls
+the order "assign / reassign". The phase that applies it says "moved from the
+propulsion laboratory to the combustion study" and takes the person off the old
+team. The error variant for the refusal says the person is named "so the player
+knows what they are being moved from" — a sentence about a move that the
+validation then prevented. And the advice banner told the player to "put
+somebody else on it" and then refused the order.
+
+**The order now moves the person**, and the one thing it refuses is a no-op:
+putting somebody where they already are. The palette says whose team somebody
+is being taken off *before* the order is confirmed, because a laboratory that
+loses a scientist is a laboratory that wears out.
+
+**The advice banner names somebody now** — "put Tomas Reyes on it" rather than
+"put somebody else on it" — because a name is a sentence the player can act on
+and "somebody else" is one they have to act out.
+
+### 7.8 The performance and stability pass
+
+**The player asked for a pass over the codebase, on the grounds that they did not
+want to have to do big refactors when the project got much larger.** The game is
+designed for three hundred people and the shipped scenarios have twelve, so the
+question was what happens at the far end.
+
+**The answer was: a quadratic.** The tools factor — the quality of the agency's
+facilities, and whether it is over capacity — is the only part of the
+performance model that reads the whole state, and it was being computed once per
+person per project per hour of simulated time. A five-year campaign of three
+hundred people took **ten and a half seconds**, and it grew faster than the
+agency did.
+
+| | Before | After |
+|---|---|---|
+| **Twelve people** | 0.15 s | 0.08 s |
+| **Fifty people** | 0.59 s | 0.24 s |
+| **A hundred and fifty** | 3.1 s | 0.75 s |
+| **Three hundred** | **10.6 s** | **1.5 s** |
+
+**The tools factor is computed once per hour now** and passed down, and the
+performance model keeps its eight modifiers in an array instead of a vector —
+**the model is evaluated a hundred and fifty thousand times a second at three
+hundred people, and a heap allocation in that path is millions of allocations in
+a campaign.** The same fix applies to the binding-factor panel, which is drawn on
+every frame and was quadratic in the size of the agency.
+
+**The guard is a test, and it compares two sizes rather than a clock.** A test
+that says "a campaign takes under a second" fails on a slow machine and passes
+on a fast one; a test that says "four times the staff costs less than eight
+times as much" catches the shape of the cost, which is the thing that matters
+and the thing that decides whether the project needs a rewrite.
+
+**The other things the pass turned up:**
+
+- **The live feed copied every headline in the chronicle, every frame.** The
+  chronicle is the campaign's whole history and it grows for ever, so the feed
+  was copying a thousand strings to show twelve of them. The candidates are
+  gathered as references now, and only what the feed shows is copied.
+- **The treasury's burn rate was built as a list of named lines on every hour**,
+  which allocates, when all the caller wanted was the total.
+- **The vehicle builds read the industrial capacity once per vehicle**, and the
+  programme rate built a list of target points to check that it was not empty.
+- **The state's clone per phase is the next thing to look at**, and the
+  chronicle is the part of it that grows. It is not a problem yet — a
+  five-year campaign has two hundred entries — but it is the one to watch.
+
+### 7.5 The arrows: up and down navigate, left and right change the value
+
+**The order palette had it the wrong way round, and its own hint said so.** The
+form said "(1 of 4 — ← → to change)" while the code made the left and right
+arrows move between the *parameters* — which are one per line, so moving between
+them looks like moving the highlight down the screen — and made the up and down
+arrows change the value. **The interface was lying about its own keys.**
+
+**The convention is now the same everywhere [D].** Up and down navigate, and
+left and right change the value. On the staff screen the left and right arrows
+are the shift, which is a value and not a field; in the order palette they are
+the chosen option; on a list of orders there is no value to change, so they do
+nothing and the up and down arrows move the highlight.
+
+**Two navigation bugs came out of the same pass.**
+
+- **The selection could walk off the end of a list, and the focus with it.** The
+  down arrow added one to the index with nothing to stop it, so a player who
+  pressed it a few times too often lost the highlight entirely — and had to
+  press up a dozen times to get it back. **The selection is now clamped to the
+  list**, when the arrow is pressed and every time the screen is drawn, because
+  a list can change under the player.
+- **The branches screen's list could not be moved at all.** The screen showed
+  the decisions and marked one of them, but the arrows moved a different index
+  entirely, so the player could not choose which decision to fork at. **There is
+  one selection per screen now**, and the branches screen's is the decision the
+  fork happens at.
+
+**And the test that was supposed to catch it was passing for the wrong reason.**
+"Every screen with a selection moves it" compared the *rendered text* before and
+after the arrow, and the text changed because the tutorial hint had been
+dismissed — not because the selection moved. It now compares the selection
+itself.
+
+### 7.6 The pictures: a terminal is a pixel canvas
+
+**The player wanted some flare, and the finding is that a text terminal cannot
+give them icons.** The ceiling is the character cell, not the tooling.
+
+| Technique | Pixels per cell | Colours per cell |
+|---|---|---|
+| **The half-blocks** `▀▄█` | 1 across, 2 down — two | **two** |
+| **The braille block** `⠿⣿` | 2 across, 4 down — **eight** | one |
+
+**Both give square pixels**, because a cell is about twice as tall as it is wide.
+The braille block is the finest a text terminal goes, and it is what the picture
+converters use — **but the dots have gaps between them**, so a shape drawn in
+braille reads as a dot matrix rather than as a shape. It is the right tool for a
+*photograph*, where the dottiness reads as a gradient, and the wrong one for an
+icon.
+
+**So the finest solid pixel a terminal can draw is a whole cell across**, and a
+picture you can read needs many cells. **An icon in the corner of a panel is
+therefore a blob, or it eats the panel's width** — nine columns of a
+sixty-column panel for a shape too coarse to read, and the panel is where the
+money is.
+
+**Both attempts were tried and both looked bad**, which is the finding: the
+half-blocks are solid but the shapes are too coarse to read, and the braille is
+fine but the shapes are made of dots. **The interface has no pictures.** The flare
+is in the panels, the glyphs and the colours.
+
+**Beyond braille there is only real graphics** — sixel and kitty, which put
+actual pixels on the screen. **Crossterm does not do them**, they work in a
+minority of terminals, and a game that needs a special terminal is not a game
+that runs everywhere.
 
 ## 8. Cross-cutting work
 

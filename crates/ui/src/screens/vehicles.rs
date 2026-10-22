@@ -49,6 +49,27 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
             "    costs {}   reliability {}%   capacity {}   delta-v {}",
             derived.cost_estimate, derived.reliability, derived.payload_capacity, derived.delta_v
         )));
+        // **The risk, and whether it can get there at all.** The player
+        // authorises a launch against these two numbers, and the order
+        // palette shows them again before the order is confirmed.
+        let risk = sim::derived::mission_probability_for(state, vehicle.id, "Low orbit");
+        let enough = derived.delta_v >= sim::balance::ORBIT_DELTA_V_REQUIREMENT;
+        lines.push(Line::styled(
+            format!(
+                "    risk {}%   {}",
+                risk / 100,
+                if enough {
+                    "enough delta-v for orbit"
+                } else {
+                    "not enough delta-v for orbit"
+                }
+            ),
+            if enough {
+                theme::Meaning::Informational.style()
+            } else {
+                theme::Meaning::Attention.style()
+            },
+        ));
         if !derived.required_capabilities.is_empty() {
             lines.push(Line::styled(
                 format!(

@@ -24,6 +24,12 @@ use crate::screens;
 use crate::theme;
 use crate::tutorial;
 
+/// Where the campaign is saved when the player has not said otherwise.
+///
+/// **A save the player cannot find is a save they will not trust**, so the
+/// file is named and the notice says where it went.
+pub const DEFAULT_SAVE_PATH: &str = "campaign.json";
+
 /// The application state.
 #[derive(Debug)]
 pub struct App {
@@ -62,8 +68,7 @@ pub struct App {
     chronicle_filter: screens::chronicle::ChronicleFilter,
     /// The fork points the player can choose from.
     fork_points: Vec<domain::time::Instant>,
-    /// Which fork point is selected.
-    fork_index: usize,
+
     clock: Clock,
     screen: Screen,
     should_quit: bool,
@@ -76,12 +81,44 @@ pub struct App {
     /// accident. The confirmation is a modal over the screen behind it, and
     /// the safe answer is the one that starts selected.
     confirm: Option<crate::confirm::Confirmation>,
+    /// Where the campaign is saved and loaded from.
+    ///
+    /// **The player must be able to save without having planned to.** It is
+    /// the file named on the command line, or `campaign.json` beside the
+    /// game, and the notice says where it went.
+    save_path: String,
+    /// Which piece of advice the banner is showing.
+    ///
+    /// **The advice is read from the campaign and is never stored**, so this
+    /// is only a position in the cycle: the banner shows the advice at this
+    /// position among the advice that applies.
+    advice_index: usize,
+    /// Whether the opening briefing is on screen.
+    ///
+    /// **The game opens with the framing and a clear first goal.** The
+    /// briefing is a modal over the dashboard, and any key dismisses it.
+    briefing: bool,
 }
 
 impl App {
     /// Creates an application for a campaign.
+    ///
+    /// **This is the game as the player meets it**, and it opens with the
+    /// briefing: the framing, and the first goal.
     #[must_use]
     pub fn new(sim: Sim) -> Self {
+        let mut app = Self::started(sim);
+        app.briefing = true;
+        app
+    }
+
+    /// Creates an application with the briefing already dismissed.
+    ///
+    /// **Most of the interface is about what happens after the briefing**, and
+    /// a caller that means to press a key wants that key to reach the screen
+    /// behind it.
+    #[must_use]
+    pub fn started(sim: Sim) -> Self {
         Self {
             sim,
             branch: None,
@@ -93,7 +130,7 @@ impl App {
             chronicle_filter: screens::chronicle::ChronicleFilter::default(),
             show_help: false,
             fork_points: Vec::new(),
-            fork_index: 0,
+
             clock: Clock::default(),
             screen: Screen::Dashboard,
             should_quit: false,
@@ -101,6 +138,9 @@ impl App {
             selected: 0,
             report: None,
             confirm: None,
+            save_path: DEFAULT_SAVE_PATH.to_owned(),
+            advice_index: 0,
+            briefing: false,
         }
     }
 
@@ -140,6 +180,111 @@ impl App {
     /// (S1-37) will use it.
     pub const fn sim_mut(&mut self) -> &mut Sim {
         &mut self.sim
+    }
+
+    /// Where the campaign is saved and loaded from.
+    ///
+    /// **The command line's `--save` file is the same file the key saves
+    /// to**, so a player who started the game with `--save` and a player who
+    /// did not are both saving where they think they are.
+    pub fn set_save_path(&mut self, path: String) {
+        self.save_path = path;
+    }
+
+    /// The file the campaign is saved to and loaded from.
+    #[must_use]
+    pub fn save_path(&self) -> &str {
+        &self.save_path
+    }
+
+    /// Saves the campaign.
+    ///
+    /// **The player must be able to save without having planned to.** The
+    /// campaign they have spent an evening on is not saved unless they say so,
+    /// and they should not have to restart the game to say it.
+    pub fn save(&mut self) {
+        let path = self.save_path.clone();
+        let text = match self.sim.save() {
+            Ok(text) => text,
+            Err(error) => {
+                self.notice = Some(format!("The campaign could not be written: {error}"));
+                return;
+            }
+        };
+        match std::fs::write(&path, text) {
+            Ok(()) => self.notice = Some(format!("Saved to {path}.")),
+            Err(error) => {
+                self.notice = Some(format!(
+                    "The campaign could not be written to {path}: {error}"
+                ));
+            }
+        }
+    }
+
+    /// Loads the campaign from the file.
+    ///
+    /// **A file that cannot be read changes nothing.** The player is told why,
+    /// and the campaign they are playing is still there.
+    pub fn load(&mut self) {
+        let path = self.save_path.clone();
+        let text = match std::fs::read_to_string(&path) {
+            Ok(text) => text,
+            Err(error) => {
+                self.notice = Some(format!("The campaign at {path} could not be read: {error}"));
+                return;
+            }
+        };
+        let sim = match Sim::load(&text) {
+            Ok(sim) => sim,
+            Err(error) => {
+                self.notice = Some(format!(
+                    "The campaign at {path} could not be loaded: {error}"
+                ));
+                return;
+            }
+        };
+        self.sim = sim;
+        // **The branch belongs to the campaign that was replaced**, and so do
+        // the fork points.
+        self.branch = None;
+        self.fork_points.clear();
+        self.selected = 0;
+        self.report = None;
+        self.refresh_fork_points();
+        self.notice = Some(format!("Loaded {path}."));
+    }
+
+    /// The advice the banner is showing.
+    ///
+    /// **The advice is read from the campaign every time it is asked for**, so
+    /// it always matches the campaign the player is actually in. A player who
+    /// has done the thing the advice said now sees the next thing.
+    #[must_use]
+    pub fn advice(&self) -> Option<String> {
+        crate::advice::text_at(&self.sim, self.advice_index)
+    }
+
+    /// How many pieces of advice there are for the campaign as it stands.
+    #[must_use]
+    pub fn advice_count(&self) -> usize {
+        crate::advice::count(&self.sim)
+    }
+
+    /// The advice at a position in the cycle.
+    ///
+    /// **The player can look at every piece of advice**, and this is how the
+    /// banner reaches the ones it is not showing.
+    #[must_use]
+    pub fn advice_at(&self, index: usize) -> Option<String> {
+        crate::advice::text_at(&self.sim, index)
+    }
+
+    /// Shows the next piece of advice.
+    ///
+    /// **The cycle wraps**, so a player who keeps asking sees every piece of
+    /// advice there is and then comes back to the first one.
+    pub fn next_advice(&mut self) {
+        self.advice_index = self.advice_index.saturating_add(1);
     }
 
     /// The host's clock.
@@ -182,10 +327,28 @@ impl App {
         &self.fork_points
     }
 
+    /// The decisions the player has made, and when.
+    ///
+    /// **The timeline of a campaign is its decisions**, and a branch is a
+    /// different timeline. The name is the order's, because "2039-02-01" on
+    /// its own says nothing and "2039-02-01 — Hire a scientist" says exactly
+    /// what the player did.
+    #[must_use]
+    pub fn decisions(&self) -> Vec<(domain::time::Instant, String)> {
+        self.sim
+            .log()
+            .iter()
+            .map(|entry| (entry.issued_at, entry.kind.clone()))
+            .collect()
+    }
+
     /// Which fork point is selected.
+    ///
+    /// **The selection is the player's position on the screen**, and the
+    /// branches screen's list is the decisions — so the same index moves them.
     #[must_use]
     pub const fn fork_index(&self) -> usize {
-        self.fork_index
+        self.selected
     }
 
     /// Forks the campaign at the selected instant.
@@ -193,7 +356,7 @@ impl App {
     /// The fork replays the order log, so the branch is the same campaign up
     /// to the fork point.
     pub fn fork(&mut self) {
-        let Some(point) = self.fork_points.get(self.fork_index).copied() else {
+        let Some(point) = self.fork_points.get(self.selected).copied() else {
             self.notice = Some("There is nothing to fork yet.".to_owned());
             return;
         };
@@ -204,6 +367,42 @@ impl App {
             }
             Err(error) => self.notice = Some(error.to_string()),
         }
+    }
+
+    /// The keys of an open modal.
+    ///
+    /// **A modal takes the keys until it is dismissed**, and the clock
+    /// controls are the exception, because the clock belongs to the host and
+    /// not to any screen — a player who wants to stop and read the report
+    /// must be able to stop the clock without dismissing the thing they were
+    /// reading.
+    ///
+    /// The manual is the one modal that takes *character* keys, because typing
+    /// is how it is narrowed.
+    fn modal_key(&mut self, key: KeyEvent) -> Option<Action> {
+        if self.show_help {
+            self.show_help = false;
+            return Some(Action::Accept);
+        }
+        if self.manual_open {
+            let action = action_for(key, self.screen);
+            if is_clock_control(action) {
+                self.clock_action(action);
+                return Some(action);
+            }
+            self.manual_key(key, action);
+            return Some(action);
+        }
+        if self.report.is_some() {
+            let action = action_for(key, self.screen);
+            if is_clock_control(action) {
+                self.clock_action(action);
+                return Some(action);
+            }
+            self.report = None;
+            return Some(Action::Accept);
+        }
+        None
     }
 
     /// Handles a key press and returns what it did.
@@ -245,45 +444,28 @@ impl App {
             return Action::Quit;
         }
 
+        // **The briefing is a modal too**, and it takes the keys until it is
+        // dismissed. It is the first thing the player sees, and it says what
+        // the game is and what the first goal is.
+        //
+        // **It comes after the Ctrl+C check**, because that key has to reach
+        // the confirmation from anywhere on the screen.
+        if self.briefing {
+            self.briefing = false;
+            return Action::Accept;
+        }
+
         // **The player has acted, so the hint on this screen has done its
         // job.** It is dismissed here rather than when it was first drawn, so
         // that it stays on the screen until it has been read.
         self.tutorial.dismiss(self.screen);
 
-        // The month report is a modal: it takes every key until it is dismissed.
-        //
-        // **The clock controls are the exception.** They are global, because the
-        // clock belongs to the host and not to any screen — and a player who
-        // wants to stop and read the report must be able to stop the clock
-        // without dismissing the thing they were reading.
-        if self.show_help {
-            self.show_help = false;
-            return Action::Accept;
-        }
-
-        // **The manual is a modal**, and it takes the keys until it is closed.
-        //
-        // It is the one modal that takes *character* keys, because typing is
-        // how it is narrowed. The clock controls are still global, because the
-        // clock belongs to the host and not to any screen.
-        if self.manual_open {
-            let action = action_for(key, self.screen);
-            if is_clock_control(action) {
-                self.clock_action(action);
-                return action;
-            }
-            self.manual_key(key, action);
+        // **The open modal takes the keys.** The keymap, the manual, and the
+        // month report are all modals, and the clock controls are the
+        // exception, because the clock belongs to the host and not to any
+        // screen.
+        if let Some(action) = self.modal_key(key) {
             return action;
-        }
-
-        if self.report.is_some() {
-            let action = action_for(key, self.screen);
-            if is_clock_control(action) {
-                self.clock_action(action);
-                return action;
-            }
-            self.report = None;
-            return Action::Accept;
         }
 
         // **Typing into a filter is a mode.** While the player is typing, the
@@ -319,6 +501,14 @@ impl App {
                 self.selected = 0;
             }
             Action::Quit => self.open_confirmation(),
+            // **Saving is one key, and loading asks first**, because it throws
+            // the campaign away.
+            Action::Save => self.save(),
+            Action::Load => self.open_load_confirmation(),
+            // **The advice is browsed, not taken.** The player reads what the
+            // banner says and presses `n` when they want to know what else
+            // the campaign needs.
+            Action::NextAdvice => self.next_advice(),
             Action::Help => self.show_help = true,
             Action::OpenManual => self.open_manual(None),
             Action::OpenInfo => self.open_manual(Some(self.screen)),
@@ -340,7 +530,7 @@ impl App {
                 self.selected = 0;
             }
             Action::Up => self.selected = self.selected.saturating_sub(1),
-            Action::Down => self.selected += 1,
+            Action::Down => self.move_selection_down(),
             Action::Accept => {
                 // **Enter does not resolve a month.** The clock runs the
                 // campaign; there is no month to end. The one thing Enter does
@@ -366,6 +556,27 @@ impl App {
             }
         }
         action
+    }
+
+    /// Moves the selection down, and stops at the end of the list.
+    ///
+    /// **A list the player can walk off the end of is a list that loses the
+    /// focus**, and the focus is how the player says which person they mean.
+    /// The down arrow stops on the last row rather than stepping past it.
+    fn move_selection_down(&mut self) {
+        let count = screens::item_count(self, self.screen);
+        self.selected = self.selected.saturating_add(1).min(count.saturating_sub(1));
+    }
+
+    /// Keeps the selection on a row that is there.
+    ///
+    /// **The list changes under the player** — a person leaves, a filter
+    /// narrows it, a hire arrives — so the selection is clamped every time
+    /// the screen is drawn, and the focus can never point at a row that is
+    /// not there.
+    fn clamp_selection(&mut self) {
+        let count = screens::item_count(self, self.screen);
+        self.selected = self.selected.min(count.saturating_sub(1));
     }
 
     /// Applies a clock control.
@@ -450,13 +661,16 @@ impl App {
         self.controls.entry(self.screen).or_default()
     }
 
-    /// The shift a person is due to be put on, if an order says so.
+    /// The shift change in flight for a person, if there is one.
     ///
     /// **A shift change lands at the next hour**, so the player needs to see
     /// that the change is in flight rather than watching the number and
     /// wondering why nothing happened.
+    ///
+    /// **The inner `None` is a change back onto the policy**, which is a
+    /// change the player needs to see too.
     #[must_use]
-    pub fn pending_shift(&self, person: domain::ids::PersonId) -> Option<u16> {
+    pub fn pending_shift(&self, person: domain::ids::PersonId) -> Option<Option<u16>> {
         // **The last order wins**, because the orders land in the order they
         // were given and the last one is the one that ends up true.
         self.sim
@@ -514,7 +728,12 @@ impl App {
         // **The step is on the shift that is already in flight**, not on the
         // one that has landed, so pressing the key twice moves two steps and
         // not one.
-        let current = self.pending_shift(row.id).unwrap_or(person.state.shift);
+        // **The shift that is in force**, which is the policy's unless this
+        // person has been moved off it.
+        let current = self
+            .pending_shift(row.id)
+            .flatten()
+            .unwrap_or_else(|| sim::derived::effective_shift(state, person));
         let next = sim::shift::stepped(current, up);
         if next == current {
             return;
@@ -522,7 +741,7 @@ impl App {
         let name = row.name.clone();
         self.issue(domain::order::OrderKind::SetShift {
             person: row.id,
-            shift: next,
+            shift: Some(next),
         });
         // **The notice says what the player did**, because "Order 3 given" is
         // not a thing anybody can act on.
@@ -620,8 +839,11 @@ impl App {
         match action {
             Action::Up => palette.up(),
             Action::Down => palette.down(),
-            Action::Left => palette.previous_parameter(),
-            Action::Right => palette.next_parameter(),
+            // **Left and right change the value, and up and down navigate.**
+            // The form is read downwards, one parameter per line, and the
+            // value is the thing the player is choosing.
+            Action::Left => palette.previous_option(),
+            Action::Right => palette.next_option(),
             Action::Accept => {
                 // **The first Enter moves to the form; the second confirms.**
                 if let Some(kind) = palette.accept(self.sim.state()) {
@@ -648,6 +870,16 @@ impl App {
         }
     }
 
+    /// Opens the confirmation before the campaign is replaced.
+    ///
+    /// **Loading throws away the campaign the player is playing**, which is the
+    /// same kind of decision as quitting, so it is the same dialog.
+    fn open_load_confirmation(&mut self) {
+        if self.confirm.is_none() {
+            self.confirm = Some(crate::confirm::Confirmation::load(self.save_path.clone()));
+        }
+    }
+
     /// The keys of the confirmation.
     ///
     /// **Ctrl+C leaves at once.** The player has been asked already, so a
@@ -667,13 +899,26 @@ impl App {
                 }
             }
             Action::Accept => {
-                let quitting = self
+                let purpose = self
                     .confirm
-                    .is_some_and(|confirmation| confirmation.is_quit());
+                    .as_ref()
+                    .map(|confirmation| confirmation.purpose().clone());
+                let going = self
+                    .confirm
+                    .as_ref()
+                    .is_some_and(crate::confirm::Confirmation::is_go);
                 self.confirm = None;
-                if quitting {
-                    self.should_quit = true;
-                    return Action::Quit;
+                if going {
+                    match purpose {
+                        Some(crate::confirm::Purpose::Quit) => {
+                            self.should_quit = true;
+                            return Action::Quit;
+                        }
+                        Some(crate::confirm::Purpose::Load { .. }) => {
+                            self.load();
+                        }
+                        None => {}
+                    }
                 }
             }
             Action::Back => {
@@ -727,7 +972,11 @@ impl App {
         // question about whether to keep playing, and the campaign moving on
         // underneath it would be the game changing the subject. The real time
         // is still consumed, so there is no backlog when the player returns.
-        if self.confirm.is_some() {
+        //
+        // **The briefing waits too.** It is the first thing the player reads,
+        // and a campaign that moves on while it is being read is a campaign
+        // that has already spent the time the player needed.
+        if self.confirm.is_some() || self.briefing {
             return;
         }
         // **The target is measured from the campaign's effective time**, not
@@ -766,16 +1015,22 @@ impl App {
     pub fn refresh_fork_points(&mut self) {
         let points: Vec<domain::time::Instant> =
             self.sim.log().iter().map(|entry| entry.issued_at).collect();
-        if points.len() > self.fork_points.len() {
+        if points.len() > self.fork_points.len() && self.screen == Screen::Branches {
             // A new decision: the player probably wants to fork at the latest.
-            self.fork_index = points.len() - 1;
+            // **This is the branches screen's own selection**, so it only
+            // moves when the player is looking at it.
+            self.selected = points.len() - 1;
         }
-        self.fork_index = self.fork_index.min(points.len().saturating_sub(1));
         self.fork_points = points;
     }
 
     /// Draws the interface.
     pub fn render(&mut self, frame: &mut Frame) {
+        // **The selection is a position in a list**, and a list can change
+        // under the player. So it is clamped before anything is drawn, and the
+        // focus is always on a row that is there.
+        self.clamp_selection();
+
         // **The tutorial's hint belongs to the screen the player is on**, and
         // it stays there until the player does something. A hint that is
         // marked as seen when it is first drawn is on the screen for one
@@ -836,6 +1091,42 @@ impl App {
             let area = centred(90, 90, frame.area());
             screens::manual::render_over(&mut self.manual, frame, area);
         }
+
+        // **And the briefing is over everything**, because it is the first
+        // thing the player sees and nothing else should compete with it.
+        if self.briefing {
+            let area = centred(80, 80, frame.area());
+            crate::briefing::render(frame, area, &self.sim.scenario().name, &self.first_goal());
+        }
+    }
+
+    /// The first goal, in the player's language.
+    ///
+    /// **The briefing says what the player is trying to do**, and the goal is
+    /// the deadline the campaign opens with. A campaign with no deadline has
+    /// no goal, and the briefing says so.
+    #[must_use]
+    pub fn first_goal(&self) -> String {
+        let state = self.sim.state();
+        for programme in state.programmes.values() {
+            let Some(objective) = programme.primary_objective() else {
+                continue;
+            };
+            let Some(due) = objective.commitment.committed else {
+                continue;
+            };
+            return format!(
+                "reach orbit before {}. The state has promised the public that you will.",
+                self.date(due)
+            );
+        }
+        "keep the agency alive, and learn what it can do.".to_owned()
+    }
+
+    /// Whether the opening briefing is on screen.
+    #[must_use]
+    pub const fn briefing(&self) -> bool {
+        self.briefing
     }
 
     /// The hint line, and the key hints.

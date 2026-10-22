@@ -20,7 +20,7 @@ fn press(code: KeyCode) -> KeyEvent {
 }
 
 fn app() -> App {
-    App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"))
+    App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"))
 }
 
 /// The whole interface, as text.
@@ -77,8 +77,8 @@ fn the_information_view_is_the_manual_restricted_to_the_screen() {
 
     let text = rendered(&mut app);
     assert!(
-        text.contains("Due soon") && text.contains("Finance"),
-        "the dashboard's own panels must be explained, and they were not"
+        text.contains("Due soon") && text.contains("Standing") && text.contains("Budget"),
+        "the dashboard's own panels must be explained, and they were not:\n{text}"
     );
     assert!(
         !text.contains("Attrition"),

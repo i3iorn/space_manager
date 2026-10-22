@@ -130,6 +130,11 @@ fn set_objective(
         commitment,
         progress: domain::research::Progress::empty(balance::OBJECTIVE_POINTS_TARGET),
         met: None,
+        // **The primary objective of a programme that is about reaching
+        // somewhere is finished by reaching it**, and not by the programme's
+        // staff grinding through enough points.
+        completion: programme_completion(context, programme, kind),
+        milestone_reached: false,
         remainders: domain::scale::Remainders::new(),
     };
 
@@ -245,10 +250,11 @@ pub fn resolve(context: &mut MonthContext<'_>, commitment: domain::ids::Commitme
         return;
     }
 
-    let met = objective.progress.is_complete();
+    let met = objective.is_complete();
     objective.met = Some(met);
     let audience = objective.commitment.audience;
-    let description = objective.description.clone();
+    let kind = objective.kind;
+    let title = programme.title.clone();
 
     let outcome = deadlines::outcome(audience, met);
     apply_approval(context.state, outcome.approval);
@@ -262,22 +268,33 @@ pub fn resolve(context: &mut MonthContext<'_>, commitment: domain::ids::Commitme
             .unwrap_or(context.state.treasury.balance);
     }
 
+    // **A missed primary objective fails the programme.**
+    //
+    // **A programme the player has lost is a programme with an aftermath**, and
+    // the aftermath starts with the programme being marked as failed. Without
+    // this, a missed deadline is a number that goes down and nothing else, and
+    // the player has no way of knowing that the work is over.
+    if kind == ObjectiveKind::Primary && !met {
+        if let Some(programme) = context.state.programmes.get_mut(&programme_id) {
+            programme.status = domain::programme::ProgrammeStatus::Failed;
+        }
+    }
+
     context.programme_lines.push(
-        domain::report::ReportLine::new(format!("{description}: {}", outcome.message))
+        domain::report::ReportLine::new(format!("{title}: {}", outcome.message))
             .with_severity(outcome.severity),
     );
     context.events.push(
         domain::chronicle::ChronicleEntry::new(
             context.state.next_chronicle_id(),
             context.month,
-            Category::Political,
-            format!("{description}: {}", outcome.message),
+            domain::chronicle::Category::Political,
+            format!("{title}: {}", outcome.message),
             outcome.severity,
         )
         .about(SubjectRef::Programme(programme_id)),
     );
 }
-
 /// Applies a change to the state's approval.
 ///
 /// **The approval is clamped to the scale**, because a hundred and ten
@@ -299,6 +316,21 @@ fn apply_goodwill(state: &mut CampaignState, change: i16) {
         state.political.goodwill.granted(change)
     };
 }
+/// What finishes a new objective in a programme.
+fn programme_completion(
+    context: &MonthContext<'_>,
+    programme: domain::ids::ProgrammeId,
+    kind: ObjectiveKind,
+) -> domain::programme::ObjectiveCompletion {
+    context
+        .state
+        .programmes
+        .get(&programme)
+        .map_or(domain::programme::ObjectiveCompletion::Staff, |programme| {
+            programme.completion_for(kind)
+        })
+}
+
 /// Finds the programme and objective a commitment belongs to.
 fn find_objective(
     state: &CampaignState,

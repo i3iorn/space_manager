@@ -200,17 +200,21 @@ pub fn facility_goodwill(scale: domain::facility::BuildScale) -> i16 {
     }
 }
 
-/// The cost of a research project each Instant.
-pub const RESEARCH_COST_PER_HEAD: i64 = 12_000;
+/// The cost of a research project each Instant, per head.
+///
+/// **Research is expensive, and it is the main thing the money goes on.** A
+/// researcher on a project costs their salary and this on top of it, so a
+/// research-heavy agency runs a deficit - which is the point.
+pub const RESEARCH_COST_PER_HEAD: i64 = 1_200;
 
 /// The fixed overhead of a research project each Instant.
-pub const RESEARCH_OVERHEAD: i64 = 6_000;
+pub const RESEARCH_OVERHEAD: i64 = 3_000;
 
 /// The cost of a test campaign each Instant, per head.
-pub const TEST_COST_PER_HEAD: i64 = 7_000;
+pub const TEST_COST_PER_HEAD: i64 = 600;
 
 /// The fixed overhead of a test campaign each Instant.
-pub const TEST_OVERHEAD: i64 = 5_000;
+pub const TEST_OVERHEAD: i64 = 2_500;
 
 /// What a research project costs each Instant.
 #[must_use]
@@ -458,7 +462,7 @@ pub const DESIGN_LEAD_TIME_DAYS: u64 = 3;
 ///
 /// **A vehicle takes real time**, and the time is its cost: a cheap sounding
 /// rocket is built in a month and an orbital launcher takes a year.
-pub const VEHICLE_BUILD_MONTHS_PER_MILLION: i64 = 3;
+pub const VEHICLE_BUILD_MONTHS_PER_MILLION: i64 = 20;
 
 /// The approval a successful launch earns.
 pub const APPROVAL_LAUNCH_SUCCEEDS: i16 = 5 * PERCENT_UNITS as i16;
@@ -471,7 +475,36 @@ pub const APPROVAL_LAUNCH_FAILS: i16 = -12 * PERCENT_UNITS as i16;
 
 /// How likely a launch is to work, in basis points, before the vehicle's
 /// reliability is taken into account.
-pub const MISSION_BASE_PROBABILITY_BP: u32 = 9_000;
+///
+/// **A perfectly reliable vehicle still fails sometimes**, because a campaign
+/// in which nothing ever goes wrong is not a campaign.
+pub const MISSION_BASE_PROBABILITY_BP: u32 = 9_500;
+
+/// The share of a failure that is a partial failure, in basis points.
+///
+/// **Partial failure is the common branch.** Two failures in three are a
+/// degraded mission that comes home with some of its data; one in three is a
+/// total loss, and the vehicle is written off.
+pub const MISSION_PARTIAL_SHARE_BP: u32 = 6_667;
+
+/// How many points of failure risk a completed test campaign takes out.
+///
+/// **The testing is what makes the difference.** A capability that has been
+/// tested is a safer capability, and the risk it has taken out comes off the
+/// top of the launch's chances.
+pub const TEST_RISK_REDUCTION: i16 = 15;
+
+/// The most failure risk a capability's testing can take out.
+pub const TEST_RISK_CAP: i16 = 40;
+
+/// The delta-v a vehicle needs to reach an orbit.
+///
+/// **A rocket that cannot leave the atmosphere is a sounding rocket**, whatever
+/// the agency calls it, and the engine has to agree with the interface about
+/// that. The number is above the minimum an orbital launcher's propulsion
+/// slider allows, so reaching orbit is a decision the player makes with the
+/// sliders and not a thing that happens by default.
+pub const ORBIT_DELTA_V_REQUIREMENT: i64 = 300;
 
 /// The goodwill a design costs.
 ///
@@ -577,6 +610,53 @@ pub const COURSES: [&str; 4] = [
     "Life-support systems",
     "Public speaking",
 ];
+
+// ---- The balance harness ----
+//
+// **These are the shapes of the reference policies**, and they live here
+// because they are balance numbers like every other: a balance change is made
+// in this file, measured with the harness, and documented in `docs/BALANCE.md`.
+
+/// How many people the cautious policy puts on a research project.
+pub const HARNESS_CAUTIOUS_PROJECT_TEAM: usize = 4;
+
+/// How many people the cautious policy puts on the programme.
+pub const HARNESS_CAUTIOUS_PROGRAMME_TEAM: usize = 3;
+
+/// How many staff the cautious policy employs.
+pub const HARNESS_CAUTIOUS_MAX_STAFF: usize = 14;
+
+/// How many people the fast policy puts on a research project.
+pub const HARNESS_FAST_PROJECT_TEAM: usize = 4;
+
+/// How many people the fast policy puts on the programme.
+pub const HARNESS_FAST_PROGRAMME_TEAM: usize = 2;
+
+/// How many staff the fast policy employs.
+pub const HARNESS_FAST_MAX_STAFF: usize = 12;
+
+/// How many people the science-first policy puts on a research project.
+pub const HARNESS_SCIENCE_PROJECT_TEAM: usize = 4;
+
+/// How many people the science-first policy puts on the programme.
+pub const HARNESS_SCIENCE_PROGRAMME_TEAM: usize = 3;
+
+/// How many staff the science-first policy employs.
+pub const HARNESS_SCIENCE_MAX_STAFF: usize = 18;
+
+/// The runway a reference policy insists on before it hires anybody.
+///
+/// **A reference player does not hire into a hole.** The agency is funded in
+/// proportion to its headcount, so a hire is a bet that the bigger agency
+/// will be worth more than it costs.
+pub const HARNESS_MINIMUM_RUNWAY_MONTHS: u32 = 6;
+
+/// The fatigue at which a reference policy puts somebody on light duties.
+pub const HARNESS_TIRED_FATIGUE: u8 = 55;
+
+/// The fatigue below which a reference policy puts somebody back on a full
+/// load.
+pub const HARNESS_FRESH_FATIGUE: u32 = 20;
 
 /// The saturation constant of the modifier curve.
 ///

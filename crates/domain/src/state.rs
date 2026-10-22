@@ -22,7 +22,7 @@ use crate::person::Person;
 use crate::political::PoliticalState;
 use crate::programme::Programme;
 use crate::public::PublicState;
-use crate::research::{CapabilityId, ResearchProject, TestCampaign};
+use crate::research::{CapabilityId, DisciplineId, ResearchProject, TestCampaign};
 use crate::time::Calendar;
 use crate::vehicle::Vehicle;
 
@@ -89,6 +89,12 @@ pub struct CampaignState {
     /// saved with a hire in flight must restore that hire, or the campaign
     /// silently changes.
     pub pending_orders: BTreeMap<OrderId, Order>,
+    /// The agency's standing instruction, if it has one.
+    ///
+    /// **A policy is a standing instruction and not a one-off.** The shift
+    /// policy is the one the game has: it is the tool for an agency of three
+    /// hundred people, and it is the answer to a team that is burning out.
+    pub shift_policy: Option<crate::person::Policy>,
     /// How many random event checks have been drawn.
     ///
     /// **This is the bucket the event stream is keyed on.** The index is a
@@ -99,8 +105,13 @@ pub struct CampaignState {
     pub event_checks: u64,
     /// The campaign's history. Append-only.
     pub chronicle: Vec<ChronicleEntry>,
-    /// How much knowledge the agency holds, per discipline-derived capability.
-    pub knowledge: BTreeMap<CapabilityId, u32>,
+    /// How much knowledge the agency holds, per discipline.
+    ///
+    /// **A discipline's knowledge is one number**, and the capabilities in it
+    /// are thresholds on it. That is what makes the overlapping thresholds
+    /// meaningful: three propulsion projects are three projects' worth of
+    /// propulsion knowledge, and both propulsion capabilities read it.
+    pub knowledge: BTreeMap<DisciplineId, u32>,
     /// The capabilities the agency has unlocked.
     pub unlocked: BTreeSet<CapabilityId>,
 
@@ -135,6 +146,7 @@ impl CampaignState {
             vehicles: BTreeMap::new(),
             missions: BTreeMap::new(),
             pending_orders: BTreeMap::new(),
+            shift_policy: None,
             event_checks: 0,
             chronicle: Vec::new(),
             knowledge: BTreeMap::new(),
@@ -185,9 +197,13 @@ impl CampaignState {
     }
 
     /// Allocates the next chronicle entry identifier.
+    ///
+    /// **The identifier comes from the counter and not from the length of the
+    /// chronicle.** Several entries are written in one batch — a phase's worth
+    /// of them, held back until the month's working copy is committed — and a
+    /// length-based identifier hands every one of them the same number.
     pub fn next_chronicle_id(&mut self) -> ChronicleId {
-        let id = self.chronicle.len() as u64;
-        ChronicleId(id)
+        self.id_counters.next_chronicle()
     }
 }
 

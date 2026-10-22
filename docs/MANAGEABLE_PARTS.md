@@ -346,7 +346,16 @@ a distinct pay band, and a distinct failure mode.
 | Identity | Name, origin, species, homeworld, age, family ties |
 | Career | Rank, grade, years of service, education, certifications |
 | Attributes | A small set — Technical, Creative, Leadership, Physical, Diplomatic — plus role-specific specialisms (propulsion, structures, avionics, life support, geology, medicine…) |
-| Traits | 1-3 personality hooks: *frail but brilliant*, *won't accept a bad plan*, *needs the credit*, *loyal to the old regime* |
+| Traits | 1-3 personality hooks: *frail but brilliant*, *won't accept a bad plan*, *needs the credit*, *loyal to the old regime* |
+
+**The traits are built [D].** Fourteen of them, and each one lands on the factor
+it describes: a team player raises the support factor, a perfectionist raises the
+tools factor, a restless mind raises creativity and costs morale. Everybody has
+two or three, and they are drawn deterministically so a campaign is the same
+campaign every time. **A trait is worth a few points and not a career** — the
+eight factors run from -100 to +100 — and most of them are a trade, because the
+interesting decision for the player is not who is strongest (the attributes say
+that) but who is pleasant to work beside on a three-year project.
 | State | Morale, loyalty, stress/fatigue, health, fame, confidence, burnout |
 | Relationships | Mentor, rivals, friends, spouse/partner, faction clique, political sponsor |
 | Assignment | Division, programme, project, or "unassigned" (a cost, not a neutral state) |
@@ -389,6 +398,34 @@ player must be able to make a hundred of them.
 The per-person control is the surgical tool, and it scales because it is one
 keystroke on a screen the player is already looking at. The bulk answer — a shift
 policy for the whole agency — is on the roadmap as S1-48.
+
+**The shift policy [D]:** the agency has one standing instruction about shifts, and
+it says two things — **who it covers** and **what they work**.
+
+- **With no threshold, everybody works the shift.** "The agency is on half shifts
+  over the winter."
+- **With a threshold, only the tired are moved.** "Anybody over 60% fatigue goes to
+  half shifts." The people who are fresher than the threshold keep their own shift.
+
+**The threshold makes it a thermostat.** An eased-off person recovers, comes back up
+to the threshold, and is eased off again, and the cycle is slow. The point is that the
+agency never has anybody work themselves to pieces, and the player never has to watch
+eighty fatigue bars to know whether it is doing that.
+
+**A person the manager has moved individually is moved off the policy**, and the staff
+screen says so — a person on a light shift because the policy eased them off is a
+different thing from a person the manager put on light duties, and the player has to
+be able to tell them apart. **The player can also put somebody back on the policy**,
+which is how they say "she works flat out until she is tired, and then she eases off".
+
+**The policy is an order, and it lands after a week of bureaucracy.** It costs five
+goodwill, because a standing instruction about how the whole agency works is a public
+act. The per-person shift stays free and immediate: a player must be able to make a
+hundred of them.
+
+**Why it is standing and not a bulk write.** A bulk write would have to be repeated,
+and the "tired ones" version would only ever catch the tired ones *at that moment*.
+A standing instruction keeps working as people tire.
 
 ### 5.2.2 Finding people [D]
 

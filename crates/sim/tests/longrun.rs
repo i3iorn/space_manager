@@ -34,7 +34,7 @@ fn a_long_campaign_with_orders_does_not_panic() {
             },
             2 => OrderKind::SetShift {
                 person: domain::ids::PersonId(0),
-                shift: 110,
+                shift: Some(110),
             },
             3 => OrderKind::Promote {
                 person: domain::ids::PersonId(0),

@@ -24,7 +24,8 @@ fn press(code: KeyCode) -> KeyEvent {
 
 /// A campaign that has been run forward far enough to have a history.
 fn busy() -> App {
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     // **An order, so that the campaign has a decision in it and the branch
     // points have somewhere to be.**
     let person = *app
@@ -36,7 +37,7 @@ fn busy() -> App {
         .expect("there is a person");
     app.issue(OrderKind::SetShift {
         person,
-        shift: (110 * domain::scale::PERCENT_UNITS as u16),
+        shift: Some(110 * domain::scale::PERCENT_UNITS as u16),
     });
     app.advance(Duration::from_days(400));
     // **The month report is a modal**, and it takes the first key.
@@ -45,6 +46,28 @@ fn busy() -> App {
     // chronicle is the record of what happened, and a dismissal is worth
     // recording.
     app.issue(OrderKind::Fire { person });
+    app.advance(Duration::from_days(40));
+    app.on_key(press(KeyCode::Char('x')));
+    // **A second objective**, so that the programme screen's list has
+    // something to move through.
+    let programme = *app
+        .sim()
+        .state()
+        .programmes
+        .keys()
+        .next()
+        .expect("there is a programme");
+    app.issue(OrderKind::SetObjective {
+        programme,
+        description: "Bring a capsule home.".to_owned(),
+        commitment: domain::programme::Commitment::new(
+            domain::ids::CommitmentId(0),
+            Some(domain::time::Instant::from_months(20)),
+            Some(domain::time::Instant::from_months(30)),
+            domain::programme::DeadlineAudience::Political,
+        ),
+        kind: domain::programme::ObjectiveKind::Secondary,
+    });
     app.advance(Duration::from_days(40));
     app.on_key(press(KeyCode::Char('x')));
     app
@@ -70,7 +93,8 @@ fn the_report_is_drawn_when_it_is_up() {
     // **The report modal.** It is a prompt, it waits until it is read, and it
     // has to be *drawn* — a modal that sets a flag and renders nothing is a
     // modal the player cannot read.
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     app.advance(Duration::from_days(400));
     assert!(app.report().is_some(), "the month has reported");
 
@@ -191,16 +215,38 @@ fn the_programme_screen_shows_the_slack_meter() {
 fn every_screen_with_a_selection_moves_it() {
     // **The selection is the player's position on a screen**, and every screen
     // with one has to move it.
+    //
+    // **The test is about the selection and not about the screen changing**,
+    // because a screen's text changes for other reasons — the tutorial hint
+    // being dismissed, a month report closing — and a test that passes for
+    // the wrong reason is a test that is not testing anything.
     for screen in [Screen::Staff, Screen::Programme, Screen::Branches] {
         let mut app = busy();
         app.on_key(press(KeyCode::Char(
             char::from_digit(u32::from(screen.key()), 10).expect("a digit"),
         )));
-        let before = rendered(&mut app);
+        let before = app.selected();
         app.on_key(press(KeyCode::Down));
-        let after = rendered(&mut app);
+        let after = app.selected();
         assert_ne!(before, after, "the {screen:?} screen moves its selection");
     }
+}
+
+#[test]
+fn the_selection_stops_at_the_end_of_the_list() {
+    // **A list the player can walk off the end of is a list that loses the
+    // focus**, and the focus is how the player says which person they mean.
+    let mut app = busy();
+    app.on_key(press(KeyCode::Char('2')));
+    let people = ui::screens::staff::rows(&app).len();
+    for _ in 0..people + 5 {
+        app.on_key(press(KeyCode::Down));
+    }
+    assert_eq!(
+        app.selected(),
+        people - 1,
+        "and the selection is still on a row that is there"
+    );
 }
 
 #[test]

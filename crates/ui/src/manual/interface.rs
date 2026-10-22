@@ -24,7 +24,7 @@ pub const TOPICS: &[Topic] = &[
          problem is.\n\n\
          **2. Put somebody on something.** Press `o` and assign a scientist to a \
          research project. An unassigned person is a salary and nothing else, and the \
-         project's cost of 12,000 a head is only worth paying when somebody is \
+         project's cost of 1,200 a head is only worth paying when somebody is \
          contributing.\n\n\
          **3. Start the project.** It takes a week or two to land, and then it runs at \
          the rate its team can sustain. **A project with a full team of four takes six \
@@ -99,6 +99,12 @@ pub const TOPICS: &[Topic] = &[
          `o` opens the order palette. The player picks a kind of order, fills in its \
          parameters, and the palette shows what it will cost, how long it will take, and \
          what it will do to goodwill - before anything is committed.\n\n\
+         **The arrows are the same everywhere: up and down navigate, and left and right \
+         change the value.** The parameters of an order are one per line, and a form is \
+         read downwards, so the up and down arrows move from one parameter to the next. \
+         The left and right arrows change the value of the chosen one. On the list of \
+         orders there is no value to change, so the up and down arrows move the \
+         highlight and the left and right arrows do nothing.\n\n\
          **The cost is charged when the order lands, not when it is issued**, and the order \
          is validated twice: once when it is issued, and again when it lands, because the \
          world may have moved underneath it. An order that cannot be accepted is refused \

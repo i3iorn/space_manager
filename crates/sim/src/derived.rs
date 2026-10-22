@@ -53,6 +53,26 @@ pub fn person_performance(
     team_size: usize,
     lead_present: bool,
 ) -> PerformanceResult {
+    let tools = tools_modifier(state);
+    person_performance_with_tools(tools, person, task, team_size, lead_present)
+}
+
+/// The performance of a person, with the tools factor already computed.
+///
+/// **The tools factor is the only part of the model that reads the whole
+/// state**, and it is the same for everybody: it is the agency's facilities and
+/// how many people are working in them. **Computing it once and passing it in
+/// is the difference between a linear campaign and a quadratic one** — at three
+/// hundred people it was ten seconds a five-year campaign, and now it is a
+/// fraction of that.
+#[must_use]
+pub fn person_performance_with_tools(
+    tools: Modifier,
+    person: &Person,
+    task: TaskKind,
+    team_size: usize,
+    lead_present: bool,
+) -> PerformanceResult {
     let attribute = match task {
         TaskKind::Research => person.attributes.creative,
         TaskKind::Engineering => person.attributes.technical,
@@ -66,19 +86,73 @@ pub fn person_performance(
     });
     let has_any = required.is_some_and(|needed| person.specialisms.contains(&needed));
 
-    let input = PerformanceInput {
+    let mut input = PerformanceInput {
         skill: balance::skill_modifier(attribute),
         role_fit: balance::role_fit_modifier(matches, has_any),
         morale: balance::morale_modifier(person.state.morale),
         support: balance::support_modifier(team_size, lead_present),
-        tools: tools_modifier(state),
+        tools,
         fatigue: balance::fatigue_modifier(person.state.fatigue),
         creativity: balance::creativity_modifier(person.attributes.creative),
         health: balance::health_modifier(person.state.health),
     };
+    // **And the person's traits.**
+    //
+    // A trait is a small permanent difference in how somebody works, and it
+    // lands on the factor it describes. **This is the whole of the trait
+    // system**: the traits are data, the data is applied here, and everything
+    // else in the performance model is untouched.
+    apply_traits(&mut input, &person.traits);
 
     performance::compute(&input)
 }
+
+/// The person's traits, added to their modifiers.
+fn apply_traits(input: &mut PerformanceInput, traits: &[domain::person::TraitId]) {
+    for id in traits {
+        let Some(definition) = domain::person::trait_def(*id) else {
+            continue;
+        };
+        for modifier in &definition.modifiers {
+            input.add(*modifier);
+        }
+    }
+}
+
+/// The shift a person actually works.
+///
+/// **The policy decides, and the individual decides better.** A person who has
+/// been moved off the agency policy works their own shift; a person the policy
+/// covers works the policy's shift; and a person the policy does not cover
+/// works a full load.
+///
+/// **This is the whole of the policy, and it is a pure function of the state**,
+/// so the campaign is still deterministic and still replayable.
+#[must_use]
+pub fn effective_shift(state: &CampaignState, person: &domain::person::Person) -> u16 {
+    if let Some(shift) = person.state.shift_override() {
+        return shift;
+    }
+    let Some(domain::person::Policy::Shift { shift, only_over }) = state.shift_policy else {
+        return FULL_SHIFT;
+    };
+    match only_over {
+        // **The thermostat.** The people who are fresher than the threshold keep
+        // their own shift, and the people who are tireder than it are eased
+        // off.
+        Some(threshold) if person.state.fatigue_percent() < u32::from(threshold) => FULL_SHIFT,
+        _ => shift,
+    }
+}
+
+/// The shift a person actually works, as a whole percentage.
+#[must_use]
+pub fn effective_shift_percent(state: &CampaignState, person: &domain::person::Person) -> u32 {
+    domain::scale::units_to_percent(u32::from(effective_shift(state, person)))
+}
+
+/// A full load, as a scaled percentage.
+const FULL_SHIFT: u16 = 100 * domain::scale::PERCENT_UNITS as u16;
 
 /// The tools factor, with the industrial capacity taken into account.
 ///
@@ -246,11 +320,10 @@ pub fn programme_rate(state: &CampaignState, programme: domain::ids::ProgrammeId
     if total <= 0 {
         return 0;
     }
-    // **The points a month, at the target of six hundred points.** The same
+    // **The points a month, at the rate the simulation applies.** The same
     // arithmetic the rate applies, so the projection and the progress cannot
     // disagree.
-    let target = i64::from(crate::balance::OBJECTIVE_POINTS_TARGET);
-    total * target / 100_000
+    total * i64::from(domain::scale::PERCENT_UNITS) / 100
 }
 
 /// When an objective will be finished, at the current rate.
@@ -284,6 +357,36 @@ pub fn objective_projection(
     // **The distance is measured from *now***, because a projection that
     // counted the time already spent would be a projection of the past.
     Some(now.saturating_add(domain::time::Duration::from_months(months)))
+}
+/// What the state allocates, by source.
+///
+/// **The allocation scales with the number of people the agency employs, with
+/// a floor for a young agency, and is then multiplied by the state's political
+/// standing.**
+///
+/// It is here and not in the finance phase because the interface shows it: the
+/// player wants to know where the money comes from, and the answer has to be
+/// the same answer the simulation gives.
+#[must_use]
+pub fn monthly_income(
+    state: &CampaignState,
+) -> Vec<(domain::finance::IncomeSource, domain::money::Money)> {
+    let headcount = i64::try_from(state.people.len()).unwrap_or(i64::MAX);
+    let base = (balance::APPROPRIATION_PER_HEAD * headcount).max(balance::APPROPRIATION_FLOOR);
+
+    // **The approval is a scaled integer, and the multiplier wants whole
+    // points.** The scale is 256 units to the percent, so a hundred points of
+    // approval is 25,600 units — and multiplying the units by the political
+    // scale made the allocation twenty-six times what the design says it
+    // should be. **A scaled quantity compared against an unscaled threshold is
+    // always wrong**, and this one was wrong in the agency's favour.
+    let approval =
+        i64::from(state.political.approval.value) / i64::from(domain::scale::PERCENT_UNITS);
+    let multiplier = 10_000 + approval * balance::APPROPRIATION_POLITICAL_SCALE_BP;
+    let amount =
+        domain::money::Money::from_credits(base).multiply_fraction(multiplier.max(0), 10_000);
+
+    vec![(domain::finance::IncomeSource::CivilisationBase, amount)]
 }
 /// What the agency spends in a month, by line.
 ///
@@ -388,13 +491,46 @@ pub fn needs_attention(state: &CampaignState, now: domain::time::Instant) -> usi
 }
 
 /// What the agency spends in a month, in total.
+///
+/// **This is the same figure as the sum of the detail**, and it is computed
+/// without building the detail: the detail is a list of named lines, and
+/// building it allocates, and the burn rate is read on every hour of the
+/// campaign.
 #[must_use]
 pub fn monthly_outgoings(state: &CampaignState) -> Money {
-    monthly_outgoings_detail(state)
+    let payroll: Money = state
+        .people
+        .values()
+        .map(|person| person.contract.salary)
+        .fold(Money::ZERO, |total, salary| {
+            total.checked_add(salary).unwrap_or(total)
+        });
+    let research: Money = state
+        .projects
+        .values()
+        .map(|project| balance::research_cost_per_month(project.team.len()))
+        .fold(Money::ZERO, |total, cost| {
+            total.checked_add(cost).unwrap_or(total)
+        });
+    let testing: Money = state
+        .test_campaigns
+        .values()
+        .map(|campaign| balance::test_cost_per_month(campaign.team.len()))
+        .fold(Money::ZERO, |total, cost| {
+            total.checked_add(cost).unwrap_or(total)
+        });
+    let upkeep: Money = state
+        .facilities
+        .values()
+        .filter(|facility| facility.is_operational())
+        .map(|facility| facility.upkeep)
+        .fold(Money::ZERO, |total, cost| {
+            total.checked_add(cost).unwrap_or(total)
+        });
+    let total = Money::ZERO;
+    [payroll, research, testing, upkeep]
         .into_iter()
-        .fold(Money::ZERO, |total, (_, amount)| {
-            total.checked_add(amount).unwrap_or(total)
-        })
+        .fold(total, |sum, amount| sum.checked_add(amount).unwrap_or(sum))
 }
 
 /// The modifier for a person working on a team of a given size.
@@ -452,18 +588,58 @@ pub fn assignment_description(state: &CampaignState, assignment: &Assignment) ->
     }
 }
 
+/// Where a person is, as a noun phrase.
+///
+/// **This is the sibling of `assignment_description`, and it is the one a
+/// sentence needs when the person is a thing rather than an actor**: "already on
+/// the Orbital Launch programme", "off the Combustion stability project".
+#[must_use]
+pub fn assignment_place(state: &CampaignState, assignment: &Assignment) -> String {
+    match assignment {
+        Assignment::Unassigned => "not on anything".to_owned(),
+        Assignment::Division(_) => "a division".to_owned(),
+        Assignment::Programme { programme, .. } => state.programmes.get(programme).map_or_else(
+            || "a programme that has closed".to_owned(),
+            |programme| format!("the {} programme", programme.title),
+        ),
+        Assignment::Project { project } => state.projects.get(project).map_or_else(
+            || "a project that has closed".to_owned(),
+            |project| format!("the {} project", project.title),
+        ),
+        Assignment::Facility { facility } => state.facilities.get(facility).map_or_else(
+            || "a facility that has been demolished".to_owned(),
+            |facility| format!("the {}", facility.name),
+        ),
+        Assignment::TestCampaign { campaign } => state.test_campaigns.get(campaign).map_or_else(
+            || "a test campaign that has closed".to_owned(),
+            |campaign| {
+                format!(
+                    "the {} test campaign",
+                    domain::research::capability_name(campaign.target_capability)
+                )
+            },
+        ),
+    }
+}
+
 /// The single most binding constraint across a team, if any.
 ///
 /// The team is held back by its *weakest* member, which is what makes a single
 /// exhausted engineer a management problem rather than a rounding error.
+///
+/// **The tools factor is computed once and passed in.** The panel is drawn on
+/// every frame, and computing the factor per person made it quadratic in the
+/// size of the agency — at three hundred people that is ninety thousand
+/// operations a frame, sixty times a second.
 #[must_use]
 pub fn team_binding_factor(state: &CampaignState, task: TaskKind) -> Option<ModifierKind> {
+    let tools = tools_modifier(state);
     let mut worst: Option<(ModifierKind, u32)> = None;
     for person in state.people.values() {
         if !person.is_assigned() {
             continue;
         }
-        let result = person_performance(state, person, task, 1, false);
+        let result = person_performance_with_tools(tools, person, task, 1, false);
         for modifier in &result.modifiers {
             let cost = modifier.cost_bp();
             if cost < crate::performance::BINDING_FACTOR_THRESHOLD_BP {

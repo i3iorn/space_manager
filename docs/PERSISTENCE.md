@@ -1,4 +1,8 @@
-# PERSISTENCE.md
+
+
+**The log is the campaign, and everything else is a cache of it.** That is the
+property the whole feature rests on, and it is what makes a campaign verifiable,
+forkable, and portable to another machine.# PERSISTENCE.md
 
 > **Saving, loading, replaying, and branching.**
 >
@@ -146,9 +150,19 @@ scheduled kinds. It must be automatic; a hand-maintained version constant will b
 forgotten the first time an event changes, and the failure mode is silent.
 
 **The save format version is separate, and it is about the file.** The format was 1
-for the original layout, 2 when the scheduler joined the save, and 3 when the orders
-in flight joined the state. A file of an older format is **refused** rather than
-half-read.
+for the original layout, 2 when the scheduler joined the save, 3 when the orders
+in flight joined the state, and it is now 10. **A file of any other format is
+refused** rather than half-read — the older ones included, because they are the
+dangerous ones.
+
+**The last two of those are the interesting ones.** A change to the *shape* of
+the state needs a new format, because the old bytes would otherwise be read as
+the new thing and mean something else. The knowledge is the case in point: the
+per-capability and per-discipline maps have the same JSON, so a file of the
+old format would have loaded without complaint and every threshold would have
+been checked against the wrong number. **The shift is the other one:** it went
+from a number to an override of the agency's policy, and a shift change went
+from a number to "this person, or nobody".
 
 ---
 
@@ -158,8 +172,9 @@ Loading validates in this order, and stops at the first failure with an actionab
 message:
 
 1. **The file parses as JSON.** Otherwise: *"This is not a save file."*
-2. **`format` is supported.** Otherwise: *"This save was made by a newer version of the
-   game."*
+2. **`format` is the current one.** Otherwise: *"This save was made by a newer version of the
+   game"*, or — for an older file — *"It was made by an older build of the game, and it cannot
+   be read safely."*
 3. **`sim_version` matches.** Warn if it does not, but continue.
 4. **The state validates against the invariant catalogue.** Otherwise: *"This save is
    damaged (…, …)"* and offer to load the last autosave.
@@ -227,13 +242,17 @@ usable, and it is the one a player will use to test a strategy before committing
 ### Replay
 
 ```
-replay(seed, log, sim_version) -> Result<CampaignState, SimError>
+Sim::replay(&self) -> Result<Sim, SimError>
 ```
 
 The replay re-issues the logged orders at their logged **simulated issue instants** and
 reproduces the campaign exactly. **The golden tests in `TESTING.md` rely on exactly this
-property.**
+property**, and so does the fork: the branch is the same campaign up to the fork
+point, and every difference after it is a difference the player caused.
 
+**The log is the campaign, and everything else is a cache of it.** That is the
+property the whole feature rests on, and it is what makes a campaign verifiable,
+forkable, and portable to another machine.
 ### Branching
 
 ```

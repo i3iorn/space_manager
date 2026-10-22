@@ -213,6 +213,28 @@ pub const TOPICS: &[Topic] = &[
          at a premium or put somebody through a six-month course."
     ),
     topic!(
+        "agency.traits",
+        Section::Agency,
+        "Traits",
+        "The small permanent difference that makes two people with the same numbers different.",
+        "A trait is a small, permanent difference in how somebody works. It is not a stat \
+         and not a job: it is the reason two people with the same attributes are not the \
+         same person to have on a team.\n\n\
+         Everybody has two or three, and each one lands on the factor it describes - a team \
+         player raises the support factor, a perfectionist raises the tools factor, a \
+         restless mind raises creativity and costs morale. **A trait is worth a few points, \
+         not a career**: the eight factors run from -100 to +100, and a trait is a nudge, not \
+         a destiny.\n\n\
+         **Most of them are a trade.** A person who is clever is usually also a person who \
+         is difficult, and a person who is careful is usually a person who is slow. The \
+         interesting decision for the player is not who is strongest - the attributes say \
+         that - but who is pleasant to work beside on a three-year project, and that is \
+         what the traits are for.\n\n\
+         **The one exception is fatigue**, which is the only factor that can only hurt. A \
+         trait cannot make a tired person fresh, and one that adds to the fatigue penalty \
+         makes a person who is already exhausted worse."
+    ),
+    topic!(
         "agency.roles",
         Section::Agency,
         "The five roles",

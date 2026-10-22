@@ -22,12 +22,22 @@ pub fn render(frame: &mut Frame, area: Rect) {
 
     frame.render_widget(Clear, popup);
     let body = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title("Keys"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Keys - any key to close "),
+        )
         .wrap(Wrap { trim: false });
     frame.render_widget(body, popup);
 }
 
 /// The keymap's lines.
+///
+/// **The keymap has to fit in a twenty-four-row terminal**, because a keymap
+/// whose last entry is cut off is a keymap the player cannot read — and a
+/// terminal is exactly as tall as the player made it. So the entries that are
+/// the same idea are on one line, and the "any key to close" is in the title
+/// rather than on a line of its own.
 fn content() -> Vec<Line<'static>> {
     let mut lines = Vec::new();
 
@@ -38,13 +48,10 @@ fn content() -> Vec<Line<'static>> {
         ]));
     }
 
-    lines.push(Line::raw(""));
     lines.push(Line::styled(
         "  The clock runs the campaign. Space stops it.",
         theme::Meaning::Informational.style(),
     ));
-    lines.push(Line::raw(""));
-    lines.push(Line::styled("  [ any key to close ]", theme::historical()));
 
     lines
 }
@@ -53,23 +60,23 @@ fn content() -> Vec<Line<'static>> {
 const ENTRIES: &[(&str, &str)] = &[
     ("1 .. 7", "jump to a screen"),
     ("Tab", "next screen"),
-    ("↑ ↓", "move the selection"),
-    ("← →", "the shift, on the staff screen"),
-    ("← →", "move between the fields of a form"),
+    ("↑ ↓", "move the selection, or the field in a form"),
+    ("← →", "the shift, or the value in a form"),
     ("Enter", "confirm, or fork on the branches screen"),
     ("Esc", "back, or close what is open"),
     ("o", "open the order palette"),
+    ("n", "another tip, on the dashboard"),
     ("Space", "pause and resume the clock"),
     ("+ / -", "one dilation step faster or slower"),
     ("Ctrl+1 .. 9", "set the dilation directly"),
-    ("F1", "this keymap, on every layout"),
-    ("? or shift+/", "this keymap, if your layout has them"),
+    ("F1 or ?", "this keymap, on every layout"),
     ("F2", "the manual - everything the game explains"),
     ("I", "the manual, for this screen only"),
+    ("F3", "save the campaign"),
+    ("F4", "load the campaign"),
     ("/", "filter the list"),
     ("s", "change how the list is sorted"),
-    ("y", "the chronicle's year"),
-    ("c", "the chronicle's category"),
+    ("y or c", "the chronicle's year and category"),
     ("q", "quit, after a check"),
 ];
 

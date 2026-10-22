@@ -63,6 +63,23 @@ impl ProgrammeCategory {
             Self::ResourceExtraction => "Resource extraction",
         }
     }
+
+    /// The destination a programme of this kind is for, if it has one.
+    ///
+    /// **A programme is finished by reaching the place it is for.** An orbital
+    /// programme is finished by a successful launch to orbit, and a lunar one
+    /// has to get to orbit first, because that is the way.
+    ///
+    /// The categories with no destination — watching the homeworld, selling
+    /// launches, staying somewhere — are finished by the agency's own work.
+    #[must_use]
+    pub const fn milestone_destination(self) -> Option<&'static str> {
+        match self {
+            Self::Orbital | Self::Lunar => Some("Low orbit"),
+            Self::DeepSpace => Some("Long duration"),
+            _ => None,
+        }
+    }
 }
 
 /// How far along a programme is.
@@ -268,6 +285,45 @@ impl ObjectiveKind {
     }
 }
 
+/// What finishes an objective.
+///
+/// **An objective is finished by the thing it names, and not by the clock.**
+/// A programme's primary objective is finished by reaching the place the
+/// programme is for; everything else is finished by the programme's staff
+/// doing the work.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum ObjectiveCompletion {
+    /// Finished when the programme's staff have done enough of the work.
+    Staff,
+    /// Finished by a successful mission to a destination.
+    Destination(String),
+}
+
+impl ObjectiveCompletion {
+    /// The completion, as the player reads it.
+    #[must_use]
+    pub fn label(&self) -> String {
+        match self {
+            Self::Staff => "The programme's staff".to_owned(),
+            Self::Destination(destination) => format!("A successful launch to {destination}"),
+        }
+    }
+
+    /// The completion, as a phrase that finishes a sentence.
+    ///
+    /// **"Reach orbit" is not a clue on its own.** A player who is told the
+    /// agency must reach orbit, and not told that a launch is what reaches
+    /// orbit, has to guess. This is the phrase the screen puts after "done
+    /// by", and it is lower case because it is a phrase and not a sentence.
+    #[must_use]
+    pub fn phrase(&self) -> String {
+        match self {
+            Self::Staff => "the programme's staff getting on with it".to_owned(),
+            Self::Destination(destination) => format!("a successful launch to {destination}"),
+        }
+    }
+}
+
 /// Something a programme is trying to achieve.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Objective {
@@ -283,6 +339,20 @@ pub struct Objective {
     pub progress: Progress,
     /// Whether it has been met.
     pub met: Option<bool>,
+    /// What finishes it.
+    ///
+    /// **The primary objective of a programme is finished by reaching the
+    /// place the programme is for**, and not by the programme's staff grinding
+    /// through enough points. The staff's work still advances the progress —
+    /// that is how the player sees the work going on — but the objective is
+    /// only complete when the thing it names has happened.
+    pub completion: ObjectiveCompletion,
+    /// Whether the milestone has been reached.
+    ///
+    /// **This is set by a successful mission**, and it is part of the state
+    /// because the objective is part of the state and the two must never come
+    /// apart.
+    pub milestone_reached: bool,
     /// The fractional remainder carried between rate applications.
     ///
     /// **The objective's progress is a rate, and a rate that is truncated
@@ -307,7 +377,26 @@ impl Objective {
             commitment,
             progress: Progress::empty(100),
             met: None,
+            completion: ObjectiveCompletion::Staff,
+            milestone_reached: false,
             remainders: crate::scale::Remainders::new(),
+        }
+    }
+
+    /// Whether the objective is finished.
+    ///
+    /// **A destination objective is finished by the mission and not by the
+    /// clock.** The programme's staff advance the progress, and the progress
+    /// on its own is not enough: the objective is complete when the progress
+    /// is complete *and* the milestone has been reached.
+    #[must_use]
+    pub fn is_complete(&self) -> bool {
+        if !self.progress.is_complete() {
+            return false;
+        }
+        match self.completion {
+            ObjectiveCompletion::Staff => true,
+            ObjectiveCompletion::Destination(_) => self.milestone_reached,
         }
     }
 }
@@ -390,6 +479,21 @@ impl Programme {
         self.objectives
             .iter()
             .find(|objective| objective.kind == ObjectiveKind::Primary)
+    }
+
+    /// What finishes a new objective in this programme.
+    ///
+    /// **The primary objective of a programme that is about reaching somewhere
+    /// is finished by reaching it.** Every other objective is finished by the
+    /// programme's staff doing the work.
+    #[must_use]
+    pub fn completion_for(&self, kind: ObjectiveKind) -> ObjectiveCompletion {
+        if kind == ObjectiveKind::Primary {
+            if let Some(destination) = self.category.milestone_destination() {
+                return ObjectiveCompletion::Destination(destination.to_owned());
+            }
+        }
+        ObjectiveCompletion::Staff
     }
 }
 

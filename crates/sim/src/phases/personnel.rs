@@ -13,7 +13,7 @@
 use domain::chronicle::{Category, Severity, SubjectRef};
 use domain::ids::PersonId;
 use domain::order::OrderKind;
-use domain::person::Assignment;
+use domain::person::{Assignment, Role};
 
 use crate::balance;
 use crate::error::SimError;
@@ -87,19 +87,26 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
         }
         OrderKind::SetShift { person, shift } => {
             if let Some(target) = context.state.people.get_mut(person) {
-                let shift = domain::person::PersonState::clamped_shift(*shift);
+                // **The individual decides better than the policy**, so a shift
+                // given to one person is an override of the agency policy, and
+                // `None` puts them back on it.
+                let shift = shift.map(domain::person::PersonState::clamped_shift);
                 target.state.shift = shift;
                 let name = target.name.clone();
-                let percent = target.state.shift_percent();
-                context.personnel_lines.push(
-                    domain::report::ReportLine::new(format!(
-                        "{name} is now on a {percent}% shift."
-                    ))
-                    .with_severity(Severity::Info),
-                );
+                let message = match shift {
+                    Some(shift) => {
+                        let percent = domain::scale::units_to_percent(u32::from(shift));
+                        format!("{name} is now on a {percent}% shift.")
+                    }
+                    None => format!("{name} is back on the agency's shift policy."),
+                };
+                context
+                    .personnel_lines
+                    .push(domain::report::ReportLine::new(message).with_severity(Severity::Info));
             }
             true
         }
+        OrderKind::SetPolicy { policy } => apply_policy(context, *policy),
         OrderKind::Promote { person } => {
             if let Some(target) = context.state.people.get_mut(person) {
                 target.career.grade += 1;
@@ -118,23 +125,7 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
             true
         }
         OrderKind::Hire { role, salary } => {
-            let id = context.state.id_counters.next_person();
-            // **The bucket is a stable identifier, not an instant.** The month
-            // index survives a change to the length of a month, and the new
-            // person's id is unique — so two hires in the same month draw from
-            // different positions in the stream, and the same hire always draws
-            // the same recruit.
-            let mut rng = context
-                .rng
-                .stream(Domain::Personnel, context.month.months(), id.0);
-            let person = crate::recruitment::recruit(&mut rng, id, *role, *salary);
-            let name = person.name.clone();
-            let label = role.label();
-            context.state.people.insert(id, person);
-            context.personnel_lines.push(
-                domain::report::ReportLine::new(format!("{name} joined as a {label}."))
-                    .with_severity(Severity::Minor),
-            );
+            hire(context, *role, *salary);
             true
         }
         OrderKind::Train { person, course } => {
@@ -153,16 +144,30 @@ pub fn apply_one(context: &mut MonthContext<'_>, order: &OrderKind) -> bool {
     }
 }
 
-/// Puts a person on something, and takes them off whatever they were on.
+/// Sets the agency's standing shift instruction.
 ///
-/// **Being assigned to something and being on its team are different things**,
-/// and a person who is on two teams is working for both. This is the one place
-/// that keeps the two in step: the assignment, the project team, the test
-/// campaign team, and the facility's staff list all move together.
-///
-/// It is the same bug that the Slice 1 work found — a project ran on one
-/// person while three more were marked busy — and it is why this lives here
-/// rather than being open-coded in each handler.
+/// **A policy is a standing instruction.** It stays in force until the player
+/// changes it, and it is the tool for an agency of three hundred people: one
+/// order moves everybody, where the per-person shift is the surgical tool.
+fn apply_policy(context: &mut MonthContext<'_>, policy: domain::person::Policy) -> bool {
+    context.state.shift_policy = Some(policy);
+    let message = match policy {
+        domain::person::Policy::Shift { shift, only_over } => {
+            let percent = domain::scale::units_to_percent(u32::from(shift));
+            match only_over {
+                Some(threshold) => format!(
+                    "The agency is easing off anybody over {threshold}% fatigue, to {percent}%."
+                ),
+                None => format!("The agency is working {percent}% shifts."),
+            }
+        }
+    };
+    context
+        .programme_lines
+        .push(domain::report::ReportLine::new(message).with_severity(Severity::Info));
+    true
+}
+
 /// Dismisses somebody.
 ///
 /// **The dismissal removes the person.** It used to be accepted, charged, and
@@ -177,21 +182,7 @@ fn fire(context: &mut MonthContext<'_>, person: PersonId) {
 
     // **The team lists are kept in step**, because a project with a member who
     // is not there is a project that counts a person it does not have.
-    for project in context.state.projects.values_mut() {
-        project.team.retain(|member| member != &person);
-    }
-    for campaign in context.state.test_campaigns.values_mut() {
-        campaign.team.retain(|member| member != &person);
-    }
-    for facility in context.state.facilities.values_mut() {
-        facility.staff.retain(|member| member != &person);
-    }
-    for programme in context.state.programmes.values_mut() {
-        programme.staffing.retain(|member| member != &person);
-        if programme.lead == Some(person) {
-            programme.lead = None;
-        }
-    }
+    remove_from_every_team(context, person);
 
     context.personnel_lines.push(
         domain::report::ReportLine::new(format!("{name} has left the agency."))
@@ -208,6 +199,44 @@ fn fire(context: &mut MonthContext<'_>, person: PersonId) {
         .about(SubjectRef::Person(person)),
     );
 }
+/// Hires somebody.
+///
+/// **The bucket is a stable identifier, not an instant.** The month index
+/// survives a change to the length of a month, and the new person's id is
+/// unique — so two hires in the same month draw from different positions in
+/// the stream, and the same hire always draws the same recruit.
+///
+/// **A recruit must not have the same name as somebody already employed.**
+/// The interface shows names and not identifiers, and two people with the
+/// same name are two people the player cannot tell apart on the staff screen.
+/// The draw is repeated until the name is new, which is deterministic because
+/// the stream is.
+fn hire(context: &mut MonthContext<'_>, role: Role, salary: domain::money::Money) {
+    let id = context.state.id_counters.next_person();
+    let mut rng = context
+        .rng
+        .stream(Domain::Personnel, context.month.months(), id.0);
+    // **A recruit must not have the same family name as somebody already
+    // employed.** The interface shows names and not identifiers, and two
+    // people called Okonjo are two people the player cannot tell apart on the
+    // staff screen. The generator draws until the name is new, which is
+    // deterministic because the stream is.
+    let taken: Vec<String> = context
+        .state
+        .people
+        .values()
+        .filter_map(|employed| employed.name.split_whitespace().last().map(str::to_owned))
+        .collect();
+    let person = crate::recruitment::recruit(&mut rng, id, role, salary, &taken);
+    let name = person.name.clone();
+    let label = role.label();
+    context.state.people.insert(id, person);
+    context.personnel_lines.push(
+        domain::report::ReportLine::new(format!("{name} joined as a {label}."))
+            .with_severity(Severity::Minor),
+    );
+}
+
 /// Puts a person on something, and keeps the team lists in step.
 ///
 /// **This is the one place an assignment happens**, because being assigned and
@@ -248,7 +277,30 @@ fn add_to_team(context: &mut MonthContext<'_>, person: PersonId, to: &Assignment
                 }
             }
         }
-        Assignment::Unassigned | Assignment::Division(_) | Assignment::Programme { .. } => {}
+        Assignment::Programme { programme, role } => {
+            // **A programme without its staff is a programme that does not
+            // advance.** The objective's rate is the summed performance of the
+            // programme's staffing list, so a person assigned to a programme who
+            // never joins its staffing leaves the objective standing still —
+            // and the player has no way of seeing why.
+            //
+            // This is the same bug the Slice 1 work found on projects, and the
+            // same rule fixes it: **being assigned and being on the team are
+            // different things, and the two must never come apart.**
+            if let Some(target) = context.state.programmes.get_mut(programme) {
+                if !target.staffing.contains(&person) {
+                    target.staffing.push(person);
+                }
+                // **The lead is the person who runs the programme**, and the
+                // lead's presence is part of every team member's support
+                // modifier. An assignment that names the role is the way the
+                // player says who runs it.
+                if *role == domain::person::ProgrammeRole::Lead {
+                    target.lead = Some(person);
+                }
+            }
+        }
+        Assignment::Unassigned | Assignment::Division(_) => {}
     }
 }
 
@@ -263,6 +315,24 @@ fn remove_from_team(context: &mut MonthContext<'_>, person: PersonId) {
     for facility in context.state.facilities.values_mut() {
         facility.staff.retain(|member| *member != person);
     }
+    // **And off the programme they were on.** The programme's staffing list is
+    // a team list like any other, and a person who has moved on is not on it.
+    for programme in context.state.programmes.values_mut() {
+        programme.staffing.retain(|member| *member != person);
+        if programme.lead == Some(person) {
+            programme.lead = None;
+        }
+    }
+}
+
+/// Takes a person off every team they were on, because they have left.
+///
+/// **A person who has left the agency is on nobody's team.** Leaving them on
+/// a project or a programme's staffing list is an orphaned reference, and an
+/// orphaned reference is a campaign that has quietly lost somebody the
+/// simulation still thinks it has.
+pub fn remove_from_every_team(context: &mut MonthContext<'_>, person: PersonId) {
+    remove_from_team(context, person);
 }
 
 /// Checks whether anyone leaves.
@@ -305,6 +375,11 @@ fn check_attrition(context: &mut MonthContext<'_>) {
         }
         if let Some(person) = context.state.people.remove(&id) {
             let name = person.name.clone();
+            // **They leave every team they were on.** A person who has resigned
+            // is on nobody's project and nobody's programme, and a team list
+            // that still names them is an orphaned reference — the simulation
+            // would be counting a person the agency does not have.
+            remove_from_every_team(context, id);
             let reason = if at_the_limit {
                 "They had been at their limit for a long time."
             } else {
@@ -521,6 +596,119 @@ mod tests {
                 .is_empty()
         );
         assert!(context.state.facilities[&FacilityId(0)].staff.is_empty());
+    }
+
+    /// A state with a programme on it.
+    fn setup_with_a_programme() -> (CampaignState, Rng) {
+        let (mut state, rng) = setup();
+        let programme = domain::ids::ProgrammeId(0);
+        state.programmes.insert(
+            programme,
+            domain::programme::Programme::new(
+                programme,
+                "Orbital Launch".to_owned(),
+                domain::programme::ProgrammeCategory::Orbital,
+            ),
+        );
+        (state, rng)
+    }
+
+    #[test]
+    fn assigning_someone_to_a_programme_puts_them_on_its_staffing() {
+        // **A programme without its staff is a programme that does not
+        // advance.** The objective's rate is the summed performance of the
+        // staffing list, so a person assigned to a programme who never joins
+        // it leaves the objective standing still — and the player has no way
+        // of seeing why.
+        let (mut state, rng) = setup_with_a_programme();
+        let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+        crate::phases::personnel::assign(
+            &mut context,
+            PersonId(0),
+            Assignment::Programme {
+                programme: domain::ids::ProgrammeId(0),
+                role: domain::person::ProgrammeRole::Member,
+            },
+        );
+        assert_eq!(
+            context.state.programmes[&domain::ids::ProgrammeId(0)].staffing,
+            vec![PersonId(0)],
+            "the person joins the programme's staffing"
+        );
+    }
+
+    #[test]
+    fn assigning_someone_as_the_lead_makes_them_the_lead() {
+        let (mut state, rng) = setup_with_a_programme();
+        let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+        crate::phases::personnel::assign(
+            &mut context,
+            PersonId(0),
+            Assignment::Programme {
+                programme: domain::ids::ProgrammeId(0),
+                role: domain::person::ProgrammeRole::Lead,
+            },
+        );
+        assert_eq!(
+            context.state.programmes[&domain::ids::ProgrammeId(0)].lead,
+            Some(PersonId(0)),
+            "the programme has a lead"
+        );
+    }
+
+    #[test]
+    fn moving_off_a_programme_takes_the_person_off_its_staffing() {
+        let (mut state, rng) = setup_with_a_programme();
+        {
+            let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+            crate::phases::personnel::assign(
+                &mut context,
+                PersonId(0),
+                Assignment::Programme {
+                    programme: domain::ids::ProgrammeId(0),
+                    role: domain::person::ProgrammeRole::Lead,
+                },
+            );
+        }
+        let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+        crate::phases::personnel::assign(&mut context, PersonId(0), Assignment::Unassigned);
+        assert!(
+            context.state.programmes[&domain::ids::ProgrammeId(0)]
+                .staffing
+                .is_empty(),
+            "the person is off the programme"
+        );
+        assert_eq!(
+            context.state.programmes[&domain::ids::ProgrammeId(0)].lead,
+            None,
+            "and the programme has no lead"
+        );
+    }
+
+    #[test]
+    fn a_person_who_leaves_is_on_nobody_s_team() {
+        // **A person who has left the agency is on nobody's team.** A team
+        // list that still names them is an orphaned reference, and the
+        // simulation would be counting a person the agency does not have.
+        let (mut state, rng) = setup_with_things();
+        {
+            let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+            crate::phases::personnel::assign(
+                &mut context,
+                PersonId(0),
+                Assignment::Facility {
+                    facility: FacilityId(0),
+                },
+            );
+        }
+        let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
+        crate::phases::personnel::remove_from_every_team(&mut context, PersonId(0));
+        assert!(context.state.facilities[&FacilityId(0)].staff.is_empty());
+        assert!(
+            context.state.projects[&ResearchProjectId(0)]
+                .team
+                .is_empty()
+        );
     }
 
     #[test]

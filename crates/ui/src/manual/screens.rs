@@ -50,11 +50,13 @@ pub const TOPICS: &[Topic] = &[
         "Where do I stand right now. The screen the player starts on and returns to.",
         "The dashboard answers three questions: what is the agency doing, what is it \
          about to have to answer for, and how long does the money last.\n\n\
-         It is deliberately the least detailed screen in the game. Everything on it is a \
-         pointer to somewhere else, and the panels are explained below.\n\n\
+         It has two halves. **The left half is the agenda** - the headline, what is \
+         due, and the agency's standing - and **the right half is the money**, because \
+         a player who cannot see where the money is going is a player who is guessing. \
+         The panels are explained below.\n\n\
          **It is also the screen the player returns to after every month report**, because \
          the report says what happened and the dashboard says what to do about it. The \
-         due-soon panel is the agenda; the finance panel is the clock; and the count of \
+         due-soon panel is the agenda; the budget panel is the ledger; and the count of \
          things needing attention is the one number to look at when the player has a \
          minute."
     ),
@@ -69,6 +71,25 @@ pub const TOPICS: &[Topic] = &[
          It is a small thing, and it is worth more than it looks: a player who has been \
          running an agency for twenty years of game time should be able to glance at the \
          top of the screen and know what it is for."
+    ),
+    topic!(
+        "screen.dashboard.banner",
+        Section::Screens,
+        "What now",
+        "One piece of advice, read from the campaign as it stands.",
+        "The banner at the top of the dashboard says **what the agency should be doing \
+         next**, and it works that out from the campaign as it stands.\n\n\
+         **It is not a tutorial.** A tutorial says \"now do this\", and a player who came \
+         here to do something else has to ignore it. The banner says nothing of the sort: \
+         it looks at what is wrong or missing right now, and it says what to do about it in \
+         one sentence. A player whose agency needs a rocket is told about the rocket; a \
+         player whose agency is running out of money is told about the money.\n\n\
+         **The advice is read from the campaign every time the screen is drawn, and it is \
+         never stored.** So the banner always matches the campaign the player is actually \
+         in, and doing the thing the banner said changes what it says next.\n\n\
+         **Press `n` for another.** There is usually more than one thing worth saying, and \
+         the player can browse them. The advice that is showing is the most urgent one, and \
+         the rest are behind it."
     ),
     topic!(
         "screen.dashboard.due",
@@ -90,22 +111,48 @@ pub const TOPICS: &[Topic] = &[
          only look at one line of this panel should look at the one with no slack."
     ),
     topic!(
-        "screen.dashboard.finance",
+        "screen.dashboard.standing",
         Section::Screens,
-        "Finance",
-        "Income, outgoings, net, runway, and the crisis stage.",
-        "The finance panel carries the five numbers that decide whether the campaign \
-         continues: the income, the outgoings, the net of the two, the runway in months, \
-         and the crisis stage.\n\n\
-         The **net** is a daily figure, not a monthly one. The **runway** is how many \
-         months the money lasts at the current rate, and it is the number to watch - it is \
-         a function of the net rather than of the balance, so a large balance with a bad \
-         net has a short runway. The **crisis stage** is where the agency is on the road \
-         from solvent to collapse.\n\n\
-         **The income is not a fixed sum.** It is 1,900 a head with a floor of 12,000, \
-         scaled by the state's approval by up to half in either direction. So the panel is \
-         really showing two things: what the agency is costing, and how much the state \
-         currently thinks it is worth."
+        "Standing",
+        "The public's opinion, the agency's prestige, and how close the crisis is.",
+        "The standing panel carries the three things the budget does not: what the \
+         public thinks of the agency, how much prestige it has built, and how far down \
+         the crisis ladder it is.\n\n\
+         **The public's opinion is here because the world reads it.** The weighting that \
+         decides which events fire looks at the public's opinion, so a number the \
+         player cannot see is a number the player cannot act on. The state's approval \
+         is a different thing, and it is in the top bar.\n\n\
+         **The crisis stage is the road from solvent to collapse.** It only moves \
+         downwards, and the warning appears two months before the austerity, so a \
+         player who reads this panel has time to do something about it."
+    ),
+    topic!(
+        "screen.dashboard.budget",
+        Section::Screens,
+        "Budget",
+        "Where the money comes from, where it goes, and what has already been promised.",
+        "The budget panel is the answer to **where is the money going**, and it is four \
+         things in the order the player needs them.\n\n\
+         **1. The position.** The balance, what comes in, what goes out, the net of \
+         the two, and the runway in months. The net is a monthly figure here; the top \
+         bar carries the daily one, because the game runs in real time and the player \
+         thinks in days.\n\n\
+         **2. Where it goes.** Every outgoing line, with a bar showing its share of the \
+         total. The share is the point: payroll is the largest line and the least \
+         changeable, research and testing are the ones the player chooses, and upkeep \
+         is the price of the buildings. **A number without a share does not answer \
+         the question.**\n\n\
+         **3. Where it comes from.** The income by source. The state allocation is \
+         the only source in the MVP, and it is 1,900 a head with a floor of 12,000, \
+         scaled by the state's approval by up to half in either direction.\n\n\
+         **4. What is committed.** The orders in flight and what they will cost when \
+         they land. **The cost is charged when the order lands, not when it is \
+         given**, so the money is still in the treasury and the commitment is \
+         already a fact.\n\n\
+         The programme budgets are under it: the money set aside for each programme \
+         and how much of it is unspent. **Pledged money is not free money**, and a \
+         programme with nothing left in it is a programme that cannot start \
+         anything."
     ),
     topic!(
         "screen.staff",
@@ -194,6 +241,11 @@ pub const TOPICS: &[Topic] = &[
          what has been promised.\n\n\
          Move the selection to move between programmes, and the objectives underneath show \
          the target, the commitment, and the slack between them.\n\n\
+         **Every objective says how it is done.** An objective that reads \"Reach orbit\" \
+         tells the player nothing on its own, and the line under it - **done by** - names \
+         what finishes it: a successful launch to Low orbit, or the programme's own staff \
+         getting on with it. **The guessing is the whole of the first hour of the game, and \
+         it does not have to happen.**\n\n\
          **This is the screen where the political layer is visible.** The audience of an \
          objective decides what missing it costs - nothing for the agency's own dates, \
          eighteen points of approval for the state's - and the screen shows the audience \
@@ -265,10 +317,10 @@ pub const TOPICS: &[Topic] = &[
          Vehicles are where the campaign stops being a spreadsheet and starts being a \
          thing that can be lost. Everything before this screen is preparation; this is \
          where the preparation is tested against the universe.\n\n\
-         **The risk is the vehicle's reliability multiplied by ninety per cent, less the \
+         **The risk is the vehicle's reliability multiplied by ninety-five per cent, less the \
          points of testing the agency has done on that destination.** So a vehicle of \
-         ninety reliability goes out at eighty-one per cent, and five points of testing \
-         takes it to seventy-six. Every point of testing is five months and 140,000 of \
+         ninety reliability goes out at eighty-five per cent, and fifteen points of testing \
+         takes it to seventy. Every point of testing is five months and 19,000 of \
          somebody else's time, and it is the only way to move that number."
     ),
     topic!(
@@ -330,7 +382,8 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.dashboard",
             "screen.dashboard.headline",
             "screen.dashboard.due",
-            "screen.dashboard.finance",
+            "screen.dashboard.standing",
+            "screen.dashboard.budget",
             "screen.flow",
             "interface.firsthour",
             "interface.quitting",
@@ -345,6 +398,8 @@ pub fn topics_for(screen: Screen) -> &'static [&'static str] {
             "screen.staff.performance",
             "agency.factors",
             "agency.binding",
+            "agency.traits",
+            "agency.specialisms",
             "order.shift",
         ],
         Screen::Programme => &[

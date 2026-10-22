@@ -53,7 +53,7 @@ fn with_a_developed_capability() -> (Sim, domain::research::CapabilityId) {
     for person in &people {
         let _ = sim.issue(OrderKind::SetShift {
             person: *person,
-            shift: 50 * domain::scale::PERCENT_UNITS as u16,
+            shift: Some(50 * domain::scale::PERCENT_UNITS as u16),
         });
     }
     advance(&mut sim, 72);

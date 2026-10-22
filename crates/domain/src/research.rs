@@ -130,11 +130,17 @@ pub const CAPABILITIES: [Capability; 5] = [
         discipline: DisciplineId(0),
         threshold: 240,
         unlocks: &[
-            Unlock::Destination {
-                destination: "Orbital",
-            },
+            // **Low orbit is what orbital propulsion buys.** The higher orbit
+            // needs the harder capability, and the two are different things.
             Unlock::Destination {
                 destination: "Low orbit",
+            },
+            // **Orbital propulsion is what makes a launch vehicle.** A rocket
+            // that cannot leave the atmosphere is a sounding rocket, whatever
+            // it is called, and the slider is pinned at zero until the agency
+            // has done the work.
+            Unlock::VehicleSlider {
+                slider: "propulsion",
             },
         ],
     },
@@ -143,20 +149,99 @@ pub const CAPABILITIES: [Capability; 5] = [
         name: "Closed-loop life support",
         discipline: DisciplineId(2),
         threshold: 380,
-        unlocks: &[Unlock::Destination {
-            destination: "Long duration",
-        }],
+        unlocks: &[
+            Unlock::Destination {
+                destination: "Long duration",
+            },
+            // **Life support is what keeps a crew alive**, and the slider is
+            // pinned at zero until the agency has closed the loop.
+            Unlock::VehicleSlider {
+                slider: "life support",
+            },
+        ],
     },
     Capability {
         id: CapabilityId(4),
         name: "Orbital launch",
         discipline: DisciplineId(0),
         threshold: 420,
-        unlocks: &[Unlock::Destination {
-            destination: "Orbital",
-        }],
+        unlocks: &[
+            Unlock::Destination {
+                destination: "Orbital",
+            },
+            // **A launch vehicle needs guidance.** The avionics slider is
+            // pinned at zero until the agency can put a rocket into orbit on
+            // purpose, and a rocket without guidance is a projectile.
+            Unlock::VehicleSlider { slider: "avionics" },
+        ],
     },
 ];
+
+/// The capabilities a discipline holds.
+///
+/// **A discipline's knowledge is one number**, and every capability in it is a
+/// threshold on that number. That is what makes the overlapping thresholds
+/// meaningful: a player who has finished three propulsion projects has three
+/// projects' worth of propulsion knowledge, and both propulsion capabilities
+/// read it.
+#[must_use]
+pub fn capabilities_in(discipline: DisciplineId) -> Vec<&'static Capability> {
+    CAPABILITIES
+        .iter()
+        .filter(|capability| capability.discipline == discipline)
+        .collect()
+}
+
+/// The capabilities the agency has always had.
+///
+/// **A capability with a threshold of zero was never *developed*** — the agency
+/// always had it, and it unlocks silently, without a chronicle entry.
+#[must_use]
+pub fn starting_capabilities() -> Vec<CapabilityId> {
+    CAPABILITIES
+        .iter()
+        .filter(|capability| capability.threshold == 0)
+        .map(|capability| capability.id)
+        .collect()
+}
+
+/// Every destination the catalogue knows about.
+///
+/// **The destinations are data**, and the agency can only fly to one it has
+/// unlocked. A destination the catalogue does not know about is a destination
+/// the agency has not earned, and the engine refuses it.
+#[must_use]
+pub fn destinations() -> Vec<&'static str> {
+    let mut found: Vec<&'static str> = Vec::new();
+    for capability in &CAPABILITIES {
+        for unlock in capability.unlocks {
+            if let Unlock::Destination { destination } = unlock {
+                if !found.contains(destination) {
+                    found.push(destination);
+                }
+            }
+        }
+    }
+    found
+}
+
+/// Whether the agency may fly to a destination.
+///
+/// **A destination names a capability, and a capability has to be unlocked.**
+/// The catalogue is the authority on which destinations exist at all, and the
+/// agency's own research is the authority on which of them it has earned.
+#[must_use]
+pub fn is_destination_unlocked(
+    destination: &str,
+    unlocked: &std::collections::BTreeSet<CapabilityId>,
+) -> bool {
+    let Some(capability) = capability_for_destination(destination) else {
+        // **A destination the catalogue does not know about is not a
+        // destination.** The agency cannot invent one.
+        return false;
+    };
+    unlocked.contains(&capability)
+}
 
 /// The capability a destination names.
 ///

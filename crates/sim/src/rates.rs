@@ -72,9 +72,15 @@ const PROGRESS_PER_BASIS_POINT: i64 = 100 * PER_MONTH;
 /// happen at a scheduled instant. The caller turns each one into a scheduled
 /// item.
 pub fn apply_quantum(state: &mut CampaignState) -> Finished {
+    // **The tools factor is the same for everybody**, and it is the only part of
+    // the performance model that reads the whole state. **It is computed once
+    // here and passed down**, because computing it per person per project made
+    // the integration quadratic in the size of the agency: at three hundred
+    // people a five-year campaign took ten seconds, and the budget is one.
+    let tools = derived::tools_modifier(state);
     apply_people(state);
-    let mut completed = apply_projects(state);
-    apply_programmes(state);
+    let mut completed = apply_projects(state, tools);
+    apply_programmes(state, tools);
     apply_facilities(state);
     let vehicles = apply_vehicles(state);
     apply_construction(state);
@@ -86,7 +92,6 @@ pub fn apply_quantum(state: &mut CampaignState) -> Finished {
         vehicles,
     }
 }
-
 /// Integrates the continuous quantities over a whole number of quanta.
 ///
 /// The elapsed must be a whole number of quanta: the grid is what makes the
@@ -116,6 +121,13 @@ fn apply_people(state: &mut CampaignState) {
             derived::assignment_satisfaction(state, person)
         };
 
+        // **And so is the shift**, because the policy decides it and the
+        // policy lives in the state.
+        let shift = {
+            let person = &state.people[&id];
+            derived::effective_shift(state, person)
+        };
+
         let person = state.people.get_mut(&id).expect("the person exists");
 
         // **Fatigue.** An unfit person is on light duty, whatever their
@@ -133,7 +145,7 @@ fn apply_people(state: &mut CampaignState) {
                     -i64::from(balance::FATIGUE_RECOVERY)
                         + i64::from(balance::FATIGUE_UNASSIGNED) / 2
                 }
-                _ => crate::shift::fatigue_rate(person.state.shift),
+                _ => crate::shift::fatigue_rate(shift),
             }
         };
         let delta = accrue(
@@ -156,7 +168,7 @@ fn apply_people(state: &mut CampaignState) {
         // **And working past a full load is miserable.** The shift is not
         // only a throttle on the body.
         let target = (i32::from(morale_target(satisfaction >= 0, &goodwill))
-            - crate::shift::overtime_morale_penalty(person.state.shift) as i32)
+            - crate::shift::overtime_morale_penalty(shift) as i32)
             .clamp(-25_600, 25_600) as i16;
         let morale_rate = match person.state.morale.cmp(&target) {
             std::cmp::Ordering::Less => i64::from(balance::MORALE_RECOVERY),
@@ -211,7 +223,10 @@ pub fn morale_target(satisfied: bool, goodwill: &Goodwill) -> i16 {
 /// Each team member contributes their own performance as points, and the
 /// points are **summed**. A project is finished by the team, so adding people
 /// to it makes it finish sooner — the target never moves.
-fn apply_projects(state: &mut CampaignState) -> Vec<ResearchProjectId> {
+fn apply_projects(
+    state: &mut CampaignState,
+    tools: domain::performance::Modifier,
+) -> Vec<ResearchProjectId> {
     let mut completed = Vec::new();
     let ids: Vec<ResearchProjectId> = state.projects.keys().copied().collect();
 
@@ -223,6 +238,11 @@ fn apply_projects(state: &mut CampaignState) -> Vec<ResearchProjectId> {
 
         let total_basis_points: u64 = {
             let project = &state.projects[&id];
+            // **The lead is present if the lead is on the team.** A player who
+            // moves the principal investigator somewhere else leaves the team
+            // without its lead, and the support modifier says so - which is
+            // what the binding-factor panel is for.
+            let lead_present = project.team.contains(&project.principal_investigator);
             project
                 .team
                 .iter()
@@ -232,13 +252,14 @@ fn apply_projects(state: &mut CampaignState) -> Vec<ResearchProjectId> {
                     // on light duties contributes less; a person worked past a
                     // full load contributes more, but less than the extra
                     // effort is worth.
-                    let factor = crate::shift::output_factor(person.state.shift);
-                    let effective = derived::person_performance(
-                        state,
+                    let factor =
+                        crate::shift::output_factor(derived::effective_shift(state, person));
+                    let effective = derived::person_performance_with_tools(
+                        tools,
                         person,
                         TaskKind::Research,
                         team_size,
-                        true,
+                        lead_present,
                     )
                     .effective;
                     u64::from(effective).saturating_mul(u64::try_from(factor).unwrap_or(0))
@@ -284,7 +305,7 @@ fn apply_projects(state: &mut CampaignState) -> Vec<ResearchProjectId> {
 /// sustain, and the points are summed the way a project's are. The target
 /// never moves: an objective needs six hundred points, whatever the programme
 /// is and whoever is on it.
-fn apply_programmes(state: &mut CampaignState) {
+fn apply_programmes(state: &mut CampaignState, tools: domain::performance::Modifier) {
     let ids: Vec<domain::ids::ProgrammeId> = state.programmes.keys().copied().collect();
 
     for id in ids {
@@ -304,8 +325,8 @@ fn apply_programmes(state: &mut CampaignState) {
             .filter_map(|member| state.people.get(member))
             .map(|person| {
                 i64::from(
-                    derived::person_performance(
-                        state,
+                    derived::person_performance_with_tools(
+                        tools,
                         person,
                         TaskKind::Management,
                         team_size,
@@ -319,13 +340,14 @@ fn apply_programmes(state: &mut CampaignState) {
             continue;
         }
 
-        let targets: Vec<u32> = programme
+        // **Whether any objective is still open.** A programme whose objectives
+        // are all met or all complete has nothing to advance, and the check
+        // does not need a list to make it.
+        let has_open_objective = programme
             .objectives
             .iter()
-            .filter(|objective| objective.met.is_none() && !objective.progress.is_complete())
-            .map(|objective| objective.progress.target)
-            .collect();
-        if targets.is_empty() {
+            .any(|objective| objective.met.is_none() && !objective.progress.is_complete());
+        if !has_open_objective {
             continue;
         }
 
@@ -337,10 +359,12 @@ fn apply_programmes(state: &mut CampaignState) {
             // **The points are a rate, and the remainder is carried**, so the
             // objective advances at the same rate however finely the campaign is
             // integrated.
-            let numerator = total
-                .saturating_mul(i64::from(domain::scale::PERCENT_UNITS))
-                .saturating_mul(i64::from(objective.progress.target))
-                / 100_000;
+            // The rate is the *same* rate a research project runs at: the
+            // team's summed performance, in points a month. The earlier code
+            // scaled the rate by the target as well, which made every
+            // objective complete in about a month whatever it was worth - the
+            // target cancelled itself out of the rate.
+            let numerator = total.saturating_mul(i64::from(domain::scale::PERCENT_UNITS));
             let delta = accrue(
                 numerator,
                 PROGRESS_PER_BASIS_POINT,
@@ -403,6 +427,12 @@ pub struct Finished {
 fn apply_vehicles(state: &mut CampaignState) -> Vec<domain::ids::VehicleId> {
     let ids: Vec<domain::ids::VehicleId> = state.vehicles.keys().copied().collect();
     let mut finished = Vec::new();
+    // **The industrial capacity is read once**, not once per vehicle: it is the
+    // same for all of them, and the agency has a hundred vehicles one day.
+    //
+    // **It is read here, after the facilities have been through their decay**,
+    // which is where it was read before.
+    let (capacity, demand) = crate::derived::industrial_capacity(state);
     for id in ids {
         let Some(vehicle) = state.vehicles.get(&id) else {
             continue;
@@ -417,7 +447,6 @@ fn apply_vehicles(state: &mut CampaignState) -> Vec<domain::ids::VehicleId> {
 
         // **The industrial capacity slows the build**, the same way it slows
         // the work: an over-stretched agency builds everything more slowly.
-        let (capacity, demand) = crate::derived::industrial_capacity(state);
         let penalty = if capacity > 0 && demand > capacity {
             ((demand - capacity) * 5_000 / capacity).min(9_000)
         } else {
@@ -504,6 +533,21 @@ fn apply_treasury(state: &mut CampaignState) {
     if outgoings.is_zero() {
         return;
     }
+
+    // **The treasury's outgoings describe the burn rate right now.** The
+    // interface shows them - the budget panel breaks the month down line by
+    // line - and a figure that is a month out of date is a figure the player
+    // cannot act on. **The detail is only rebuilt when the total changes**,
+    // because the rates run every hour for the whole campaign.
+    if outgoings != state.treasury.total_outgoings() {
+        state.treasury.outgoings = derived::monthly_outgoings_detail(state);
+    }
+    // And the income, which arrives monthly but is the same every month, so
+    // the panel has something to show before the first one lands.
+    if state.treasury.income.is_empty() {
+        state.treasury.income = derived::monthly_income(state);
+    }
+
     let numerator = -outgoings.minor();
     let delta = accrue(
         numerator,
@@ -514,7 +558,6 @@ fn apply_treasury(state: &mut CampaignState) {
     let balance = state.treasury.balance.minor().saturating_add(delta);
     state.treasury.balance = Money::from_minor(balance);
 }
-
 /// Clamps a signed value into a range.
 fn clamp_units(value: i64, low: i64, high: i64) -> i64 {
     value.clamp(low, high)

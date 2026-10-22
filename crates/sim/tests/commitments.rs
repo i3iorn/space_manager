@@ -129,7 +129,31 @@ fn a_commitment_falls_due_and_is_resolved() {
 fn a_programme_progresses_at_the_rate_of_its_staff() {
     // **An objective is advanced by the programme's staff**, and the points
     // are summed the way a project's are.
+    //
+    // **A programme with nobody on it does not advance**, and that is the
+    // whole of the staffing decision: the player puts somebody on the
+    // programme, and the objective starts moving.
     let mut sim = campaign();
+    let programme_id = sim
+        .state()
+        .programmes
+        .keys()
+        .next()
+        .copied()
+        .expect("a programme");
+
+    // Somebody who is not on the project, put on the programme.
+    sim.issue(OrderKind::Assign {
+        person: domain::ids::PersonId(2),
+        to: domain::person::Assignment::Programme {
+            programme: programme_id,
+            role: domain::person::ProgrammeRole::Member,
+        },
+    })
+    .expect("the order is accepted");
+    sim.advance_to(Instant::from_months(1))
+        .expect("the campaign advances");
+
     let start = sim.state().programmes.values().next().expect("a programme");
     let start_points = start
         .objectives

@@ -15,6 +15,23 @@ use domain::vehicle::{ArchetypeId, Slider, SliderValues};
 use sim::{Scenario, Sim};
 
 fn campaign() -> Sim {
+    // **The agency has developed the technology the vehicle needs.** A slider
+    // the agency has not researched is pinned at zero, and the tests are
+    // about the archetype's band rather than about the capability gate.
+    let mut scenario = Scenario::first_year();
+    for capability in [
+        domain::research::CapabilityId(1),
+        domain::research::CapabilityId(2),
+        domain::research::CapabilityId(3),
+        domain::research::CapabilityId(4),
+    ] {
+        scenario.start_state.unlocked.insert(capability);
+    }
+    Sim::new(&scenario).expect("the campaign starts")
+}
+
+/// A campaign with nothing developed, for the gate itself.
+fn undeveloped() -> Sim {
     Sim::new(&Scenario::first_year()).expect("the campaign starts")
 }
 
@@ -150,7 +167,7 @@ fn a_change_to_a_vehicle_that_does_not_exist_is_refused() {
 fn a_heat_shield_needs_the_capability() {
     // **The capability gate.** A player cannot buy a heat shield before the
     // agency has developed re-entry, and the design is stored bounded.
-    let mut sim = campaign();
+    let mut sim = undeveloped();
     sim.issue(OrderKind::DesignVehicle {
         archetype: ArchetypeId(2),
         name: "Capsule 1".to_owned(),
@@ -168,6 +185,31 @@ fn a_heat_shield_needs_the_capability() {
     assert_eq!(
         vehicle.sliders.heat_shield, 0,
         "the heat shield is worth nothing without the capability"
+    );
+}
+
+#[test]
+fn a_launch_vehicle_needs_orbital_propulsion() {
+    // **Orbital propulsion is what makes a launch vehicle.** A rocket that
+    // cannot leave the atmosphere is a sounding rocket, whatever it is called.
+    let mut sim = undeveloped();
+    sim.issue(OrderKind::DesignVehicle {
+        archetype: ArchetypeId(1),
+        name: "Orbital Launcher 1".to_owned(),
+        sliders: SliderValues {
+            propulsion: 80,
+            ..SliderValues::zero()
+        },
+    })
+    .expect("the design is accepted");
+    sim.advance_to(Instant::from_days(5))
+        .expect("the campaign advances");
+
+    let state = sim.state();
+    let vehicle = state.vehicles.values().next().expect("a vehicle");
+    assert_eq!(
+        vehicle.sliders.propulsion, 0,
+        "the propulsion is worth nothing without the capability"
     );
 }
 

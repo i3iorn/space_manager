@@ -105,7 +105,46 @@ player thinks in "per day" — and the number is small enough to read at a glanc
 **The dilution is in the top bar, always.** It is the control the player uses most, and
 it must never be something they have to go looking for.
 
-### 2.1 When the game stops [D]
+### 2.1 The opening briefing [D]
+
+**The game opens with the framing and a clear first goal.** It is a modal over
+the dashboard, drawn before anything else, and any key dismisses it.
+
+```
+┌─ The Stellar Expansion Authority ───────────────────────────────────────────┐
+│                                                                             │
+│  Welcome, Director.                                                        │
+│                                                                             │
+│  You have been appointed Director of the Stellar Expansion Authority, the   │
+│  most ambitious organisation in the history of your civilisation.           │
+│                                                                             │
+│  For centuries our people studied the heavens from afar. Today, curiosity  │
+│  ends and exploration begins.                                              │
+│                                                                             │
+│  Your agency has been tasked with leading our species into space.          │
+│                                                                             │
+│  Campaign: First Orbit                                                     │
+│  Your first goal: reach orbit before 2044-03-01. The state has promised    │
+│  the public that you will.                                                 │
+│                                                                             │
+│  Every mission carries risk. A failed launch can destroy years of work; a  │
+│  successful one can unlock new resources for the future.                    │
+│                                                                             │
+│  There is no single path to success. Press any key to begin.                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**The world waits while the player reads it.** The briefing is a modal over
+the dashboard, and the campaign does not advance underneath it — the real time
+is consumed, so there is no backlog when the player begins. It is the same
+rule as the confirmation before quitting, and for the same reason: the game
+changing the subject while the player is reading is the game changing the
+subject.
+
+**The goal is read from the campaign and not written down.** A campaign with a
+political commitment has a deadline and a promise; a campaign without one has
+neither, and the briefing says so.
+### 2.2 When the game stops [D]
 
 **The terminal is always put back, and the game always says why it stopped.**
 
@@ -133,7 +172,7 @@ panic hook for good.
 
 ---
 
-### 2.2 Leaving the game [D]
+### 2.3 Leaving the game [D]
 
 **The game asks before it quits, because the campaign is not saved.**
 
@@ -165,23 +204,26 @@ still consumed, so there is no backlog when the player carries on.
 |---|---|
 | `1` … `7` | Jump to a screen |
 | `Tab` / `Shift-Tab` | Cycle screens |
-| `↑` `↓` | Move the selection, or change the chosen value |
-| `←` `→` | Move between the fields of a form |
+| `↑` `↓` | Move the selection, or move between the fields of a form |
+| `←` `→` | Change the value: the shift on the staff screen, the chosen option in a form |
 | `Enter` | Open the selected thing, confirm an order, or fork at the selected instant |
 | `Esc` | Back, or close what is open |
 | **`Space`** | **Pause and resume the clock** |
 | **`+` / `-`** | **One dilation step faster or slower** |
 | **`Ctrl+1` … `Ctrl+9`** | **Set the dilation directly** |
 | `o` | **Open the order palette** |
+| `n` | **Another tip, on the dashboard** |
 | `f` | Jump to the feed — the live feed, Slice 1-37's successor, not yet |
 | `w` | Jump to "what needs attention" — the live feed, Slice 1-37's successor, not yet |
 | **`F1`** | **The keymap, in the game** |
 | `?` or shift-`/` | The keymap, on layouts that have them |
 | **`F2`** | **The manual — everything the game explains** |
 | **`I`** | **The manual, for this screen only** |
+| **`F3`** | **Save the campaign** |
+| **`F4`** | **Load the campaign — after asking** |
 | `/` | **Filter the list** |
 | `s` | **Change how the list is sorted** |
-| `←` `→` | The shift, on the staff screen; the fields of a form, elsewhere |
+| `←` `→` | The shift, on the staff screen; the chosen option, in a form |
 | `q` | **Quit — after asking** |
 | **`Ctrl+C`** | **Quit, whatever is on the screen** |
 
@@ -284,33 +326,75 @@ the last simulation instant, with rates and projections beside the values.
 ### 4.1 Dashboard (`1`)
 
 The screen that answers "where do I stand right now", and the one the player looks at
-constantly.
+constantly. **It has a banner across the top, and two halves below it: the agenda on
+the left, and the money on the right.**
 
 ```
-┌─ Dashboard ──────────────────────────────────────────────────────────────────┐
-│ HEADLINE   The Orbital Launch is 4 hours from its committed instant.         │
-│                                                                             │
-│ NEEDS ATTENTION                                                           │
-│  ⚠  Orbital Launch — committed in 4h          slack 2d  risk 14%             │
-│  ⚠  Treasury — 4 days of burn remaining                                     │
-│  ○  Vance returns from the test campaign in 3 days                          │
-│  ○  Life Support project — 62% done, 4 months at the current rate           │
-│                                                                             │
-│ IN FLIGHT                                                                  │
-│  ●  Orbital Launcher 2 — ascent, 41 minutes remaining                       │
-│  ●  Propulsion Lab — building, 62% complete, due 2041-08-14                   │
-│                                                                             │
-│ FINANCE   income 4.0k/day   outgoings 4.6k/day   net −0.6k/day   runway 4d  │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─ What now ────────────────────┐
+│  › Reach orbit needs a rocket, │┌─ Headline ──────────────────┐┌─ Budget ───┐
+│    and the agency has not      ││ The science-first authority  ││  balance   │
+│    designed one. Press 5.      │└─────────────────────────────┘│  income    │
+└────────────────────────────────┘┌─ Just happened ─────────────┐│  net       │
+                                 ││ 2044-01-15 ⚳ The mission to  ││            │
+                                 ││ Low orbit succeeded.         ││  Where it  │
+                                 ││ 2043-12-20 » Hire            ││  goes      │
+                                 │└─────────────────────────────┘│            │
+                                 │┌─ Due soon ──────────────────┐│  Where it  │
+                                 ││ ○ Combustion stability — …   ││  comes from│
+                                 ││ ○ Reach orbit. — committed … ││            │
+                                 │└─────────────────────────────┘│            │
+                                 │┌─ Standing ──────────────────┐│  Committed │
+                                 ││ public opinion +0  prestige 0││            │
+                                 │└─────────────────────────────┘└────────────┘
 ```
 
-- **The headline** is one sentence, generated from the most pressing state, and it is
-  the first thing the player reads. It is *the thing that needs deciding*.
-- **Needs attention** is the panel that replaces the old month report. It is sorted by
-  urgency, and every line links to the thing it is about.
-- **In flight** shows the work that is happening right now — the missions climbing, the
-  buildings rising, the projects advancing. At the base rate this is the panel the player watches.
-- **The runway** is the number that turns a spreadsheet into a survival clock.
+- **The banner says what to do next [D].** It is the one piece of the interface that
+  is a *judgement* rather than a readout, and it exists because **a player who does not
+  know what the agency should be doing next has no way to find out except by reading a
+  manual**, and a manual is a place nobody goes when they are stuck.
+  - **It is not a tutorial.** A tutorial says "now do this", and a player who came here
+    to do something else has to ignore it. The banner looks at the campaign as it stands
+    and says what is wrong or missing *right now*: a player whose agency needs a rocket
+    is told about the rocket; a player whose agency is running out of money is told
+    about the money.
+  - **It is read from the campaign every time the screen is drawn, and it is never
+    stored.** So the banner always matches the campaign the player is actually in, and
+    doing the thing it said changes what it says next.
+  - **The most urgent advice is the one that is showing**, and **`n` shows the next
+    one**. There is usually more than one thing worth saying, and the player browses
+    them; the cycle wraps.
+  - **It never names an identifier.** It names people, vehicles and places, because a
+    player can act on a name and cannot act on a number.
+- **The headline** is the agency's own statement of its purpose, and it is the first
+  thing the player reads.
+- **Just happened is the live feed [D].** A feed is not a list: the newest thing is
+  at the top, and it appears the moment it happens, without the player navigating
+  anywhere. **The player's own decisions are in it too**, in a different colour,
+  because a campaign is the world *and* what the player did about it. The chronicle
+  is still the durable record; this is the view of it that moves.
+- **Due soon** is the agenda: the research that is running, the objectives with dates
+  on them, and the promises still outstanding, with the slack on each.
+- **Standing** carries what the budget does not: the public's opinion, the agency's
+  prestige, and how far down the crisis ladder it is.
+- **Budget is the ledger** [D], and it is the panel the player asked for. Four things,
+  in the order the player needs them:
+  1. **The position** - the balance, the income, the outgoings, the net, and the runway.
+  2. **Where it goes** - every outgoing line, with a bar showing its share of the
+     total. **The share is the point:** payroll is the largest line and the least
+     changeable, research and testing are the ones the player chooses, and upkeep is
+     the price of the buildings. A number without a share does not answer the question.
+  3. **Where it comes from** - the income by source.
+  4. **Committed** - the orders in flight and what they will cost when they land. The
+     cost is charged when the order lands, not when it is given, so the money is still
+     in the treasury and the commitment is already a fact.
+
+  The programme budgets are under it: the money set aside for each programme and how
+  much of it is unspent. **Pledged money is not free money.**
+
+**The treasury's figures are live.** The outgoings describe the burn rate *now* and
+not the last month's, because a figure a month out of date is a figure the player
+cannot act on. The top bar's daily net and this panel's monthly figures are the same
+burn, read at two scales.
 
 ### 4.2 Staff (`2`)
 
@@ -335,7 +419,10 @@ constantly.
 **The right panel is the most important thing in the game** (`MVP.md` §6). It has four
 jobs:
 
-1. **State** — morale, fatigue, health, fame, in bars with numbers.
+0. **Traits** — the small permanent differences, by name, next to the
+   specialisms. **They are the reason two people with the same numbers are not
+   the same**, and the player has to be able to see them to believe the
+   difference. The manual has the full list and what each one is worth.1. **State** — morale, fatigue, health, fame, in bars with numbers.
 2. **Performance, decomposed** — the modifier breakdown.
 3. **The binding factor, named in words** — *"Held back by FATIGUE"*.
 4. **The projection** — what the work they are on will take at the current rate.
@@ -373,6 +460,12 @@ waiting for it can see it coming.
 **The arrows move the selected person's shift**, and they stack: the second press is
 on the shift already in flight, not on the one that landed.
 
+**The agency policy can be the reason a person is on a light shift [D].** The detail
+panel reads `50% (policy)` when the standing instruction moved them and `50%` when
+the manager did. **A person on a light shift because the policy eased them off is a
+different thing from a person the manager put on light duties**, and a player
+managing eighty people has to be able to tell them apart.
+
 #### 4.2.2 Filtering and sorting [D]
 
 **Every list is filterable and sortable.** An agency with three hundred people has a
@@ -408,6 +501,7 @@ it is the one number on the screen that gets worse on its own.
 
 ```
 ● Reach orbit.
+     done by   a successful launch to Low orbit
      target    2040-07-01          the agency's own plan, in dim type
      COMMITTED 2041-07-01          what the state was promised, in bold red
      progress 41%   12 months of slack   promised to the state
@@ -417,6 +511,12 @@ it is the one number on the screen that gets worse on its own.
 **The projection is a plan, not a promise.** It is what happens if nothing changes,
 and it is computed from the same rate the simulation applies, so the projection
 and the progress cannot disagree.
+
+**"Reach orbit" is not a clue on its own [D].** A player who is told the agency has
+to reach orbit, and not told that *a launch* is what reaches orbit, has to guess — and
+the guessing is the whole of the first hour. **The domain knows what finishes an
+objective**, so the screen says it: the line under the objective reads `done by`, and
+it names the launch, or the work, that finishes it.
 
 ### 4.3.1 The programme orders [D]
 
@@ -591,6 +691,19 @@ filter is a list the player cannot trust.
 | `c` | The next category, or back to everything |
 | `/` | Type into the text filter |
 
+**The legend is the key to the record [D].** The eight categories the history is
+sorted into, and what each of them means, under the forecast: *technical* is
+equipment, vehicles and failures; *personnel* is the people and who left;
+*discovery* is what the agency found out; *political* is the state and what it
+promised; *financial* is the money and what it cost; *environmental* is the
+weather and the world; *public* is the public and the press; and *external* is
+everything outside the agency. A player who does not know what "Financial"
+means is reading a record they cannot read.
+
+**The live feed is on the dashboard [D].** The chronicle screen is where the
+player goes to *read* the record; the feed is on the screen they are on, and it
+moves without them. A feed the player has to navigate to is a list, and the
+roadmap has been complaining about that since Slice 1.
 **The forecast is the next twelve months and no further.** The player is planning
 *this* year, and a schedule that runs to the end of the campaign is not a plan.
 Each entry carries its risk figure: the slack in a commitment — and a commitment
@@ -647,8 +760,11 @@ player looks back at a decision, forks the campaign at that instant, and watches
 two campaigns play out side by side.
 
 **The fork points are the instants at which the player gave an order** — the
-decisions worth asking "what if I had not?". The selection is the most recent one by
-default, because that is the decision the player is usually thinking about.
+decisions worth asking "what if I had not?". **The selection is the player's
+position on the list**, so the up and down arrows walk the timeline, and the fork
+happens at the decision the player is on. A new decision jumps the selection to
+it, because a decision the player has just made is the one they are thinking
+about.
 
 **The branch is the same campaign up to the fork point** — the same state, the same
 chronicle, the same recruits. The fork replays the order log, so it is exact. If it
@@ -659,6 +775,43 @@ between two campaigns at different instants says nothing.
 
 **The divergence is named, not just shown.** The player wants to know that the
 treasury is sixty thousand apart, not that two numbers are not equal.
+
+### 4.8 There are no pictures, and why [D]
+
+**A terminal is a pixel canvas, if you use the right character — and the ceiling
+is the character cell, not the tooling.** A cell is about twice as tall as it is
+wide, and there are two ways to spend that:
+
+| Technique | Pixels per cell | Colours per cell | What it is |
+|---|---|---|---|
+| **The half-blocks** `▀▄█` | 1 across, 2 down — **two** | **two** | The top half of the cell is the foreground colour and the bottom half is the background |
+| **The braille block** `⠿⣿` | 2 across, 4 down — **eight** | one | The Unicode braille patterns carry a grid of dots in a single character |
+
+**Both give square pixels**, because the cell is twice as tall as it is wide.
+
+**The braille block is the finest a text terminal goes**, and it is what the
+picture converters use. **But the dots have gaps between them**, so a shape drawn
+in braille reads as a dot matrix rather than as a shape: it is the right tool for
+a *photograph*, where the dottiness reads as a gradient, and the wrong one for an
+icon.
+
+**So the finest solid pixel a terminal can draw is a whole cell across** — the
+half-block — and a picture you can read needs many cells. **An icon in the
+corner of a panel is therefore a blob, or it eats the panel's width**: nine
+columns of a sixty-column panel for a shape too coarse to read is a bad trade,
+and the panel is where the money is.
+
+**Both were tried and both looked bad**, so the interface has no pictures. **The
+flare is in the panels, the glyphs and the colours** — the theme's colour
+vocabulary, the `✓ ✗ ○ ⚠` glyphs that carry a meaning without colour, the
+borders, the spacing, and the hierarchy of the numbers. Those work on every
+terminal, on every platform, and they are readable by a player who cannot tell
+green from red.
+
+**Beyond braille there is only real graphics** — the sixel and kitty protocols,
+which put actual pixels on the screen. **Crossterm does not do them**, they
+work in a minority of terminals, and a game that needs a special terminal is
+not a game that runs everywhere.
 
 ---
 
@@ -681,18 +834,52 @@ treasury is sixty thousand apart, not that two numbers are not equal.
 │                                                                              │
 │  ⓘ Reyes is already assigned to the Orbital Launch project.                  │
 │                                                                              │
-│  [ Enter to confirm ]   [ Esc to cancel ]                                    │
+│  [ Enter to confirm ]   [ Esc to cancel ]   [ ↑ ↓ for the next field ]      │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **The price is shown before the order is confirmed, and it is always the same three
 lines**: how long it takes, what it costs, and what it does to goodwill.
 
+**The arrows follow the convention everywhere [D].** **Up and down navigate, and
+left and right change the value.** The parameters are one per line and a form is
+read downwards, so `↑` and `↓` move from one parameter to the next, and `←` and
+`→` change the value of the chosen one. **On the list of orders there is no
+value to change, so `←` and `→` do nothing and `↑` and `↓` move the highlight.**
+The same convention holds on the staff screen, where `←` and `→` are the shift —
+the throttle on a person, which is a value and not a field.
+
+**The selection is the player's position on a list, and it stays on the list.**
+The up and down arrows stop at the ends rather than stepping past them, and the
+selection is clamped every time the screen is drawn, because a list can change
+under the player — a person leaves, a filter narrows it. **A list the player can
+walk off the end of is a list that loses the focus**, and the focus is how the
+player says which person they mean.
+
 **The ⓘ line says why the order might be a bad idea.** It is a factual statement about
 the state, not advice about the game. In the build it is the order's own validation
 result — "Reyes is already assigned to the Orbital Launch project" — which is the
 truth and is the most useful thing it could say.
 
+**The palette offers every order the engine can carry out.** A design, a
+subsystem change, and a launch authorisation are all in it, because a player
+who cannot reach orbit cannot play the game:
+
+| Order | What it needs |
+|---|---|
+| **Design a vehicle** | The archetype, and one parameter per slider. The value runs from nothing to everything in steps of ten, and the archetype's band and the agency's capabilities bound it |
+| **Change a subsystem** | The vehicle, the subsystem, and the value. Three days to land, and the numbers move with the slider |
+| **Authorise a launch** | The vehicle, the destination, and the crew. The destinations on offer are the ones the agency has developed the technology for, and the vehicles are the ones that are finished |
+| **Change somebody's shift** | The person, and the shift, from nothing to twice a full load in steps of ten — or "follow the policy", which puts them back on the standing instruction |
+| **Change the agency's shift policy** | Who it covers — everybody, or the people who are tireder than 50%, 70% or 90% — and the shift they work |
+
+**The launch is authorised against two numbers**, and both are on the screen
+before the order is confirmed: the risk, which is the vehicle's reliability
+less whatever the testing has taken out of the destination's capability, and
+the delta-v, which has to be enough to get there. **The engine refuses the
+impossible ones** — a vehicle that is not finished, a destination the agency
+cannot reach, and a rocket without the delta-v to get there — and the refusal
+says which of the three it was.
 **Every parameter is a choice from a list [D].** The interface has no text field, so
 a parameter is always a selection: a person, a role, a salary, a target, a field of
 research, a capability, a course, a build method, a build scale, a kind of facility.

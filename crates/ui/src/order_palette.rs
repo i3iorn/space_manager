@@ -64,6 +64,28 @@ pub enum Choice {
     Programme(ProgrammeId),
     /// A kind of vehicle.
     Archetype(domain::vehicle::ArchetypeId),
+    /// A vehicle the agency owns.
+    Vehicle(domain::ids::VehicleId),
+    /// A place the agency can fly to.
+    Destination(&'static str),
+    /// Who is aboard, or nobody.
+    Crew(Option<PersonId>),
+    /// A subsystem of a vehicle.
+    Subsystem(domain::vehicle::Slider),
+    /// A value for a subsystem, from 0 to 100.
+    Value(u8),
+    /// A shift, as a scaled percentage of a full load.
+    Shift(u16),
+    /// Put somebody back on the agency's shift policy.
+    ///
+    /// **The other half of the override**, and the way a player says "she
+    /// works flat out until she is tired, and then she eases off".
+    FollowPolicy,
+    /// Who a shift policy covers.
+    ///
+    /// **`None` is everybody**, and a threshold is the people who are tireder
+    /// than it.
+    PolicyWho(Option<u8>),
     /// What a programme is for.
     Category(ProgrammeCategory),
     /// A horizon, in months from now.
@@ -96,6 +118,32 @@ impl Choice {
             Self::Facility(kind) => kind.label().to_owned(),
             Self::Mode(mode) => mode.label().to_owned(),
             Self::Archetype(archetype) => domain::vehicle::archetype_name(*archetype).to_owned(),
+            Self::Vehicle(vehicle) => state
+                .vehicles
+                .get(vehicle)
+                .map_or("A vehicle that has been scrapped".to_owned(), |vehicle| {
+                    vehicle.name.clone()
+                }),
+            Self::Destination(destination) => (*destination).to_owned(),
+            Self::Crew(crew) => match crew {
+                Some(person) => state
+                    .people
+                    .get(person)
+                    .map_or("Someone who has left".to_owned(), |person| {
+                        person.name.clone()
+                    }),
+                None => "nobody".to_owned(),
+            },
+            Self::Subsystem(subsystem) => subsystem.name().to_owned(),
+            Self::Value(value) => format!("{value}"),
+            Self::Shift(shift) => {
+                format!("{}%", domain::scale::units_to_percent(u32::from(*shift)))
+            }
+            Self::FollowPolicy => "Follow the policy".to_owned(),
+            Self::PolicyWho(threshold) => match threshold {
+                Some(threshold) => format!("Anyone over {threshold}% fatigue"),
+                None => "Everybody".to_owned(),
+            },
             Self::Programme(id) => state
                 .programmes
                 .get(id)
@@ -179,6 +227,14 @@ pub enum Recipe {
     BuildFacility,
     /// Design a vehicle.
     DesignVehicle,
+    /// Change a subsystem of a vehicle.
+    SetSubsystem,
+    /// Change somebody's shift.
+    SetShift,
+    /// Change the agency's standing instruction.
+    SetPolicy,
+    /// Authorise a launch.
+    AuthorizeLaunch,
     /// Open a programme.
     CreateProgramme,
     /// Add a dated objective to a programme.
@@ -191,17 +247,21 @@ pub enum Recipe {
 
 impl Recipe {
     /// Every recipe, in the order the palette lists them.
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 18] = [
         Self::Hire,
         Self::Fire,
         Self::Assign,
         Self::Unassign,
         Self::Promote,
         Self::Train,
+        Self::SetShift,
+        Self::SetPolicy,
         Self::StartProject,
         Self::StartTestCampaign,
         Self::BuildFacility,
         Self::DesignVehicle,
+        Self::SetSubsystem,
+        Self::AuthorizeLaunch,
         Self::CreateProgramme,
         Self::SetObjective,
         Self::SetBudget,
@@ -222,6 +282,10 @@ impl Recipe {
             Self::StartTestCampaign => "Start a test campaign",
             Self::BuildFacility => "Build a facility",
             Self::DesignVehicle => "Design a vehicle",
+            Self::SetSubsystem => "Change a subsystem",
+            Self::SetShift => "Change somebody's shift",
+            Self::SetPolicy => "Change the agency's shift policy",
+            Self::AuthorizeLaunch => "Authorise a launch",
             Self::CreateProgramme => "Open a programme",
             Self::SetObjective => "Set a deadline",
             Self::SetBudget => "Set a budget",
@@ -246,6 +310,10 @@ impl Recipe {
             Self::StartTestCampaign => "order.start_test_campaign",
             Self::BuildFacility => "order.build_facility",
             Self::DesignVehicle => "order.design_vehicle",
+            Self::SetSubsystem => "order.set_subsystem",
+            Self::SetShift => "order.shift",
+            Self::SetPolicy => "order.policy",
+            Self::AuthorizeLaunch => "order.authorize_launch",
             Self::CreateProgramme => "order.create_programme",
             Self::SetObjective => "order.set_objective",
             Self::SetBudget => "order.set_budget",
@@ -271,6 +339,14 @@ impl Recipe {
             Self::SetObjective | Self::SetBudget | Self::PostponeDeadline => {
                 !state.programmes.is_empty()
             }
+            // **A vehicle needs the technology to build one.**
+            Self::DesignVehicle => state.unlocked.contains(&domain::research::CapabilityId(2)),
+            // **A subsystem needs a vehicle to change.**
+            Self::SetSubsystem => !state.vehicles.is_empty(),
+            // **A launch needs something to launch with, and somewhere to go.**
+            Self::AuthorizeLaunch => {
+                !ready_vehicles(state).is_empty() && !destinations(state).is_empty()
+            }
             _ => true,
         }
     }
@@ -280,103 +356,246 @@ impl Recipe {
     pub fn parameters(self, state: &CampaignState) -> Vec<Parameter> {
         match self {
             Self::Hire => hire_parameters(),
-            Self::Fire | Self::Unassign | Self::Promote => vec![Parameter {
-                label: "Person",
-                options: people(state),
-                selected: 0,
-            }],
-            Self::Assign => vec![
-                Parameter {
-                    label: "Person",
-                    options: people(state),
-                    selected: 0,
-                },
-                Parameter {
-                    label: "To",
-                    options: targets(state),
-                    selected: 0,
-                },
-            ],
-            Self::Train => vec![
-                Parameter {
-                    label: "Person",
-                    options: people(state),
-                    selected: 0,
-                },
-                Parameter {
-                    label: "Course",
-                    options: balance::COURSES
-                        .iter()
-                        .copied()
-                        .map(Choice::Course)
-                        .collect(),
-                    selected: 0,
-                },
-            ],
-            Self::StartProject => vec![
-                Parameter {
-                    label: "Field",
-                    options: domain::research::DISCIPLINES
-                        .iter()
-                        .map(|discipline| Choice::Discipline(discipline.id))
-                        .collect(),
-                    selected: 0,
-                },
-                Parameter {
-                    label: "Lead",
-                    options: people(state),
-                    selected: 0,
-                },
-            ],
-            Self::StartTestCampaign => vec![Parameter {
-                label: "Capability",
-                options: state
-                    .unlocked
-                    .iter()
-                    .copied()
-                    .map(Choice::Capability)
-                    .collect(),
-                selected: 0,
-            }],
+            Self::Fire | Self::Unassign | Self::Promote => person_parameters(state),
+            Self::Assign => assign_parameters(state),
+            Self::Train => train_parameters(state),
+            Self::SetShift => shift_parameters(state),
+            Self::SetPolicy => policy_parameters(),
+            Self::StartProject => start_project_parameters(state),
+            Self::StartTestCampaign => test_campaign_parameters(state),
             // **The programme orders take their parameters from lists**, like
             // every other order, because the palette has no free text.
-            Self::DesignVehicle => vec![Parameter {
-                label: "Kind",
-                options: domain::vehicle::ARCHETYPES
-                    .iter()
-                    .copied()
-                    .map(Choice::Archetype)
-                    .collect(),
-                selected: 0,
-            }],
+            Self::DesignVehicle => design_parameters(),
+            Self::SetSubsystem => subsystem_parameters(state),
+            Self::AuthorizeLaunch => launch_parameters(state),
             Self::CreateProgramme => programme_parameters(Self::CreateProgramme, state),
             Self::SetObjective => programme_parameters(Self::SetObjective, state),
             Self::SetBudget => programme_parameters(Self::SetBudget, state),
             Self::PostponeDeadline => programme_parameters(Self::PostponeDeadline, state),
-            Self::BuildFacility => vec![
-                Parameter {
-                    label: "Kind",
-                    options: FACILITY_TYPES
-                        .iter()
-                        .copied()
-                        .map(Choice::Facility)
-                        .collect(),
-                    selected: 0,
-                },
-                Parameter {
-                    label: "Method",
-                    options: BUILD_METHODS.iter().copied().map(Choice::Method).collect(),
-                    selected: 0,
-                },
-                Parameter {
-                    label: "Scale",
-                    options: BUILD_SCALES.iter().copied().map(Choice::Scale).collect(),
-                    selected: 0,
-                },
-            ],
+            Self::BuildFacility => facility_parameters(),
         }
     }
+}
 
+/// The parameters of an order about one person.
+fn person_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![Parameter {
+        label: "Person",
+        options: people(state),
+        selected: 0,
+    }]
+}
+
+/// The parameters of an assignment.
+fn assign_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Person",
+            options: people(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "To",
+            options: targets(state),
+            selected: 0,
+        },
+    ]
+}
+
+/// The parameters of a course.
+fn train_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Person",
+            options: people(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "Course",
+            options: balance::COURSES
+                .iter()
+                .copied()
+                .map(Choice::Course)
+                .collect(),
+            selected: 0,
+        },
+    ]
+}
+
+/// The parameters of a shift change.
+///
+/// **The shift is a throttle and not a job**, and the values run from nothing
+/// to twice a full load in steps of ten.
+fn shift_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Person",
+            options: people(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "Shift",
+            options: person_shift_options(),
+            selected: 10,
+        },
+    ]
+}
+
+/// The parameters of the agency's shift policy.
+///
+/// **Who it covers** and **what they work**, and the two together are the
+/// answer to a team that is burning out.
+fn policy_parameters() -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Who",
+            options: policy_who_options(),
+            selected: 1,
+        },
+        Parameter {
+            label: "Shift",
+            options: shift_options(),
+            selected: 5,
+        },
+    ]
+}
+
+/// Every shift a person can be put on.
+fn shift_options() -> Vec<Choice> {
+    (0..=20)
+        .map(|step| Choice::Shift((step as u16) * (domain::scale::PERCENT_UNITS as u16) / 10))
+        .collect()
+}
+
+/// Every shift a person can be put on, and the policy itself.
+///
+/// **The policy is the last option and not the first**, because the common
+/// case is a number, and because a player who has been easing somebody off
+/// wants to see that the option is there rather than have to look for it.
+fn person_shift_options() -> Vec<Choice> {
+    let mut options = shift_options();
+    options.push(Choice::FollowPolicy);
+    options
+}
+
+/// Who a shift policy covers.
+///
+/// **Everybody**, or the people who are tireder than a threshold. The
+/// thresholds are the ones the player would actually use.
+fn policy_who_options() -> Vec<Choice> {
+    vec![
+        Choice::PolicyWho(None),
+        Choice::PolicyWho(Some(50)),
+        Choice::PolicyWho(Some(70)),
+        Choice::PolicyWho(Some(90)),
+    ]
+}
+
+/// The parameters of a research project.
+fn start_project_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Field",
+            options: domain::research::DISCIPLINES
+                .iter()
+                .map(|discipline| Choice::Discipline(discipline.id))
+                .collect(),
+            selected: 0,
+        },
+        Parameter {
+            label: "Lead",
+            options: people(state),
+            selected: 0,
+        },
+    ]
+}
+
+/// The parameters of a test campaign.
+fn test_campaign_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![Parameter {
+        label: "Capability",
+        options: state
+            .unlocked
+            .iter()
+            .copied()
+            .map(Choice::Capability)
+            .collect(),
+        selected: 0,
+    }]
+}
+
+/// The parameters of a subsystem change.
+fn subsystem_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Vehicle",
+            options: vehicles(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "Subsystem",
+            options: domain::vehicle::Slider::ALL
+                .iter()
+                .copied()
+                .map(Choice::Subsystem)
+                .collect(),
+            selected: 0,
+        },
+        Parameter {
+            label: "Value",
+            options: SLIDER_VALUES.iter().copied().map(Choice::Value).collect(),
+            selected: 0,
+        },
+    ]
+}
+
+/// The parameters of a launch.
+fn launch_parameters(state: &CampaignState) -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Vehicle",
+            options: ready_vehicles(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "Destination",
+            options: destinations(state),
+            selected: 0,
+        },
+        Parameter {
+            label: "Crew",
+            options: crews(state),
+            selected: 0,
+        },
+    ]
+}
+
+/// The parameters of a facility.
+fn facility_parameters() -> Vec<Parameter> {
+    vec![
+        Parameter {
+            label: "Kind",
+            options: FACILITY_TYPES
+                .iter()
+                .copied()
+                .map(Choice::Facility)
+                .collect(),
+            selected: 0,
+        },
+        Parameter {
+            label: "Method",
+            options: BUILD_METHODS.iter().copied().map(Choice::Method).collect(),
+            selected: 0,
+        },
+        Parameter {
+            label: "Scale",
+            options: BUILD_SCALES.iter().copied().map(Choice::Scale).collect(),
+            selected: 0,
+        },
+    ]
+}
+
+impl Recipe {
     /// Builds the order from the chosen parameters.
     #[must_use]
     pub fn build(self, parameters: &[Parameter]) -> Option<OrderKind> {
@@ -397,19 +616,9 @@ impl Recipe {
                     .unwrap_or_else(|| balance::starting_salary(role));
                 Some(OrderKind::Hire { role, salary })
             }
-            // **A vehicle is designed with a default set of sliders**, and the
-            // player changes the sliders on the vehicles screen.
-            Self::DesignVehicle => {
-                let archetype = match first {
-                    Some(Choice::Archetype(archetype)) => *archetype,
-                    _ => return None,
-                };
-                Some(OrderKind::DesignVehicle {
-                    archetype,
-                    name: format!("{} {}", domain::vehicle::archetype_name(archetype), 1),
-                    sliders: default_sliders(archetype),
-                })
-            }
+            Self::DesignVehicle => build_design(parameters, first),
+            Self::SetSubsystem => build_subsystem(parameters),
+            Self::AuthorizeLaunch => build_launch(parameters),
             // **The programme orders are built by their own function**, because
             // they take their parameters from lists like every other order.
             Self::CreateProgramme
@@ -444,6 +653,8 @@ impl Recipe {
                     course: course.to_owned(),
                 })
             }
+            Self::SetShift => build_shift(parameters),
+            Self::SetPolicy => build_policy(parameters),
             Self::StartProject => {
                 let discipline = match first {
                     Some(Choice::Discipline(discipline)) => *discipline,
@@ -474,6 +685,106 @@ impl Recipe {
             Self::BuildFacility => build_facility(parameters, first),
         }
     }
+}
+
+/// Builds the order to design a vehicle.
+///
+/// **The sliders are the decision.** The archetype says what kind of machine it
+/// is, and the sliders say what kind of machine *this* one is.
+fn build_design(parameters: &[Parameter], first: Option<&Choice>) -> Option<OrderKind> {
+    let archetype = match first {
+        Some(Choice::Archetype(archetype)) => *archetype,
+        _ => return None,
+    };
+    let mut sliders = domain::vehicle::SliderValues::zero();
+    for (index, slider) in domain::vehicle::Slider::ALL.into_iter().enumerate() {
+        let value = chosen_of(parameters, index + 1, |choice| match choice {
+            Choice::Value(value) => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(0);
+        slider.set(&mut sliders, value);
+    }
+    Some(OrderKind::DesignVehicle {
+        archetype,
+        name: format!("{} {}", domain::vehicle::archetype_name(archetype), 1),
+        sliders,
+    })
+}
+
+/// Builds the order to change a subsystem.
+fn build_subsystem(parameters: &[Parameter]) -> Option<OrderKind> {
+    let vehicle = chosen_of(parameters, 0, |choice| match choice {
+        Choice::Vehicle(vehicle) => Some(*vehicle),
+        _ => None,
+    })?;
+    let slider = chosen_of(parameters, 1, |choice| match choice {
+        Choice::Subsystem(slider) => Some(*slider),
+        _ => None,
+    })?;
+    let value = chosen_of(parameters, 2, |choice| match choice {
+        Choice::Value(value) => Some(*value),
+        _ => None,
+    })?;
+    Some(OrderKind::SetSubsystem {
+        vehicle,
+        slider,
+        value,
+    })
+}
+
+/// Builds the order to authorise a launch.
+fn build_launch(parameters: &[Parameter]) -> Option<OrderKind> {
+    let vehicle = chosen_of(parameters, 0, |choice| match choice {
+        Choice::Vehicle(vehicle) => Some(*vehicle),
+        _ => None,
+    })?;
+    let destination = chosen_of(parameters, 1, |choice| match choice {
+        Choice::Destination(destination) => Some(*destination),
+        _ => None,
+    })?;
+    let crew = chosen_of(parameters, 2, |choice| match choice {
+        Choice::Crew(crew) => Some(*crew),
+        _ => None,
+    })
+    .unwrap_or(None);
+    Some(OrderKind::AuthorizeLaunch {
+        vehicle,
+        destination: destination.to_owned(),
+        crew: crew.into_iter().collect(),
+    })
+}
+
+/// Builds the order to change somebody's shift.
+fn build_shift(parameters: &[Parameter]) -> Option<OrderKind> {
+    let person = chosen_of(parameters, 0, |choice| match choice {
+        Choice::Person(person) => Some(*person),
+        _ => None,
+    })?;
+    let shift = chosen_of(parameters, 1, |choice| match choice {
+        Choice::Shift(shift) => Some(Some(*shift)),
+        Choice::FollowPolicy => Some(None),
+        _ => None,
+    })?;
+    Some(OrderKind::SetShift { person, shift })
+}
+
+/// Builds the order to change the agency's shift policy.
+fn build_policy(parameters: &[Parameter]) -> Option<OrderKind> {
+    let who = chosen_of(parameters, 0, |choice| match choice {
+        Choice::PolicyWho(who) => Some(*who),
+        _ => None,
+    })?;
+    let shift = chosen_of(parameters, 1, |choice| match choice {
+        Choice::Shift(shift) => Some(*shift),
+        _ => None,
+    })?;
+    Some(OrderKind::SetPolicy {
+        policy: domain::person::Policy::Shift {
+            shift,
+            only_over: who,
+        },
+    })
 }
 
 /// Builds the order to build a facility.
@@ -671,17 +982,74 @@ fn hire_parameters() -> Vec<Parameter> {
         },
     ]
 }
-/// The sliders a design starts with.
+/// The values a slider can be set to, in steps of ten.
+const SLIDER_VALUES: [u8; 11] = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+/// The parameters of a vehicle design.
 ///
-/// **A sensible default for the archetype**, so the player is adjusting a
-/// design rather than building one out of nothing.
-fn default_sliders(archetype: domain::vehicle::ArchetypeId) -> domain::vehicle::SliderValues {
-    let mut sliders = domain::vehicle::SliderValues::zero();
+/// **The archetype and one parameter per slider.** The archetype says what kind
+/// of machine it is, and the sliders say what kind of machine *this* one is.
+fn design_parameters() -> Vec<Parameter> {
+    let mut parameters = vec![Parameter {
+        label: "Kind",
+        options: domain::vehicle::ARCHETYPES
+            .iter()
+            .copied()
+            .map(Choice::Archetype)
+            .collect(),
+        selected: 0,
+    }];
     for slider in domain::vehicle::Slider::ALL {
-        let (floor, _) = domain::vehicle::archetype_band(archetype, slider);
-        slider.set(&mut sliders, floor);
+        parameters.push(Parameter {
+            label: slider.name(),
+            options: SLIDER_VALUES.iter().copied().map(Choice::Value).collect(),
+            selected: 0,
+        });
     }
-    sliders
+    parameters
+}
+
+/// The vehicles the agency owns.
+fn vehicles(state: &CampaignState) -> Vec<Choice> {
+    state
+        .vehicles
+        .values()
+        .map(|vehicle| Choice::Vehicle(vehicle.id))
+        .collect()
+}
+
+/// The vehicles that are finished and ready to fly.
+fn ready_vehicles(state: &CampaignState) -> Vec<Choice> {
+    state
+        .vehicles
+        .values()
+        .filter(|vehicle| vehicle.build_state == domain::vehicle::BuildState::Complete)
+        .map(|vehicle| Choice::Vehicle(vehicle.id))
+        .collect()
+}
+
+/// The places the agency has developed the technology to fly to.
+fn destinations(state: &CampaignState) -> Vec<Choice> {
+    domain::research::destinations()
+        .into_iter()
+        .filter(|destination| {
+            domain::research::is_destination_unlocked(destination, &state.unlocked)
+        })
+        .map(Choice::Destination)
+        .collect()
+}
+
+/// Who can go aboard, and the option of nobody.
+fn crews(state: &CampaignState) -> Vec<Choice> {
+    let mut choices = vec![Choice::Crew(None)];
+    for person in state
+        .people
+        .values()
+        .filter(|person| person.role == domain::person::Role::Astronaut)
+    {
+        choices.push(Choice::Crew(Some(person.id)));
+    }
+    choices
 }
 
 /// The parameters of one of the programme orders.
@@ -810,6 +1178,25 @@ fn targets(state: &CampaignState) -> Vec<Choice> {
     targets
 }
 
+/// The sentence saying who an order takes off what they are on.
+///
+/// **An assignment is a move**, and the consequence the player cannot see is
+/// the team they are leaving short of a person.
+fn moves_somebody(kind: &OrderKind, state: &CampaignState) -> Option<String> {
+    let domain::order::OrderKind::Assign { person, .. } = kind else {
+        return None;
+    };
+    let current = &state.people.get(person)?.assignment;
+    if matches!(current, domain::person::Assignment::Unassigned) {
+        return None;
+    }
+    Some(format!(
+        "This takes {} off {}.",
+        state.people[person].name,
+        sim::derived::assignment_place(state, current)
+    ))
+}
+
 /// The price of an order: how long it takes, what it costs, and the goodwill.
 ///
 /// **The three lines are always the same**, so the player learns to read them.
@@ -919,11 +1306,14 @@ impl Palette {
     }
 
     /// Moves the selection up.
+    ///
+    /// **Up and down navigate, and left and right change the value.** On the
+    /// list of orders, up and down move the highlight; on the form, they move
+    /// from one parameter to the next, because the parameters are one per
+    /// line and a form is read downwards.
     pub fn up(&mut self) {
         if self.filling {
-            if let Some(parameter) = self.parameters.get_mut(self.parameter) {
-                parameter.previous();
-            }
+            self.previous_parameter();
         } else if !self.recipes.is_empty() {
             self.recipe = if self.recipe == 0 {
                 self.recipes.len() - 1
@@ -936,16 +1326,39 @@ impl Palette {
     /// Moves the selection down.
     pub fn down(&mut self) {
         if self.filling {
-            if let Some(parameter) = self.parameters.get_mut(self.parameter) {
-                parameter.next();
-            }
+            self.next_parameter();
         } else if !self.recipes.is_empty() {
             self.recipe = (self.recipe + 1) % self.recipes.len();
         }
     }
 
+    /// Moves the value of the chosen parameter back.
+    ///
+    /// **This is what the left and right arrows do**, and it is what the form
+    /// says they do: the value is the thing that changes, and the parameter
+    /// is the thing being navigated.
+    pub fn previous_option(&mut self) {
+        if self.filling {
+            if let Some(parameter) = self.parameters.get_mut(self.parameter) {
+                parameter.previous();
+            }
+        }
+    }
+
+    /// Moves the value of the chosen parameter on.
+    pub fn next_option(&mut self) {
+        if self.filling {
+            if let Some(parameter) = self.parameters.get_mut(self.parameter) {
+                parameter.next();
+            }
+        }
+    }
+
     /// Moves to the previous parameter.
-    pub fn previous_parameter(&mut self) {
+    ///
+    /// **This is what the up and down arrows do on the form**, because the
+    /// parameters are one per line and a form is read downwards.
+    fn previous_parameter(&mut self) {
         if self.filling && !self.parameters.is_empty() {
             self.parameter = if self.parameter == 0 {
                 self.parameters.len() - 1
@@ -956,7 +1369,7 @@ impl Palette {
     }
 
     /// Moves to the next parameter.
-    pub fn next_parameter(&mut self) {
+    fn next_parameter(&mut self) {
         if self.filling && !self.parameters.is_empty() {
             self.parameter = (self.parameter + 1) % self.parameters.len();
         }
@@ -1086,27 +1499,27 @@ fn render_form(palette: &Palette, state: &CampaignState, issued_at: Instant) -> 
     }
 
     for (index, parameter) in palette.parameters().iter().enumerate() {
-        let marker = if index == palette.parameter() {
-            "▸"
-        } else {
-            " "
-        };
-        lines.push(Line::raw(format!("  {marker} {:<12}", parameter.label)));
-        if let Some(chosen) = parameter.chosen() {
-            lines.push(Line::styled(
-                format!("      {}", chosen.label(state)),
-                crate::theme::emphasis(),
-            ));
+        let selected = index == palette.parameter();
+        let marker = if selected { "▸" } else { " " };
+        // **One line per parameter.** A design has eight sliders, and a form
+        // that put each of them on three lines would not fit on a terminal.
+        let value = parameter
+            .chosen()
+            .map_or_else(String::new, |choice| choice.label(state));
+        let mut line = format!("  {marker} {:<12} {value}", parameter.label);
+        if selected && parameter.options.len() > 1 {
+            use std::fmt::Write;
+            let _ = write!(
+                line,
+                "   ({} of {} — ← → to change)",
+                parameter.selected + 1,
+                parameter.options.len()
+            );
         }
-        if parameter.options.len() > 1 {
-            lines.push(Line::styled(
-                format!(
-                    "      ({} of {} — ← → to change)",
-                    parameter.selected + 1,
-                    parameter.options.len()
-                ),
-                crate::theme::historical(),
-            ));
+        if selected {
+            lines.push(Line::styled(line, crate::theme::emphasis()));
+        } else {
+            lines.push(Line::raw(line));
         }
     }
     lines.push(Line::raw(""));
@@ -1144,12 +1557,22 @@ fn render_form(palette: &Palette, state: &CampaignState, issued_at: Instant) -> 
                         crate::theme::Meaning::Attention.style(),
                     ));
                     lines.push(Line::raw(""));
+                } else if let Some(moved) = moves_somebody(&kind, state) {
+                    // **An assignment moves somebody**, and the player has to
+                    // be able to see that before they commit to it: the
+                    // laboratory they are taking a scientist from is about to
+                    // be a laboratory short of staff.
+                    lines.push(Line::styled(
+                        format!("  ⓘ {moved}"),
+                        crate::theme::Meaning::Informational.style(),
+                    ));
+                    lines.push(Line::raw(""));
                 }
             }
         }
     }
     lines.push(Line::styled(
-        "  [ Enter to confirm ]   [ Esc to cancel ]",
+        "  [ Enter to confirm ]   [ Esc to cancel ]   [ ↑ ↓ for the next field ]",
         crate::theme::historical(),
     ));
     lines
@@ -1228,6 +1651,56 @@ mod tests {
         assert!(!Recipe::StartTestCampaign.available(&campaign));
         campaign.unlocked.insert(CapabilityId(1));
         assert!(Recipe::StartTestCampaign.available(&campaign));
+    }
+
+    #[test]
+    fn the_arrows_navigate_the_form_and_change_the_value() {
+        // **Up and down navigate, and left and right change the value.**
+        //
+        // The parameters are one per line and a form is read downwards, so
+        // the up and down arrows move from one parameter to the next. The
+        // value is the thing the player is choosing, and the left and right
+        // arrows are what change it — which is what the form says they do.
+        let campaign = state();
+        let mut palette = Palette::new(&campaign);
+        // The first recipe is a hire, and the first parameter is the role.
+        palette.accept(&campaign);
+        assert!(palette.is_filling());
+        assert_eq!(palette.parameter(), 0);
+
+        palette.down();
+        assert_eq!(palette.parameter(), 1, "down moves to the next parameter");
+        palette.up();
+        assert_eq!(palette.parameter(), 0, "and up moves back");
+
+        let before = palette.parameters()[0].selected;
+        palette.next_option();
+        assert_eq!(
+            palette.parameters()[0].selected,
+            before + 1,
+            "right changes the value"
+        );
+        palette.previous_option();
+        assert_eq!(
+            palette.parameters()[0].selected,
+            before,
+            "and left changes it back"
+        );
+    }
+
+    #[test]
+    fn the_arrows_navigate_the_list_of_orders() {
+        // **The list of orders is a list**, and a list is navigated with the
+        // up and down arrows. The left and right arrows do nothing there,
+        // because a list of orders has no value to change.
+        let campaign = state();
+        let mut palette = Palette::new(&campaign);
+        assert!(!palette.is_filling());
+        let first = palette.recipe();
+        palette.down();
+        assert_ne!(palette.recipe(), first, "down moves the highlight");
+        palette.up();
+        assert_eq!(palette.recipe(), first, "and up moves it back");
     }
 
     #[test]

@@ -140,6 +140,17 @@ macro_rules! next_id {
 }
 
 impl IdCounters {
+    /// How many people have been allocated.
+    ///
+    /// **The chronicle needs to know.** A record of somebody who has since
+    /// left the agency is a record of the past and not a dangling reference,
+    /// and the only way to tell the two apart is whether the id was ever
+    /// handed out.
+    #[must_use]
+    pub const fn people_allocated(&self) -> u64 {
+        self.person
+    }
+
     next_id! {
         next_agency => agency: AgencyId,
         next_person => person: PersonId,

@@ -179,9 +179,14 @@ impl PerformanceInput {
     }
 
     /// Every modifier, in display order.
+    ///
+    /// **This is an array and not a vector**, and that is a performance
+    /// decision: the model is evaluated once per person per team per hour of
+    /// simulated time, and a heap allocation in that path is millions of
+    /// allocations in a five-year campaign.
     #[must_use]
-    pub fn modifiers(&self) -> Vec<Modifier> {
-        vec![
+    pub fn modifiers(&self) -> [Modifier; 8] {
+        [
             self.skill,
             self.role_fit,
             self.morale,
@@ -191,6 +196,32 @@ impl PerformanceInput {
             self.creativity,
             self.health,
         ]
+    }
+
+    /// Adds a modifier to the one of the same kind.
+    ///
+    /// **A trait lands on the factor it describes.** A person who is a team
+    /// player gets more support, and a person with a fragile constitution gets
+    /// less health, and the eight factors stay eight factors.
+    ///
+    /// **The fatigue factor is never positive** — it is the one factor that
+    /// can only hurt — so a trait may only add to the penalty.
+    pub fn add(&mut self, modifier: Modifier) {
+        let slot = match modifier.kind() {
+            ModifierKind::Skill => &mut self.skill,
+            ModifierKind::RoleFit => &mut self.role_fit,
+            ModifierKind::Morale => &mut self.morale,
+            ModifierKind::Support => &mut self.support,
+            ModifierKind::Tools => &mut self.tools,
+            ModifierKind::Fatigue => &mut self.fatigue,
+            ModifierKind::Creativity => &mut self.creativity,
+            ModifierKind::Health => &mut self.health,
+        };
+        let mut total = slot.value().saturating_add(modifier.value());
+        if modifier.kind().is_penalty_only() {
+            total = total.min(0);
+        }
+        *slot = Modifier::new(modifier.kind(), total);
     }
 }
 
@@ -204,7 +235,11 @@ pub struct PerformanceResult {
     /// The effective performance, in basis points. 10,000 is 100%.
     pub effective: u32,
     /// Every modifier, in display order.
-    pub modifiers: Vec<Modifier>,
+    ///
+    /// **This is an array and not a vector**, for the same reason the input's
+    /// is: the model runs once per person per team per hour, and a heap
+    /// allocation in that path is millions of allocations in a campaign.
+    pub modifiers: [Modifier; 8],
     /// The single constraint costing the most, if any is costing enough to
     /// matter.
     pub binding_factor: Option<ModifierKind>,

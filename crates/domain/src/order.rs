@@ -133,11 +133,17 @@ pub enum OrderKind {
     /// **The shift is the player's throttle on a person.** It is a scaled
     /// percentage of a normal load: a hundred is a full load, and the range
     /// runs to two hundred.
+    ///
+    /// **A shift given to one person is an override of the agency policy**,
+    /// and `None` puts them back on it — which is the other half of the
+    /// override, and the way a player says "she works flat out until she is
+    /// tired, and then she eases off".
     SetShift {
         /// Who.
         person: PersonId,
-        /// How hard, in scaled percent. Zero to two hundred.
-        shift: u16,
+        /// How hard, in scaled percent. Zero to two hundred, or `None` to
+        /// follow the agency's policy.
+        shift: Option<u16>,
     },
 
     /// Give someone a step up.
@@ -254,12 +260,14 @@ pub enum OrderKind {
         value: u8,
     },
 
-    /// Turn a policy on or off.
+    /// Change a standing instruction.
+    ///
+    /// **A policy is a standing instruction and not a one-off.** The
+    /// per-person shift is the surgical tool; this is the tool for an agency of
+    /// three hundred people, and it is the answer to "my team is burning out".
     SetPolicy {
-        /// Which policy.
-        policy: String,
-        /// Whether it is on.
-        enabled: bool,
+        /// What the instruction says.
+        policy: crate::person::Policy,
     },
 
     /// Release a piece of knowledge.

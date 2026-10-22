@@ -4,11 +4,12 @@
 
 A space agency management simulation, in Rust, built as a cargo workspace of four
 crates: `domain` (the data), `sim` (the engine), `ui` (the terminal interface), and
-`space_manager` (the binary). 529 tests pass.
+`space_manager` (the binary). 681 tests pass, and one more that only the nightly run plays.
 
-**The design is complete and the code is behind it.** The engine in `crates/` still
-implements the old monthly-turn model; Milestone M1 (`docs/ROADMAP.md` §4) rebuilds it
-around continuous time. Read the time-model note below before touching the engine.
+**The design is complete, and so is the engine.** Everything in `crates/`
+implements the continuous-time model, and the build plan's four slices are done
+apart from the four playtests, which need a human. Read the time-model note
+below before touching the engine.
 
 ## Commands (verified working on this machine)
 
@@ -20,6 +21,8 @@ around continuous time. Read the time-model note below before touching the engin
 | Test one crate | `cargo test -p sim` |
 | Format check | `cargo fmt --all --check` (fix with `cargo fmt --all`) |
 | Lint | `cargo clippy --workspace --all-targets` |
+| The balance harness | `cargo run -p sim --example harness -- first_orbit 20 60` |
+| Regenerate the golden fixture | `cargo run -p sim --example make_fixture` |
 
 All of these exit 0 today. There is **no `rustfmt.toml`, no `clippy.toml`, no
 `.cargo/config.toml`, and no `rust-toolchain.toml`** — rustfmt and clippy run on
@@ -27,7 +30,7 @@ stock defaults, and the toolchain follows the machine's rustup default. CI lives
 `.github/workflows/ci.yml` and runs the first four plus the dependency-direction test
 on both Linux and Windows.
 
-**`cargo test --workspace` currently runs 529 tests and they all pass.** That number
+**`cargo test --workspace` currently runs 681 tests and they all pass.** That number
 matters: it is the baseline a change is measured against. If you add behaviour, add
 tests with it, or "green" means nothing.
 
@@ -36,8 +39,17 @@ tests with it, or "green" means nothing.
 when working in one crate.
 
 **`cargo run -p space_manager` starts the interface and waits for a key forever.** Use
-`cargo run -p space_manager -- --headless 24` for a non-interactive smoke test, and
-`--seed N` to reproduce a campaign exactly.
+`cargo run -p space_manager -- --headless 24` for a non-interactive smoke test,
+`--seed N` to reproduce a campaign exactly, `--save FILE` to write the campaign
+when the game ends, `--load FILE` to carry on from one, and `--report FILE` to
+write a plain-text summary of the campaign.
+
+**The game saves and loads from inside itself**, on `F3` and `F4`, so a player
+who never thought about saving can still save. The file is the one `--save`
+named, or `campaign.json` beside the game.
+
+**The three shipped scenarios are `first_year`, `first_orbit`, and `sandbox`.**
+`first_orbit` is the tuned five-year scenario the balance harness measures.
 
 ## Toolchain
 
@@ -57,10 +69,12 @@ when working in one crate.
 - **A crate named `core` is unusable.** It shadows the standard library's `core` crate
   in the extern prelude, and every dependent crate then fails to resolve `core::fmt`.
   The domain crate is `domain` for this reason. Do not rename it.
-- **Git does not work in this tree.** `C:\Users\micro\Code\Projects` is a *bare* repository
-  (it holds `HEAD`, `config`, `objects/`, `refs/`), and this project is not inside a work
-  tree, so `git status` fails with `this operation must be run in a work tree`. There is no
-  history, branch, or PR workflow here — don't plan around commits.
+- **Git works in this tree.** `C:\Users\micro\Code\Projects\space_manager` is a
+  normal work tree on the branch `master`, with `origin` pointing at
+  `github.com/i3iorn/space_manager` and a history of narrative commits. (An
+  earlier note here said git did not work; it does now, and the note was wrong.)
+  **The commit messages are prose, not labels** — they say what changed and why,
+  in a sentence a person would write.
 - The IDE is **IntelliJ IDEA with the Rust plugin** (`.idea/`). `.idea/workspace.xml` is
   machine-local and holds the run config; keep the package name in sync with it. It
   needs a re-index after the workspace migration.
@@ -80,8 +94,8 @@ The intended shape, confirmed by the maintainer:
    GUI toolkit, no browser assets. Keep rendering separate from simulation.
 2. **Cargo workspace** — split into separate crates rather than growing one binary.
 
-**The workspace exists (M0 is complete) and is being rebuilt for continuous time
-(M1).** The layout is:
+**The workspace is complete.** The continuous-time rebuild (M1) is done, and so
+are the four slices. The layout is:
 
 ```
 Cargo.toml                     # [workspace] only, virtual. Root Cargo.lock lives here
@@ -188,7 +202,21 @@ built first. The constraints from it are architectural and must not be violated:
   determinism requirement, not a style preference.
 - **Assigning someone to a project must add them to the project's `team` list.** Being
   assigned and being on the team are different things, and the bug where they came apart
-  made every staffing decision meaningless.
+  made every staffing decision meaningless. **The same is true of a programme's
+  `staffing` list**, and it was true for two slices before anybody noticed: the
+  commitment mechanic did not work at all, because the programme's rate reads the
+  staffing list and the list was never maintained.
+- **A person who leaves the agency is on nobody's team.** The team lists are cleaned
+  up when somebody is dismissed *and* when somebody resigns, and the two paths are
+  the same path.
+- **A chronicle entry's identifier comes from the counter, not from the length of the
+  chronicle.** A batch of entries written in one phase all get the same number
+  otherwise, and the chronicle's own filter cannot tell them apart.
+- **Knowledge is per discipline, not per capability.** A capability is a threshold on
+  its discipline's total, and crediting a project to the first capability that
+  happens to share the discipline credits it to "Atmospheric sounding" - a
+  capability with a threshold of zero - and makes the flagship capabilities
+  unreachable.
 - **Use `[System.IO.File]::ReadAllText` / `WriteAllText` for scripted edits to source
   files.** `Get-Content`/`Set-Content` round-trips corrupt non-ASCII characters (em
   dashes and section signs became mojibake) and silently drop a byte here and there.
@@ -305,7 +333,21 @@ See `docs/SIMULATION.md` revision 2 and `docs/MANAGEABLE_PARTS.md` §3.
   determinism requirement, not a style preference.
 - **Assigning someone to a project must add them to the project's `team` list.** Being
   assigned and being on the team are different things, and the bug where they came apart
-  made every staffing decision meaningless.
+  made every staffing decision meaningless. **The same is true of a programme's
+  `staffing` list**, and it was true for two slices before anybody noticed: the
+  commitment mechanic did not work at all, because the programme's rate reads the
+  staffing list and the list was never maintained.
+- **A person who leaves the agency is on nobody's team.** The team lists are cleaned
+  up when somebody is dismissed *and* when somebody resigns, and the two paths are
+  the same path.
+- **A chronicle entry's identifier comes from the counter, not from the length of the
+  chronicle.** A batch of entries written in one phase all get the same number
+  otherwise, and the chronicle's own filter cannot tell them apart.
+- **Knowledge is per discipline, not per capability.** A capability is a threshold on
+  its discipline's total, and crediting a project to the first capability that
+  happens to share the discipline credits it to "Atmospheric sounding" - a
+  capability with a threshold of zero - and makes the flagship capabilities
+  unreachable.
 - **Use `[System.IO.File]::ReadAllText` / `WriteAllText` for scripted edits to source
   files.** `Get-Content`/`Set-Content` round-trips corrupt non-ASCII characters (em
   dashes and section signs became mojibake) and silently drop a byte here and there.
@@ -322,6 +364,43 @@ scheduler, the advance loop, the rates, the order model with its lead times, and
 goodwill are all done. **The month boundary is a scheduled item, not a cadence** — the
 campaign advances continuously and the boundary is one thing that happens on the way
 past. Read `docs/SIMULATION.md` before changing any of it.
+
+- **A person's shift is an override of the agency's policy, not the shift itself.**
+  `PersonState::shift` is `None` when the standing policy decides and a value when
+  the manager has decided better, and `sim::derived::effective_shift` is the *only*
+  way to ask what shift a person is on. **Reading `person.state.shift` directly
+  gives the wrong answer** for every person the policy covers, and the symptom is
+  a policy that appears to do nothing.
+- **Up and down navigate, and left and right change the value.** That is the
+  convention on every screen: the arrows in the order palette, the staff
+  screen's shift, and the lists. **The palette had it the wrong way round once**
+  — the left and right arrows moved between the parameters, which are one per
+  line, so it looked like they moved the highlight down the screen. **The
+  selection is also clamped to the list**: a list the player can walk off the
+  end of is a list that loses the focus.
+- **The tools factor is the only part of the performance model that reads the
+  whole state, and it is computed once per hour — not once per person.** It is
+  the quality of the agency's facilities and whether it is over capacity, and it
+  is the same for everybody. **Computing it per person made the integration
+  quadratic in the size of the agency**: a five-year campaign of three hundred
+  people took ten and a half seconds, and the design says the game is played at
+  three hundred. `derived::person_performance_with_tools` takes it as an
+  argument for exactly this reason.
+- **An assignment is a move, and it has to be.** A person has one assignment;
+  giving them a new one takes them off the old team. **The design's order list
+  calls it "assign / reassign"**, the phase says "moved from X to Y", and the
+  advice banner tells the player to put somebody on a project — so a validation
+  that refuses to move somebody makes all three of them a lie. The one thing
+  refused is a no-op.
+- **The interface has no pictures, and the reason is worth keeping.** The
+  half-block `▀` gives two *solid* pixels per cell, and the braille block `⠿`
+  gives eight — but the braille dots have gaps between them, so a shape drawn in
+  braille reads as a dot matrix, not a shape. **The finest solid pixel is
+  therefore a whole cell across**, and an icon in the corner of a panel is
+  either a blob or it eats the panel's width. Both were tried and both looked
+  bad. **The flare is in the panels, the glyphs and the colours** — the `✓ ✗ ○
+  ⚠` glyphs carry a meaning without colour, which is the theme's rule and
+  works on every terminal.
 
 The constraints an implementer would otherwise get wrong:
 

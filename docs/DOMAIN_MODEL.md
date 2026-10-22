@@ -203,7 +203,14 @@ ladder, a distinct pay band, and a distinct failure mode.
 
 | Field | Notes |
 |---|---|
-| Identity | Name, origin, species, homeworld, age, family ties |
+| Identity | Name, origin, species, homeworld, age, family ties |
+**The names are drawn from ten cultures [D], and the two halves of a name
+belong together.** A recruit draws a culture and then a given name and a family
+name from it, so "Kwame Adeyemi" reads as a person and "Kwame Kowalski" does
+not. **A recruit never gets a family name somebody in the agency already has** —
+two people called Okonjo are two people the player cannot tell apart on the
+staff screen. The catalogue is code rather than saved state, so a name can be
+reworded without invalidating anybody's save.
 | Career | Rank, grade, years of service, education, certifications |
 | Attributes | A small set — Technical, Creative, Leadership, Physical, Diplomatic — plus role-specific specialisms (propulsion, structures, avionics, life support, geology, medicine…) |
 | Traits | 1-3 personality hooks: *frail but brilliant*, *won't accept a bad plan*, *needs the credit*, *loyal to the old regime* |
@@ -219,6 +226,26 @@ ladder, a distinct pay band, and a distinct failure mode.
 order has to be able to say *why* it was rejected, and that reason can only be
 produced if the state is unambiguous.
 
+**An assignment is a move [D].** A person has one assignment, and giving them a
+new one takes them off whatever they were on — the project, the programme, the
+facility. The design's own order list calls the order "assign / reassign", and
+the phase that applies it says "moved from the propulsion laboratory to the
+combustion study". **The one thing refused is a no-op**: putting somebody where
+they already are is not a move, and the order says so.
+
+**Any number of people can be on one team [D].** The points are summed, so a
+bigger team finishes sooner and the target never moves — and that is the whole
+of the research model.
+
+**The traits are part of the person, and they are applied [D].** A trait is a
+small permanent difference in how somebody works, and it lands on the factor it
+describes: a team player raises the support factor, a perfectionist raises the
+tools factor, a restless mind raises creativity and costs morale. **There are
+fourteen of them, everybody has two or three, and the catalogue is code rather
+than saved state** - a campaign stores trait *identifiers*, never the
+catalogue, so a trait can be reworded without invalidating anybody's save.
+The one factor a trait cannot improve is fatigue, which is the only factor that
+can only hurt.
 **Being assigned to a project and being on its team are different things [D].** The
 assignment is what the person *is*; the team list is what the project draws on. The
 two must be kept in step, and the sim updates both together.
@@ -229,6 +256,16 @@ full load, so it is `PERCENT_UNITS` scaled units per percent, and a full load is
 contribution to whatever they are on, the fatigue they accrue, and the morale target
 they drift towards. It is set by an order (`SetShift`), it lands at the next hour,
 and it costs nothing. See `MANAGEABLE_PARTS.md` §5.2.1.
+
+**A person's shift is an override, and `None` means the policy decides [D].** The
+agency has one standing shift instruction — `CampaignState::shift_policy`, a
+`Policy::Shift { shift, only_over }` — and a person's `shift` is `None` when the
+policy decides and a value when the manager has decided better. `only_over` is the
+fatigue threshold the policy covers: `None` covers everybody, and a threshold covers
+only the people who are tireder than it. **The effective shift is a pure function of
+the state**, so the campaign is still deterministic and still replayable. **A shift
+order with `None` puts somebody back on the policy**, which is the other half of the
+override. See `MANAGEABLE_PARTS.md` §5.2.1 and `ROADMAP.md` S1-48.
 
 **The attrition risk is derived, not stored [D].** The chance a person leaves this
 month is computed from their morale, their loyalty, and whether they are at their
@@ -374,6 +411,13 @@ understands, and the player is judged on.
 - **Staffing plan** — named leads, assigned teams, vacancies.
 - **Objectives** — primary (mission-critical) and secondary (bonus), each with a
   **success criterion** and a **deadline**.
+  **What finishes an objective** [D] is either the programme's own staff
+  finishing the work, or a successful mission to the destination the objective names.
+  The primary objective of a programme that is about reaching somewhere is finished by
+  reaching it: the orbital programme's objective is "reach orbit", and the only
+  thing that reaches orbit is a launch that works. The staff's work still advances
+  the objective's progress - that is how the player sees the work going on - but the
+  objective is not complete until the thing it names has happened.
 - **Milestones** — dated checkpoints the player sets and can move.
 - **Risk register** — technical, personnel, schedule, political, budgetary. Risk is
   **visible, priced, and reducible** for money, time, or redundancy.
@@ -388,6 +432,15 @@ Transport, Megastructure, Interstellar.
 ### 6.3 Failure is content
 
 A failed programme must have an **aftermath**: a budget hole, a morale crash, an
+investigation, a cancelled follow-on, a political enemy. Failure is not a loss
+screen; it is a branch in the story.
+
+**A missed primary objective fails the programme [D].** The aftermath starts with
+the programme being marked as failed, because a deadline that is missed is a
+number that goes down and nothing else, and a player who cannot see that the
+work is over cannot feel it. The chronicle entry names the programme rather
+than the objective, because a record the player has to decode is not a record.
+
 investigation, a cancelled follow-on, a political enemy. Failure is not a loss
 screen; it is a branch in the story.
 
@@ -506,7 +559,15 @@ shaky hardware; a player who only tests never escapes the current era.
 
 Progress accumulates as **knowledge points per discipline**, plus **evidence** from
 successful missions and tests. Capabilities unlock at thresholds. The player perceives a
-rising ladder, but the underlying mechanism is continuous and emergent.
+rising ladder, but the underlying mechanism is continuous and emergent.
+
+**A discipline's knowledge is one number, and every capability in it is a
+threshold on that number.** A completed project adds 120 points to its own
+field and a fifth of that to each neighbouring field, and a capability unlocks
+when its field's total crosses its threshold. **The knowledge is stored per
+discipline and not per capability**, and the reason is that a per-capability
+total makes the overlapping thresholds meaningless: the flagship capability of
+a field would only ever be reached through the adjacency spill.
 
 **The thresholds deliberately do not follow the order they are listed in.** Re-entry
 costs 300 and orbital propulsion 240, so a player can reach orbit without ever
@@ -803,6 +864,7 @@ pub enum OrderKind {
     Unassign { person: PersonId },
     Promote { person: PersonId },
     Train { person: PersonId, course: String },
+    SetShift { person: PersonId, shift: Option<u16> },
     CreateProgramme { title: String, category: ProgrammeCategory },
     SetObjective { programme: ProgrammeId, description: String,
                    commitment: Commitment, kind: ObjectiveKind },
@@ -811,7 +873,7 @@ pub enum OrderKind {
     StartTestCampaign { capability: CapabilityId },
     BuildFacility { kind: FacilityType, plan: ConstructionPlan },
     AuthorizeLaunch { vehicle: VehicleId, destination: String, crew: Vec<PersonId> },
-    SetPolicy { policy: String, enabled: bool },
+    SetPolicy { policy: Policy },
     PublishResult { result: String, mode: KnowledgeMode },
     AssignFacility { facility: FacilityId, programme: ProgrammeId },
     CancelMission { mission: MissionId },
@@ -853,10 +915,11 @@ pub struct CampaignState {
     pub vehicles: BTreeMap<VehicleId, Vehicle>,
     pub missions: BTreeMap<MissionId, Mission>,
     pub pending_orders: BTreeMap<OrderId, Order>,
+    pub shift_policy: Option<Policy>,   // the agency's standing shift instruction
     pub chronicle: Vec<ChronicleEntry>,
 
     pub id_counters: IdCounters,
-    pub knowledge: BTreeMap<CapabilityId, u32>,
+    pub knowledge: BTreeMap<DisciplineId, u32>,
     pub unlocked: BTreeSet<CapabilityId>,
     pub event_checks: u64,
 }

@@ -26,10 +26,14 @@ use crate::error::SimError;
 ///
 /// **It was 2 when the scheduler joined the save**, **3 when the orders in
 /// flight joined the state**, **4 when the shift joined a person**, **5 when
-/// the remainder joined an objective**, and **6 when the condition of a
-/// facility was scaled**, and **7 when the testing joined the state**. A file of
-/// an older format is refused rather than half-read.
-pub const SAVE_FORMAT: u32 = 7;
+/// the remainder joined an objective**, **6 when the condition of a
+/// facility was scaled**, **7 when the testing joined the state**, **8 when
+/// the knowledge became per discipline rather than per capability**, **9
+/// when the policy order became a standing instruction and the shift became
+/// an override of it**, and **10 when a shift change could put somebody back
+/// on the policy**. A file of an older format is refused rather than
+/// half-read.
+pub const SAVE_FORMAT: u32 = 10;
 
 /// The engine version.
 ///
@@ -164,12 +168,24 @@ impl SaveEnvelope {
                 reason: format!("the file is not a campaign: {error}"),
             })?;
 
-        if envelope.format > SAVE_FORMAT {
+        // **A file of any other format is refused rather than half-read.**
+        // An older file is the dangerous one: it may have the same bytes in the
+        // same places and mean something else, which is exactly what happened
+        // when the knowledge was per capability rather than per discipline.
+        if envelope.format != SAVE_FORMAT {
             return Err(SimError::CorruptState {
-                reason: format!(
-                    "the campaign was saved in format {}, but this version reads format {SAVE_FORMAT}",
-                    envelope.format
-                ),
+                reason: if envelope.format > SAVE_FORMAT {
+                    format!(
+                        "the campaign was saved in format {}, but this version reads format {SAVE_FORMAT}",
+                        envelope.format
+                    )
+                } else {
+                    format!(
+                        "the campaign was saved in format {}, and this version reads format {SAVE_FORMAT}. \
+                         It was made by an older build of the game, and it cannot be read safely.",
+                        envelope.format
+                    )
+                },
             });
         }
 
@@ -246,6 +262,24 @@ mod tests {
         let text = envelope.to_json().expect("the envelope serialises");
         let result = SaveEnvelope::from_json(&text);
         assert!(matches!(result, Err(SimError::CorruptState { .. })));
+    }
+
+    #[test]
+    fn an_older_format_is_refused_rather_than_half_read() {
+        // **The older file is the dangerous one.** It may have the same bytes
+        // in the same places and mean something else, which is what happened
+        // when the knowledge was per capability rather than per discipline.
+        let mut envelope = sample();
+        envelope.format = SAVE_FORMAT - 1;
+        let text = envelope.to_json().expect("the envelope serialises");
+        let result = SaveEnvelope::from_json(&text);
+        let Err(SimError::CorruptState { reason }) = result else {
+            panic!("an older file must be refused");
+        };
+        assert!(
+            reason.contains("older build of the game"),
+            "and the refusal says why: {reason}"
+        );
     }
 
     #[test]

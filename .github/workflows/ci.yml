@@ -38,6 +38,23 @@ jobs:
       - name: Tests
         run: cargo test --workspace
 
+  performance:
+    name: Performance budgets
+    runs-on: ubuntu-latest
+    # **The budget is about the shipped build.** A debug build is five to
+    # twenty times slower, and a budget that only holds in a release build is
+    # checked in a release build.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: The performance budgets
+        run: cargo test --release -p sim --test performance
+
   determinism:
     name: Determinism across architectures
     runs-on: ${{ matrix.os }}
@@ -63,10 +80,10 @@ jobs:
   nightly:
     name: Nightly checks
     runs-on: ubuntu-latest
-    # The heavy suites run on a schedule rather than on every push. The schedule
-    # is not wired up yet, because the suites themselves are not written: the
-    # fuzz harness arrives with Slice 1 (ROADMAP S1-26) and the performance
-    # budgets with Slice 3 (ROADMAP S3-27). This job is enabled then.
+    # **The heavy suites run on a schedule rather than on every push.** The
+    # fuzz test plays ten thousand campaigns of random orders, and the balance
+    # harness plays a hundred of them under each of the three reference
+    # policies.
     if: false
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +96,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Fuzzing
-        run: cargo test --workspace --test fuzz -- --ignored
+        run: cargo test --release -p sim --test fuzz -- --ignored
 
-      - name: Performance budgets
-        run: cargo test --workspace --test perf
+      - name: The balance harness
+        run: cargo run --release -p sim --example harness -- first_orbit 40 60

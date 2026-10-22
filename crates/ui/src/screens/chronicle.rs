@@ -228,6 +228,12 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(area);
 
+    // The right column: the forecast, and the legend.
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(8), Constraint::Length(11)])
+        .split(columns[1]);
+
     // History.
     //
     // **The filter is three axes** - the year, the category, and the text -
@@ -289,5 +295,40 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let forecast = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title("Forecast"))
         .wrap(Wrap { trim: false });
-    frame.render_widget(forecast, columns[1]);
+    frame.render_widget(forecast, right[0]);
+
+    // **The legend.** The categories the record is sorted into, and what each
+    // of them means, so that a player reading "Financial" knows what kind of
+    // thing they are looking at.
+    let legend = Paragraph::new(legend_lines())
+        .block(Block::default().borders(Borders::ALL).title("Legend"))
+        .wrap(Wrap { trim: false });
+    frame.render_widget(legend, right[1]);
+}
+
+/// The legend: the categories, and what they mean.
+fn legend_lines() -> Vec<Line<'static>> {
+    let mut lines = Vec::new();
+    for category in domain::chronicle::Category::ALL {
+        lines.push(Line::from(vec![
+            Span::styled(format!("  {:<14}", category.label()), theme::title()),
+            Span::raw(category_meaning(category)),
+        ]));
+    }
+    lines
+}
+
+/// What a category of the record means.
+fn category_meaning(category: domain::chronicle::Category) -> &'static str {
+    use domain::chronicle::Category;
+    match category {
+        Category::Technical => "equipment, vehicles, and failures",
+        Category::Personnel => "the people, and who left",
+        Category::Discovery => "what the agency found out",
+        Category::Political => "the state, and what it promised",
+        Category::Financial => "the money, and what it cost",
+        Category::Environmental => "the weather, and the world",
+        Category::Public => "the public, and the press",
+        Category::External => "everything outside the agency",
+    }
 }

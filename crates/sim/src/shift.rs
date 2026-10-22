@@ -11,7 +11,6 @@
 //! team, and their output, all at once. The shift costs none of that, and it
 //! is a single keystroke on the screen the player is already looking at.
 
-use domain::person::PersonState;
 use domain::scale::PERCENT_UNITS;
 
 use crate::balance;
@@ -34,12 +33,6 @@ pub fn output_factor(shift: u16) -> i64 {
         let extra = shift - UNITS;
         UNITS + extra * balance::SHIFT_OVERTIME_OUTPUT_BP / 10_000
     }
-}
-
-/// The output factor for a person, as a scaled percentage.
-#[must_use]
-pub fn person_output_factor(state: &PersonState) -> i64 {
-    output_factor(state.shift)
 }
 
 /// The fatigue a shift accrues each month, in scaled units.

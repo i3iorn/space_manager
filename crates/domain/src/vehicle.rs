@@ -344,19 +344,23 @@ pub fn derive_stats(sliders: SliderValues, archetype: ArchetypeId) -> DerivedSta
 
     // **The reliability is the redundancy, the avionics and the structure**,
     // and it is the one number the player cannot buy with money alone.
+    //
+    // It is the weighted average of the three safety sliders, so a design
+    // that is careful everywhere reads as a careful design, and one that
+    // neglects one of them reads as exactly that.
     let reliability =
-        u8::try_from((values[3] * 30 + values[6] * 25 + values[5] * 20) / 75).unwrap_or(100);
+        u8::try_from((values[3] * 40 + values[6] * 30 + values[5] * 30) / 100).unwrap_or(100);
 
     // **The cost is every slider, and the expensive ones cost more.** A
     // vehicle is a sum of parts, and a player is choosing the parts.
-    let cost = i64::from(values[0]) * 4_000
-        + i64::from(values[1]) * 900
-        + i64::from(values[2]) * 6_000
-        + i64::from(values[3]) * 2_500
-        + i64::from(values[4]) * 2_000
-        + i64::from(values[5]) * 3_000
-        + i64::from(values[6]) * 1_800
-        + i64::from(values[7]) * 5_000;
+    let cost = i64::from(values[0]) * 800
+        + i64::from(values[1]) * 200
+        + i64::from(values[2]) * 1_200
+        + i64::from(values[3]) * 500
+        + i64::from(values[4]) * 400
+        + i64::from(values[5]) * 600
+        + i64::from(values[6]) * 350
+        + i64::from(values[7]) * 1_000;
 
     // **The archetype is a multiplier on the cost**, because an orbital
     // launcher is a different machine from a sounding rocket and not merely a
@@ -541,13 +545,62 @@ mod tests {
 
     #[test]
     fn an_orbital_launcher_must_be_able_to_fly() {
-        // **The band has a floor as well as a ceiling.**
+        // **The band has a floor as well as a ceiling**, and the floor only
+        // applies once the agency has the technology.
+        //
+        // **Orbital propulsion is what makes a launch vehicle**, so before the
+        // agency has developed it the propulsion slider is pinned at zero and
+        // the orbital launcher cannot be built at all.
         let bounded = SliderValues::zero().bounded(ArchetypeId(1), &[]);
         assert_eq!(
+            bounded.propulsion, 0,
+            "an orbital launcher cannot be built without orbital propulsion"
+        );
+
+        let bounded = SliderValues::zero().bounded(ArchetypeId(1), &[CapabilityId(2)]);
+        assert_eq!(
             bounded.propulsion, 20,
-            "an orbital launcher needs propulsion"
+            "and with the capability it needs propulsion"
         );
         assert_eq!(bounded.payload, 20);
+    }
+
+    #[test]
+    fn the_technology_the_agency_has_decides_what_it_can_specify() {
+        // **Each slider has a floor imposed by the available technology.**
+        // The propulsion slider waits for orbital propulsion, the life-support
+        // slider waits for closed-loop life support, the avionics slider waits
+        // for orbital launch, and the heat shield waits for re-entry.
+        let design = SliderValues {
+            propulsion: 80,
+            life_support: 80,
+            avionics: 80,
+            heat_shield: 80,
+            ..SliderValues::zero()
+        };
+
+        let nothing = design.bounded(ArchetypeId(1), &[]);
+        assert_eq!(nothing.propulsion, 0);
+        assert_eq!(nothing.life_support, 0);
+        assert_eq!(nothing.avionics, 0);
+        assert_eq!(nothing.heat_shield, 0);
+
+        let everything = design.bounded(
+            ArchetypeId(1),
+            &[
+                CapabilityId(1),
+                CapabilityId(2),
+                CapabilityId(3),
+                CapabilityId(4),
+            ],
+        );
+        assert_eq!(everything.propulsion, 80);
+        assert_eq!(everything.life_support, 80);
+        assert_eq!(everything.avionics, 80);
+        assert_eq!(
+            everything.heat_shield, 60,
+            "and the archetype still has a ceiling"
+        );
     }
 
     #[test]

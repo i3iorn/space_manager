@@ -1,9 +1,12 @@
-//! The confirmation before the game quits.
+//! The confirmation before the game does something irreversible.
 //!
 //! **A campaign is not saved.** The player has spent an evening on one, and
 //! the keys that quit the game are two of the most-used keys on the keyboard.
 //! A dialog that asks *are you sure* is the difference between a game that
 //! protects the player's afternoon and one that does not.
+//!
+//! **Loading a saved campaign throws the current one away**, and that is the
+//! same kind of decision, so it is the same dialog.
 //!
 //! The dialog is a modal over the screen behind it, so the player can see the
 //! agency they are about to leave. It is drawn last, over everything else,
@@ -16,22 +19,39 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::theme;
 
+/// What the player is being asked.
+///
+/// **The dialog asks about one thing at a time**, and what it says depends on
+/// what it is asking.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Purpose {
+    /// Leaving the game.
+    Quit,
+    /// Replacing the campaign with the one in a file.
+    Load {
+        /// The file the campaign would come from.
+        path: String,
+    },
+}
+
 /// What the player answered.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Choice {
     /// Stay in the campaign.
     Stay,
-    /// Leave the game.
-    Quit,
+    /// Do the thing that was asked about.
+    Go,
 }
 
 /// The confirmation's state.
 ///
-/// **The safe answer is the one that starts selected.** A player who opens
-/// the dialog and presses Enter without reading it has not quit, and that is
-/// the mistake the dialog exists to catch.
-#[derive(Clone, Copy, Debug)]
+/// **The safe answer is the one that starts selected.** A player who opens the
+/// dialog and presses Enter without reading it has not quit, and that is the
+/// mistake the dialog exists to catch.
+#[derive(Clone, Debug)]
 pub struct Confirmation {
+    /// What the player is being asked.
+    purpose: Purpose,
     /// Which answer is selected.
     choice: Choice,
 }
@@ -44,12 +64,28 @@ impl Default for Confirmation {
 }
 
 impl Confirmation {
-    /// A confirmation with the safe answer selected.
+    /// A confirmation to quit, with the safe answer selected.
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            purpose: Purpose::Quit,
             choice: Choice::Stay,
         }
+    }
+
+    /// A confirmation to load a campaign, with the safe answer selected.
+    #[must_use]
+    pub fn load(path: String) -> Self {
+        Self {
+            purpose: Purpose::Load { path },
+            choice: Choice::Stay,
+        }
+    }
+
+    /// What the player is being asked.
+    #[must_use]
+    pub const fn purpose(&self) -> &Purpose {
+        &self.purpose
     }
 
     /// The selected answer.
@@ -61,8 +97,8 @@ impl Confirmation {
     /// Moves the selection to the other answer.
     pub fn move_selection(&mut self) {
         self.choice = match self.choice {
-            Choice::Stay => Choice::Quit,
-            Choice::Quit => Choice::Stay,
+            Choice::Stay => Choice::Go,
+            Choice::Go => Choice::Stay,
         };
     }
 
@@ -71,10 +107,10 @@ impl Confirmation {
         self.choice = choice;
     }
 
-    /// Whether the player has chosen to leave.
+    /// Whether the player has chosen to go ahead.
     #[must_use]
-    pub const fn is_quit(&self) -> bool {
-        matches!(self.choice, Choice::Quit)
+    pub const fn is_go(&self) -> bool {
+        matches!(self.choice, Choice::Go)
     }
 }
 
@@ -84,18 +120,32 @@ pub fn render(frame: &mut Frame, area: Rect, confirmation: &Confirmation) {
 
     frame.render_widget(Clear, popup);
 
+    let (title, question, warning, go_label) = match confirmation.purpose() {
+        Purpose::Quit => (
+            " Quit ",
+            "Leave the campaign?",
+            "The campaign is not saved. Quitting ends it.".to_owned(),
+            "Quit",
+        ),
+        Purpose::Load { path } => (
+            " Load ",
+            "Load the saved campaign?",
+            format!(
+                "The campaign in {path} replaces the one you are playing. Anything you have done since is lost."
+            ),
+            "Load",
+        ),
+    };
+
     let mut lines = vec![
         Line::raw(""),
-        Line::styled("  Leave the campaign?", theme::title()),
+        Line::styled(format!("  {question}"), theme::title()),
         Line::raw(""),
-        Line::styled(
-            "  The campaign is not saved. Quitting ends it.",
-            theme::historical(),
-        ),
+        Line::styled(format!("  {warning}"), theme::historical()),
         Line::raw(""),
     ];
 
-    for choice in [Choice::Stay, Choice::Quit] {
+    for choice in [Choice::Stay, Choice::Go] {
         let selected = confirmation.choice() == choice;
         let marker = if selected {
             theme::FOCUS
@@ -104,7 +154,7 @@ pub fn render(frame: &mut Frame, area: Rect, confirmation: &Confirmation) {
         };
         let label = match choice {
             Choice::Stay => "Keep playing",
-            Choice::Quit => "Quit",
+            Choice::Go => go_label,
         };
         let style = if selected {
             theme::selected()
@@ -124,7 +174,7 @@ pub fn render(frame: &mut Frame, area: Rect, confirmation: &Confirmation) {
     ));
 
     let body = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Quit "))
+        .block(Block::default().borders(Borders::ALL).title(title))
         .wrap(Wrap { trim: false });
     frame.render_widget(body, popup);
 }
@@ -160,17 +210,33 @@ mod tests {
         // and presses Enter without reading it.
         let confirmation = Confirmation::new();
         assert_eq!(confirmation.choice(), Choice::Stay);
-        assert!(!confirmation.is_quit());
+        assert!(!confirmation.is_go());
     }
 
     #[test]
     fn the_selection_moves_both_ways() {
         let mut confirmation = Confirmation::new();
         confirmation.move_selection();
-        assert_eq!(confirmation.choice(), Choice::Quit);
-        assert!(confirmation.is_quit());
+        assert_eq!(confirmation.choice(), Choice::Go);
+        assert!(confirmation.is_go());
         confirmation.move_selection();
         assert_eq!(confirmation.choice(), Choice::Stay);
-        assert!(!confirmation.is_quit());
+        assert!(!confirmation.is_go());
+    }
+
+    #[test]
+    fn the_load_confirmation_is_also_safe_to_press_enter_on() {
+        // **The same rule, for the same reason.** Loading a campaign throws
+        // the current one away, and a player who presses Enter without reading
+        // must not lose it.
+        let confirmation = Confirmation::load("campaign.json".to_owned());
+        assert_eq!(confirmation.choice(), Choice::Stay);
+        assert!(!confirmation.is_go());
+        assert_eq!(
+            confirmation.purpose(),
+            &Purpose::Load {
+                path: "campaign.json".to_owned()
+            }
+        );
     }
 }

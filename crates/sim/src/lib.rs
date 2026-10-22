@@ -45,6 +45,9 @@ pub mod derived;
 pub mod error;
 pub mod event_catalogue;
 pub mod events;
+pub mod feed;
+pub mod harness;
+pub mod names;
 pub mod orders;
 pub mod performance;
 pub mod persist;
@@ -56,6 +59,7 @@ pub mod rng;
 pub mod scenario;
 pub mod scheduler;
 pub mod shift;
+pub mod summary;
 pub mod tick;
 pub mod version;
 
@@ -73,6 +77,18 @@ pub use persist::{LoggedOrder, SaveEnvelope, state_hash};
 pub use rng::{Domain, Rng};
 pub use scenario::Scenario;
 pub use scheduler::{ScheduledItem, ScheduledKind, Scheduler};
+
+/// Stamps report lines with the instant they happened.
+///
+/// **A line that is stamped with "now" is a line whose timestamp moves with
+/// the clock**, and a feed whose timestamps move is a feed the player cannot
+/// read. The lines carry the instant of the step that produced them.
+fn stamp(
+    lines: Vec<domain::report::ReportLine>,
+    at: Instant,
+) -> Vec<(Instant, domain::report::ReportLine)> {
+    lines.into_iter().map(|line| (at, line)).collect()
+}
 
 /// The most months one `advance_to` call will simulate.
 ///
@@ -114,11 +130,16 @@ pub struct Sim {
     /// integration quanta, and the fraction is carried until it adds up to
     /// one. Nothing is lost.
     carry: Duration,
-    /// The report lines produced since the last monthly report.
+    /// The report lines produced since the last monthly report, and when each
+    /// of them happened.
     ///
     /// **An order lands between month boundaries**, so its lines have to wait
     /// for the next report. The live feed (M1-13) replaces this.
-    pending_lines: Vec<domain::report::ReportLine>,
+    ///
+    /// **The instant is kept with the line**, because a line that is stamped
+    /// with "now" is a line whose timestamp moves with the clock, and a feed
+    /// whose timestamps move is a feed the player cannot read.
+    pending_lines: Vec<(Instant, domain::report::ReportLine)>,
     /// The orders that were refused since the last monthly report, and why.
     pending_rejections: Vec<OrderError>,
     log: Vec<LoggedOrder>,
@@ -152,9 +173,22 @@ impl Sim {
         domain::invariant::check(&sim.state).map_err(|violation| SimError::CorruptState {
             reason: violation.to_string(),
         })?;
+        sim.unlock_the_capabilities_the_agency_always_had();
         sim.schedule_periodic();
         sim.schedule_commitments();
         Ok(sim)
+    }
+
+    /// Unlocks the capabilities the agency has always had.
+    ///
+    /// **A capability with a threshold of zero was never *developed*** — the
+    /// agency always had it, and it unlocks silently, without a chronicle
+    /// entry. It is unlocked here rather than in the scenario, so that every
+    /// campaign has it however the campaign was started.
+    fn unlock_the_capabilities_the_agency_always_had(&mut self) {
+        for capability in domain::research::starting_capabilities() {
+            self.state.unlocked.insert(capability);
+        }
     }
 
     /// Puts the commitments in the starting state on the queue.
@@ -237,6 +271,17 @@ impl Sim {
         &self.state.pending_orders
     }
 
+    /// The report lines waiting for the next month report, and when each of
+    /// them happened.
+    ///
+    /// **They are the things that have happened since the last report and are
+    /// not chronicle entries**, and the live feed shows them so that a refusal
+    /// or a warning is never a month old in the player's mind.
+    #[must_use]
+    pub fn pending_lines(&self) -> &[(Instant, domain::report::ReportLine)] {
+        &self.pending_lines
+    }
+
     /// Issues orders, and resolves the month they belong to.
     ///
     /// **The orders are issued now and land at their own lead times.** An order
@@ -297,9 +342,14 @@ impl Sim {
     /// original would drift apart.
     fn issue_at(&mut self, order: OrderKind, issued_at: Instant) -> Result<OrderId, OrderError> {
         // **An order with no registered handler is rejected, never ignored.**
+        //
+        // The message does not name the kind: "SetPolicy" is the engine's
+        // name for it and not the player's, and a message that says
+        // "SetPolicy" is a message that has leaked an implementation detail
+        // into the interface.
         if !crate::orders::has_handler(&order) {
             return Err(OrderError::Rejected {
-                reason: format!("There is no way to {} yet.", order.kind_name()),
+                reason: "The agency has no way to do that yet.".to_owned(),
             });
         }
         // **The first validation.** The player is told now, not at the landing.
@@ -577,8 +627,10 @@ impl Sim {
             }
 
             // The report lines wait for the next monthly report.
-            self.pending_lines.extend(context.personnel_lines);
-            self.pending_lines.extend(context.programme_lines);
+            self.pending_lines
+                .extend(stamp(context.personnel_lines, at));
+            self.pending_lines
+                .extend(stamp(context.programme_lines, at));
             for entry in context.events {
                 working.chronicle(entry);
             }
@@ -604,7 +656,8 @@ impl Sim {
             for (at, item) in std::mem::take(&mut context.schedule) {
                 self.scheduler.schedule(at, item);
             }
-            self.pending_lines.extend(context.programme_lines);
+            self.pending_lines
+                .extend(stamp(context.programme_lines, at));
             for entry in context.events {
                 working.chronicle(entry);
             }
@@ -625,11 +678,14 @@ impl Sim {
             for (at, item) in std::mem::take(&mut context.schedule) {
                 self.scheduler.schedule(at, item);
             }
-            self.pending_lines.extend(context.programme_lines);
-            for warning in context.warnings {
-                self.pending_lines
-                    .push(domain::report::ReportLine::new(warning));
-            }
+            self.pending_lines
+                .extend(stamp(context.programme_lines, at));
+            let warnings: Vec<domain::report::ReportLine> = context
+                .warnings
+                .into_iter()
+                .map(domain::report::ReportLine::new)
+                .collect();
+            self.pending_lines.extend(stamp(warnings, at));
             for entry in context.events {
                 working.chronicle(entry);
             }
@@ -650,11 +706,14 @@ impl Sim {
             for (at, item) in std::mem::take(&mut context.schedule) {
                 self.scheduler.schedule(at, item);
             }
-            self.pending_lines.extend(context.programme_lines);
-            for warning in context.warnings {
-                self.pending_lines
-                    .push(domain::report::ReportLine::new(warning));
-            }
+            self.pending_lines
+                .extend(stamp(context.programme_lines, at));
+            let warnings: Vec<domain::report::ReportLine> = context
+                .warnings
+                .into_iter()
+                .map(domain::report::ReportLine::new)
+                .collect();
+            self.pending_lines.extend(stamp(warnings, at));
             for entry in context.events {
                 working.chronicle(entry);
             }
@@ -665,7 +724,7 @@ impl Sim {
     ///
     /// **The build completes at a scheduled instant**, the same way a project
     /// does, and the vehicle is ready to fly from that moment.
-    fn complete_vehicle(&mut self, _at: Instant, vehicle: domain::ids::VehicleId) {
+    fn complete_vehicle(&mut self, at: Instant, vehicle: domain::ids::VehicleId) {
         let Some(state) = self.state.vehicles.get_mut(&vehicle) else {
             return;
         };
@@ -673,10 +732,15 @@ impl Sim {
             state.build_state = domain::vehicle::BuildState::Complete;
             state.build_progress = 100 * domain::scale::PERCENT_UNITS as u32;
             let name = state.name.clone();
-            self.pending_lines.push(
-                domain::report::ReportLine::new(format!("{name} is finished and ready to fly."))
+            self.pending_lines.extend(stamp(
+                vec![
+                    domain::report::ReportLine::new(format!(
+                        "{name} is finished and ready to fly."
+                    ))
                     .with_severity(domain::chronicle::Severity::Info),
-            );
+                ],
+                at,
+            ));
         }
     }
     /// Resolves a commitment that has fallen due.
@@ -692,7 +756,8 @@ impl Sim {
             for (at, item) in std::mem::take(&mut context.schedule) {
                 self.scheduler.schedule(at, item);
             }
-            self.pending_lines.extend(context.programme_lines);
+            self.pending_lines
+                .extend(stamp(context.programme_lines, at));
             for entry in context.events {
                 working.chronicle(entry);
             }
@@ -737,9 +802,11 @@ impl Sim {
             let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
             // The orders that landed since the last report, and the ones that
             // were refused, belong to this report.
-            context
-                .personnel_lines
-                .extend(std::mem::take(&mut self.pending_lines));
+            context.personnel_lines.extend(
+                std::mem::take(&mut self.pending_lines)
+                    .into_iter()
+                    .map(|(_, line)| line),
+            );
             context
                 .rejections
                 .extend(std::mem::take(&mut self.pending_rejections));
@@ -821,7 +888,7 @@ impl Sim {
         // The scheduler comes back with the campaign. Re-scheduling the
         // recurring work here would re-fire every month boundary that already
         // happened, and the campaign would silently change.
-        Ok(Self {
+        let mut sim = Self {
             state: envelope.state,
             scenario: envelope.scenario,
             rng: Rng::new(envelope.root_seed),
@@ -833,7 +900,9 @@ impl Sim {
             pending_rejections: Vec::new(),
             log: envelope.log,
             sequence,
-        })
+        };
+        sim.unlock_the_capabilities_the_agency_always_had();
+        Ok(sim)
     }
 
     /// A hash over the whole campaign state.
@@ -846,6 +915,46 @@ impl Sim {
     #[must_use]
     pub const fn scenario(&self) -> &Scenario {
         &self.scenario
+    }
+
+    /// Replays the campaign from its order log.
+    ///
+    /// **The log is the campaign, and everything else is a cache of it.** This
+    /// is the proof: a campaign rebuilt from the scenario and the log alone is
+    /// the same campaign, down to the state hash.
+    ///
+    /// It is the same mechanism the fork uses, and it is what makes a replay
+    /// possible at all — a campaign that cannot be rebuilt from its log cannot
+    /// be verified, cannot be forked, and cannot be handed to anybody else.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`SimError`] if the log cannot be replayed.
+    pub fn replay(&self) -> Result<Self, SimError> {
+        let mut scenario = self.scenario.clone();
+        scenario.seed = self.rng.root_seed();
+        let mut replayed = Self::new(&scenario)?;
+
+        for entry in &self.log {
+            // The campaign reaches the instant the order was given, so the
+            // replay is in the same state the original was in.
+            replayed.advance_to(entry.issued_at)?;
+            let kind: OrderKind =
+                serde_json::from_value(entry.payload.clone()).map_err(|error| {
+                    SimError::CorruptState {
+                        reason: format!("The order log could not be read: {error}"),
+                    }
+                })?;
+            replayed
+                .issue_at(kind, entry.issued_at)
+                .map_err(|error| SimError::CorruptState {
+                    reason: format!("The order log could not be replayed: {error}"),
+                })?;
+        }
+
+        // And to the instant the campaign has reached.
+        replayed.advance_to(self.effective_now())?;
+        Ok(replayed)
     }
 
     /// Forks the campaign at an instant.
@@ -1069,9 +1178,9 @@ mod tests {
     fn an_order_with_no_handler_is_refused_rather_than_ignored() {
         let mut sim = Sim::new(&Scenario::first_year()).expect("the scenario starts");
         let error = sim
-            .issue(OrderKind::SetPolicy {
-                policy: "Open the launch manifest".to_owned(),
-                enabled: true,
+            .issue(OrderKind::PublishResult {
+                result: "The soil survey".to_owned(),
+                mode: domain::order::KnowledgeMode::Open,
             })
             .expect_err("the order is refused");
         assert!(error.to_string().contains("no way to"));
@@ -1159,7 +1268,8 @@ mod tests {
         })
         .expect("the order is accepted");
 
-        // And then the world moves on: the person is given something else.
+        // And then the world moves on: the person is given something else,
+        // and then they leave the agency altogether.
         {
             let person = sim
                 .state
@@ -1168,6 +1278,10 @@ mod tests {
                 .expect("the person exists");
             person.assignment = domain::person::Assignment::Division(domain::ids::DivisionId(1));
         }
+        sim.issue(OrderKind::Fire {
+            person: PersonId(1),
+        })
+        .expect("the dismissal is accepted");
 
         let reports = sim
             .advance_to(Instant::from_months(2))
@@ -1178,7 +1292,7 @@ mod tests {
         assert!(
             last.rejections
                 .iter()
-                .any(|reason| reason.contains("already assigned")),
+                .any(|reason| reason.contains("no longer with the agency")),
             "the order should have been refused at landing: {:?}",
             last.rejections
         );
@@ -1353,6 +1467,9 @@ mod tests {
     fn a_refused_order_costs_no_goodwill() {
         // Two campaigns: one that issues an order that cannot be honoured, and
         // one that does not. They must end up with the same goodwill.
+        //
+        // **Both dismiss the same person**, so the only difference between
+        // them is the order that never lands.
         let mut refused = Sim::new(&Scenario::first_year()).expect("the scenario starts");
         refused
             .issue(OrderKind::Assign {
@@ -1368,8 +1485,18 @@ mod tests {
                 .expect("the person exists");
             person.assignment = domain::person::Assignment::Division(domain::ids::DivisionId(1));
         }
+        refused
+            .issue(OrderKind::Fire {
+                person: PersonId(1),
+            })
+            .expect("the dismissal is accepted");
 
         let mut quiet = Sim::new(&Scenario::first_year()).expect("the scenario starts");
+        quiet
+            .issue(OrderKind::Fire {
+                person: PersonId(1),
+            })
+            .expect("the dismissal is accepted");
         refused
             .advance_to(Instant::from_months(2))
             .expect("advances");

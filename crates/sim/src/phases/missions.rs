@@ -157,40 +157,7 @@ pub fn resolve_outcome(context: &mut MonthContext<'_>, mission: MissionId) {
         mission.0,
     );
     let roll = crate::rng::draw_basis_points(&mut rng);
-
-    let outcome = if roll < probability {
-        Outcome::success(vec![MissionResult {
-            finding: format!("The data from {destination} came back complete."),
-            quality: 100,
-        }])
-    } else {
-        // **A partial failure is the common branch.** The severity decides how
-        // much of the mission was lost.
-        let partial = roll < probability + 5_000;
-        let quality = if partial {
-            u8::try_from(100 - u32::from(severity) / 2).unwrap_or(50)
-        } else {
-            0
-        };
-        let results = if quality > 0 {
-            vec![MissionResult {
-                finding: format!("Some of the data from {destination} came back."),
-                quality,
-            }]
-        } else {
-            Vec::new()
-        };
-        if partial {
-            Outcome::partial(severity, results)
-        } else {
-            Outcome {
-                success: false,
-                severity,
-                partial: false,
-                results,
-            }
-        }
-    };
+    let outcome = draw_the_outcome(roll, probability, severity, &destination);
 
     // **The result feeds the research**, and the finding is the point of the
     // whole thing.
@@ -202,6 +169,41 @@ pub fn resolve_outcome(context: &mut MonthContext<'_>, mission: MissionId) {
         if !success && !partial {
             mission.phase = MissionPhase::Failed(Box::new(MissionPhase::Operations));
         }
+    }
+
+    // **A total failure writes the vehicle off.**
+    //
+    // A mission that does not come home does not come back in a condition
+    // worth flying again, and a launch that has been lost is one of the three
+    // things the Slice 3 exit test says a playtester has to be able to read
+    // in the chronicle.
+    if !success && !partial {
+        if let Some(vehicle) = context.state.vehicles.get_mut(&vehicle) {
+            vehicle.build_state = domain::vehicle::BuildState::Scrapped;
+            let name = vehicle.name.clone();
+            context.programme_lines.push(
+                domain::report::ReportLine::new(format!("{name} was lost."))
+                    .with_severity(domain::chronicle::Severity::Critical),
+            );
+            context.events.push(domain::chronicle::ChronicleEntry::new(
+                context.state.next_chronicle_id(),
+                context.month,
+                domain::chronicle::Category::Technical,
+                format!("{name} was lost on the mission to {destination}."),
+                domain::chronicle::Severity::Critical,
+            ));
+        }
+    }
+
+    // **A successful launch finishes the programme that was about it.**
+    //
+    // The orbital programme's objective is "reach orbit", and the only thing
+    // that reaches orbit is a launch that works. The programme's staff advance
+    // the objective's progress — that is how the player sees the work going on
+    // — but the objective is not finished until the thing it names has
+    // happened, and **a partial failure is not a thing that has happened**.
+    if success {
+        complete_the_milestone(context, &destination);
     }
 
     for result in &findings {
@@ -249,6 +251,100 @@ pub fn resolve_outcome(context: &mut MonthContext<'_>, mission: MissionId) {
         message,
         domain::chronicle::Severity::Major,
     ));
+}
+
+/// Draws the outcome of a mission.
+///
+/// **Partial failure is the common branch.** Two failures in three are a
+/// degraded mission that comes home with some of its data; one in three is a
+/// total loss.
+///
+/// The earlier code made the partial band a flat five thousand basis points
+/// wide, which meant that a reliable vehicle almost never had a partial
+/// failure and a shaky one had almost nothing but total failures. **The share
+/// of the failure is the thing that is fixed, and the size of the failure
+/// follows from the vehicle.**
+fn draw_the_outcome(roll: u32, probability: u32, severity: u8, destination: &str) -> Outcome {
+    if roll < probability {
+        return Outcome::success(vec![MissionResult {
+            finding: format!("The data from {destination} came back complete."),
+            quality: 100,
+        }]);
+    }
+    let failures = 10_000_u32.saturating_sub(probability);
+    let partial_band = failures * crate::balance::MISSION_PARTIAL_SHARE_BP / 10_000;
+    let partial = roll < probability.saturating_add(partial_band);
+    let quality = if partial {
+        u8::try_from(100 - u32::from(severity) / 2).unwrap_or(50)
+    } else {
+        0
+    };
+    let results = if quality > 0 {
+        vec![MissionResult {
+            finding: format!("Some of the data from {destination} came back."),
+            quality,
+        }]
+    } else {
+        Vec::new()
+    };
+    if partial {
+        Outcome::partial(severity, results)
+    } else {
+        Outcome {
+            success: false,
+            severity,
+            partial: false,
+            results,
+        }
+    }
+}
+
+/// Finishes the objective that a successful launch to a destination completes.
+///
+/// **The objective's progress is set to its target and the milestone is marked
+/// as reached.** The commitment is not resolved here: it is resolved when it
+/// falls due, against the work, and a deadline that is met early is still met.
+fn complete_the_milestone(context: &mut MonthContext<'_>, destination: &str) {
+    let programmes: Vec<_> = context
+        .state
+        .programmes
+        .values()
+        .filter(|programme| programme.category.milestone_destination() == Some(destination))
+        .map(|programme| programme.id)
+        .collect();
+
+    for programme in programmes {
+        let Some(programme) = context.state.programmes.get_mut(&programme) else {
+            continue;
+        };
+        let Some(objective) = programme.objectives.iter_mut().find(|objective| {
+            objective.kind == domain::programme::ObjectiveKind::Primary
+                && !objective.milestone_reached
+                && objective.met.is_none()
+                && matches!(
+                    &objective.completion,
+                    domain::programme::ObjectiveCompletion::Destination(wanted)
+                        if wanted == destination
+                )
+        }) else {
+            continue;
+        };
+        objective.milestone_reached = true;
+        objective.progress.points = objective.progress.target;
+        let description = objective.description.clone();
+        let title = programme.title.clone();
+        context.programme_lines.push(
+            domain::report::ReportLine::new(format!("{description} is complete."))
+                .with_severity(domain::chronicle::Severity::Major),
+        );
+        context.events.push(domain::chronicle::ChronicleEntry::new(
+            context.state.next_chronicle_id(),
+            context.month,
+            domain::chronicle::Category::Technical,
+            format!("{description} is complete: the {title} programme reached {destination}."),
+            domain::chronicle::Severity::Major,
+        ));
+    }
 }
 
 /// The findings of a mission advance the research in the matching discipline.

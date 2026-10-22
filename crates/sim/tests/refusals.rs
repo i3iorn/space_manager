@@ -55,9 +55,9 @@ fn an_order_for_somebody_who_has_left_is_refused() {
 }
 
 #[test]
-fn assigning_somebody_who_is_already_assigned_is_refused() {
-    // **The person is named and so is where they are**, so the player knows
-    // what they are being moved from.
+fn putting_somebody_where_they_already_are_is_refused() {
+    // **The one thing refused is a no-op**, and the person is named and so is
+    // where they are.
     let mut sim = campaign();
     let person = sim
         .state()
@@ -66,20 +66,65 @@ fn assigning_somebody_who_is_already_assigned_is_refused() {
         .find(|person| person.is_assigned())
         .expect("somebody is already on something")
         .id;
+    let already = sim.state().people[&person].assignment.clone();
     let error = sim
         .issue(OrderKind::Assign {
             person,
-            to: domain::person::Assignment::Division(domain::ids::DivisionId(0)),
+            to: already,
         })
         .expect_err("the order is refused");
     assert!(
         matches!(error, sim::error::OrderError::AlreadyAssigned { .. }),
-        "and the refusal says they are busy: {error}"
+        "and the refusal says they are already there: {error}"
     );
     assert!(
-        error.to_string().contains("already assigned"),
+        error.to_string().contains("already on"),
         "and the message is written for a player: {error}"
     );
+}
+
+#[test]
+fn an_assignment_moves_somebody_off_what_they_were_on() {
+    // **The order is "assign / reassign"**, and the design's own order list
+    // calls it that. A person who is working on a project can be put in a
+    // laboratory instead, and they come off the project's team.
+    let mut sim = campaign();
+    let person = sim
+        .state()
+        .people
+        .values()
+        .find(|person| person.is_assigned())
+        .expect("somebody is already on something")
+        .id;
+    let was = sim.state().people[&person].assignment.clone();
+    let facility = *sim
+        .state()
+        .facilities
+        .keys()
+        .next()
+        .expect("there is a facility");
+    sim.issue(OrderKind::Assign {
+        person,
+        to: domain::person::Assignment::Facility { facility },
+    })
+    .expect("the order is accepted");
+    sim.advance_to(domain::time::Instant::from_days(5))
+        .expect("the campaign advances");
+
+    let after = &sim.state().people[&person].assignment;
+    assert!(
+        matches!(after, domain::person::Assignment::Facility { facility: other } if *other == facility),
+        "and they are in the facility: {after:?}"
+    );
+    assert_ne!(after, &was, "and they came off whatever they were on");
+    // **And they are off the old team's list**, which is the bug that made
+    // every staffing decision meaningless.
+    if let domain::person::Assignment::Project { project } = was {
+        assert!(
+            !sim.state().projects[&project].team.contains(&person),
+            "and the old team does not still have them"
+        );
+    }
 }
 
 #[test]
@@ -164,9 +209,9 @@ fn an_order_with_no_handler_is_refused_rather_than_ignored() {
     // must be refused with a reason, not accepted and quietly ignored.
     let mut sim = campaign();
     let error = sim
-        .issue(OrderKind::SetPolicy {
-            policy: "Open the launch manifest".to_owned(),
-            enabled: true,
+        .issue(OrderKind::PublishResult {
+            result: "The soil survey".to_owned(),
+            mode: domain::order::KnowledgeMode::Open,
         })
         .expect_err("the order is refused");
     assert!(
@@ -229,7 +274,7 @@ fn an_order_that_becomes_impossible_is_refused_when_it_lands() {
         .expect("the dismissal is accepted");
     sim.issue(OrderKind::SetShift {
         person,
-        shift: (150 * domain::scale::PERCENT_UNITS as u16),
+        shift: Some(150 * domain::scale::PERCENT_UNITS as u16),
     })
     .expect("the shift change is accepted");
     assert_eq!(sim.pending_orders().len(), 2, "both are in flight");
@@ -258,7 +303,7 @@ fn a_refusal_at_landing_is_reported_to_the_player() {
         .expect("the dismissal is accepted");
     sim.issue(OrderKind::SetShift {
         person,
-        shift: (150 * domain::scale::PERCENT_UNITS as u16),
+        shift: Some(150 * domain::scale::PERCENT_UNITS as u16),
     })
     .expect("the shift change is accepted");
 

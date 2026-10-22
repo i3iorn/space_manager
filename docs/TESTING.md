@@ -31,12 +31,12 @@
 |---|---|---|---|
 | **Unit** | `crates/*/src/**` `#[cfg(test)]` modules | Milliseconds | Every change |
 | **Integration** | `crates/*/tests/` | Seconds | Every change |
-| **Golden** | `crates/sim/tests/golden/` | Seconds | Every change |
-| **Property** | `crates/sim/tests/property/` | Seconds to minutes | Every change |
-| **Fuzz** | `crates/sim/tests/fuzz/` | Minutes | Nightly |
-| **Balance** | `crates/sim/tests/balance/` | Minutes | Nightly, and on demand |
-| **Performance** | `crates/sim/tests/perf/` | Seconds | Every change |
-| **UI snapshot** | `crates/ui/tests/` | Seconds | Every change |
+| **Golden** | `crates/sim/tests/golden.rs` | Seconds | Every change |
+| **Property** | `crates/domain/tests/properties.rs` | Seconds to minutes | Every change |
+| **Cross-system** | `crates/sim/tests/invariants.rs` | Seconds | Every change |
+| **Fuzz** | `crates/sim/tests/fuzz.rs` | Minutes | Nightly |
+| **Balance** | `crates/sim/tests/balance.rs` | Minutes | Nightly, and on demand |
+| **Performance** | `crates/sim/tests/performance.rs` | Seconds | Every change || **UI snapshot** | `crates/ui/tests/` | Seconds | Every change |
 
 **The dependency-direction check** is a test too — it lives in CI and fails if `domain`
 grows a dependency on `sim`.
@@ -75,6 +75,14 @@ The current figure is **89%** of the lines and **91%** of the regions.
 | **The identifiers** | `crates/ui/tests/identifiers.rs` | No screen, no message, and no confirmation shows an identifier where a name belongs — and `Ctrl+C` quits from any modal |
 | **A long run** | `crates/sim/tests/longrun.rs` | A five-year campaign with an order every week survives without a panic |
 | **The manual's numbers** | `crates/ui/tests/manual_numbers.rs` | The manual quotes the live balance constants, and a change to one fails the test that guards it |
+| **The cross-system invariants** | `crates/sim/tests/invariants.rs` | No orphaned references, the team lists and the assignments agree, every commitment is on the scheduler, and every mission has its next phase |
+| **The fuzz test** | `crates/sim/tests/fuzz.rs` | Random order sequences never panic, never break an invariant, and always save and load |
+| **The performance budgets** | `crates/sim/tests/performance.rs` | A full five-year campaign resolves in under a second, and so does a fork |
+| **The balance harness** | `crates/sim/tests/balance.rs` | The "First Orbit" scenario can be won, the three reference strategies all survive, and they are different from one another |
+| **Replay and branching** | `crates/sim/tests/replay.rs` | A replayed campaign is the same campaign, and a branch diverges only because the player made it diverge |
+| **The messages** | `crates/sim/tests/messages.rs` | Every refusal the engine can make is a sentence to a player, and contains no identifier |
+| **The save files** | `crates/sim/tests/persistence.rs` | A garbled, truncated, empty, or foreign-version file is refused with a reason and never crashes |
+| **The onboarding** | `crates/ui/tests/onboarding.rs` | The game opens with the framing and the first goal, and the world waits while the player reads it |
 
 **The negative cases are the ones that find things.** Every bug this project has
 found in the last month of work was found by a test that expected a refusal: an
@@ -337,9 +345,13 @@ architecture has been broken and the cause needs finding, not the budget raising
 
 ## 8. Balance testing
 
-Balance is not decided by feel alone. The harness in `crates/sim/tests/balance/` runs
-many campaigns under scripted reference policies and reports the outcome distribution.
+Balance is not decided by feel alone. The harness in `crates/sim/src/harness.rs`
+runs many campaigns under scripted reference policies and reports the outcome
+distribution, and `crates/sim/examples/harness.rs` is it from the command line:
 
+```
+cargo run -p sim --example harness -- first_orbit 20 60
+```
 ### Reference policies
 
 Three scripted players, each making reasonable decisions:
@@ -358,16 +370,15 @@ is a puzzle with a single answer.
 
 For each policy, over N seeds:
 
-- the distribution of the primary outcome (reached orbit, fell short, collapsed)
-- the distribution of the final year, treasury, approval, and staff count
-- the distribution of failures: launch failures, missed deadlines, programme
-  cancellations
-- the distribution of time-to-orbit
+- the primary outcome: how many campaigns reached orbit, and how many met the
+  deadline
+- the time to orbit: the earliest, the median, and the latest
+- the launches, and how many of them worked, partly worked, and were lost
+- the treasury left, the staff at the end, and the knowledge the agency holds
 
-**The harness's job is to make balance legible [D].** A designer should be able to change
-a number, re-run, and see the distribution move. If tuning a constant requires a human
-playtest to detect the change, balance will be tuned by accident.
-
+**And a verdict.** The harness exits with a non-zero status if any policy has
+collapsed, because a balance pass that leaves the game with one answer has
+not passed.
 ### What the harness must not do
 
 **It must not optimise.** The harness measures and reports; it does not search for the

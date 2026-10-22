@@ -19,7 +19,8 @@ fn press(code: KeyCode) -> KeyEvent {
 }
 
 fn app() -> App {
-    let mut app = App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
+    let mut app =
+        App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"));
     // **The campaign is run forward a little**, so the screens have something
     // to show: a promise, a deadline, a project, a person.
     app.advance(domain::time::Duration::from_days(400));

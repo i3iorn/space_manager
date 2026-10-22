@@ -57,6 +57,17 @@ pub const TOPICS: &[Topic] = &[
         "An assignment puts a person on a programme, a project, a test campaign, a \
          facility, or a division. It takes 1 to 3 days to land, and it is the \
          cheapest order there is - two points of goodwill, and no money.\n\n\
+         **An assignment is a move.** Somebody who is working in the propulsion \
+         laboratory can be put on the combustion study instead, and they come off \
+         the laboratory's staff list when the order lands - which may leave the \
+         laboratory short of hands, and short laboratories wear out. The order \
+         palette says whose team somebody is being taken off, before the order \
+         is confirmed.\n\n\
+         **Any number of people can be on one project**, and the more there are \
+         the faster it finishes: each of them contributes their own performance \
+         as points, and the points are summed. A project with one person on it \
+         takes about twice as long as one with two, and the target does not \
+         move.\n\n\
          **This is the order the game is played with.** Every performance number in the \
          agency comes from somebody being on something, and the difference between a \
          project that finishes and a project that does not is very often a decision made \
@@ -84,6 +95,32 @@ pub const TOPICS: &[Topic] = &[
          The unassignment is for when the work is finished, not for when the person is tired."
     ),
     topic!(
+        "order.policy",
+        Section::Orders,
+        "Change the agency's shift policy",
+        "A standing instruction about shifts, for everybody at once. The tool for an agency of three hundred people.",
+        "**The per-person shift is the surgical tool, and this is the one for the whole \
+         agency.** Setting somebody's shift is one keystroke on a screen the player is \
+         already looking at, and it scales because it is one keystroke. **A player who \
+         cannot make a hundred of them is a player who is not managing their staff at all.**\n\n\
+         **The policy is a standing instruction and not a one-off.** It stays in force until \
+         the player changes it, and it says two things: **who it covers** and **what they \
+         work**. Either everybody works the shift, or — and this is the useful one — \
+         **anybody who is tireder than a threshold is eased off**, and the people who are \
+         fresher keep their own shift.\n\n\
+         **The threshold makes it a thermostat.** A person who is eased off recovers, comes \
+         back up to the threshold, and is eased off again, and the cycle is slow. The point \
+         is that the agency never has anybody work themselves to pieces, and the player \
+         never has to watch eighty fatigue bars to know whether the agency is doing that.\n\n\
+         **A person the manager has moved individually is moved off the policy**, and the \
+         staff screen says so — a person on a light shift because the policy eased them \
+         off is a different thing from a person the manager put on light duties, and the \
+         player has to be able to tell them apart.\n\n\
+         **The policy is a week of bureaucracy and costs five goodwill**, because a standing \
+         instruction about how the whole agency works is a public act. The per-person shift \
+         stays free and immediate: a player must be able to make a hundred of them."
+    ),
+    topic!(
         "order.shift",
         Section::Orders,
         "Set a shift",
@@ -100,6 +137,11 @@ pub const TOPICS: &[Topic] = &[
          hundred and fifty percent of the fatigue, and seven and a half points of morale a \
          month. A hundred and sixty percent of the output for twice the wear is a bad trade, \
          and the interface shows the trade rather than hiding it.\n\n\
+         **A shift given to one person is an override of the agency policy**, and the \
+         option to put them back on it is the last one in the list. **That is how a player \
+         says \"she works flat out until she is tired, and then she eases off\"** - push her \
+         up while she is fresh, and put her back on the policy when the policy's threshold \
+         should start to matter.\n\n\
          **This is the order that makes the other numbers move.** Fatigue is one of the \
          eight factors and the most expensive one, so a shift is a performance order in \
          its own right: a team held back by fatigue is held back by fatigue, and the \
@@ -145,18 +187,18 @@ pub const TOPICS: &[Topic] = &[
         Section::Orders,
         "Start a research project",
         "Begin a piece of research. It takes a week or two to land, and it costs by the head.",
-        "Starting a project takes 7 to 14 days to land. It costs 12,000 \
-         credits a head every month the project is running, plus 6,000 of \
+        "Starting a project takes 7 to 14 days to land. It costs 1,200 \
+         credits a head every month the project is running, plus 3,000 of \
          overhead.\n\n\
          **The target is fixed at 2,400 points and it never moves.** The project's team \
          contributes their performance as points and the points are summed, so adding \
          somebody makes it finish sooner.\n\n\
          A project with nobody on it is a project that will never finish, and a project \
          with a tired team is a project that will finish late. A four-person project at full \
-         performance takes six months and costs 324,000; at seventy percent fatigue it \
+         performance takes six months and costs 46,800; at seventy percent fatigue it \
          takes about nine and changes nothing about the cost.\n\n\
          **The order itself is cheap and the project is not.** One point of goodwill to \
-         start, and then a commitment to 54,000 a month for as long as it runs. A player \
+         start, and then a commitment to 7,800 a month for as long as it runs. A player \
          who starts three projects to have the option of finishing one has committed to \
          three."
     ),
@@ -165,15 +207,15 @@ pub const TOPICS: &[Topic] = &[
         Section::Orders,
         "Start a test campaign",
         "Prove that what you built works. It costs by the head, and it competes for the same staff.",
-        "A test campaign takes 7 days to start and costs 7,000 credits a head \
+        "A test campaign takes 7 days to start and costs 600 credits a head \
          every month - less than a research project.\n\n\
          **It needs a capability to test**, so the order is not on offer until the agency \
          has developed one.\n\n\
          This is the reliability half of the central tension. A capability that has never \
          been tested is a capability that does not work, and the people on the campaign \
          are people who could have been on a project.\n\n\
-         **What it buys is five points of risk, permanently.** A campaign of four people \
-         takes five months and 140,000, and takes five percentage points off every future \
+         **What it buys is fifteen points of risk, permanently.** A campaign of four people \
+         takes five months and 19,000, and takes fifteen percentage points off every future \
          mission to that destination - for the rest of the campaign, and after the people \
          who did it have gone. It is the only investment in the game whose value does not \
          decay."
@@ -299,8 +341,49 @@ pub const TOPICS: &[Topic] = &[
          The design is the player's decision, and **the derived numbers are never \
          stored as an authority**: the cost, the reliability, the payload and the \
          delta-v are all computed from the sliders every time they are shown.\n\n\
-         **And the build takes three months for every million credits it costs.** A \
+         **And the build takes twenty months for every million credits it costs.** A \
          vehicle that costs four million takes a year to build, and the campaign is \
          running the whole time."
+    ),
+    topic!(
+        "order.set_subsystem",
+        Section::Orders,
+        "Change a subsystem",
+        "A vehicle is a set of sliders, and you can change any of them - for three days, and a small price.",
+        "**A subsystem change is changing a piece of the drawing**, and it takes \
+         the same three days a design does. The value is bounded exactly as the \
+         design was: the archetype's band still applies, and **a slider the agency \
+         has not researched is still pinned at zero** - editing it does not make the \
+         technology exist.\n\n\
+         **And the numbers move with it.** The cost, the reliability, the payload and \
+         the delta-v are all recomputed from the sliders every time they are shown, so \
+         the vehicle on the screen is always the vehicle the agency would build. A \
+         change that makes the vehicle worse is refused by nothing at all: the engine \
+         takes the order, the number falls, and the player sees what it cost.\n\n\
+         **The price of the change is the price of the vehicle.** Turning a slider up \
+         makes the machine more expensive as well as better, and a change to a vehicle \
+         that is already being built does not change what is being built - it changes \
+         what the agency pays for."
+    ),
+    topic!(
+        "order.authorize_launch",
+        Section::Orders,
+        "Authorise a launch",
+        "The risk figure is on the screen before you commit, and the flight takes ninety minutes.",
+        "**A launch is authorised, and then it flies.** The order takes an hour and a \
+         quarter to land - that is the ascent - and then the mission goes through \
+         preparation, launch, transit, operations, return and archival, and each of \
+         those takes as long as it takes.\n\n\
+         **The engine refuses the impossible ones.** A vehicle that is not finished \
+         being built cannot be launched. A destination the agency has not developed the \
+         technology for is not somewhere it can fly. And a vehicle without the delta-v \
+         to reach the destination cannot get there, whatever it is called.\n\n\
+         **The risk figure is the vehicle's reliability**, less whatever the testing \
+         has taken out of the destination's capability. A partial failure is the common \
+         branch: the capsule comes back, the data is partial, and the agency has lost \
+         something. A total failure is rarer, and it writes the vehicle off.\n\n\
+         **And a launch is a political act.** A successful launch earns the state's \
+         approval; a failure costs it, and costs the public's opinion as well. The \
+         government is watching, and it is keeping a list."
     ),
 ];

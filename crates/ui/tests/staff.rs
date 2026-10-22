@@ -19,7 +19,7 @@ fn press(code: KeyCode) -> KeyEvent {
 }
 
 fn app() -> App {
-    App::new(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"))
+    App::started(sim::Sim::new(&Scenario::first_year()).expect("the campaign starts"))
 }
 
 /// The whole interface, as text.
@@ -86,7 +86,7 @@ fn the_shift_change_stacks() {
     let person = ui::screens::staff::rows(&app)[0].id;
     assert_eq!(
         app.pending_shift(person),
-        Some(120 * domain::scale::PERCENT_UNITS as u16),
+        Some(Some(120 * domain::scale::PERCENT_UNITS as u16)),
         "two presses is two steps"
     );
 }
@@ -102,7 +102,7 @@ fn the_shift_lands_and_takes_effect() {
     let state = app.sim().state();
     let person = state.people.get(&person).expect("the person exists");
     assert!(
-        person.state.shift > (100 * domain::scale::PERCENT_UNITS as u16),
+        person.state.shift.unwrap_or(0) > (100 * domain::scale::PERCENT_UNITS as u16),
         "the shift has landed"
     );
 }

@@ -55,20 +55,12 @@ impl Phase for FinancePhase {
 
 /// What the state allocates, adjusted for political standing.
 ///
-/// The allocation scales with the number of people the agency employs, with a
-/// floor for a young agency, and is then multiplied by the state's political
-/// standing.
+/// **The allocation is a derived value, and there is one of it.** The
+/// interface shows the player where the money comes from, and the two must not
+/// disagree.
 fn appropriation(context: &mut MonthContext<'_>) -> Vec<(IncomeSource, Money)> {
-    let headcount = i64::try_from(context.state.people.len()).unwrap_or(i64::MAX);
-    let base = (balance::APPROPRIATION_PER_HEAD * headcount).max(balance::APPROPRIATION_FLOOR);
-
-    let approval = i64::from(context.state.political.approval.value);
-    let multiplier = 10_000 + approval * balance::APPROPRIATION_POLITICAL_SCALE_BP;
-    let amount = Money::from_credits(base).multiply_fraction(multiplier.max(0), 10_000);
-
-    vec![(IncomeSource::CivilisationBase, amount)]
+    derived::monthly_income(context.state)
 }
-
 /// Charges each project and campaign its monthly cost against its budget.
 fn update_costs(context: &mut MonthContext<'_>) {
     let project_ids: Vec<_> = context.state.projects.keys().copied().collect();
@@ -222,7 +214,21 @@ mod tests {
     fn a_deficit_shortens_the_runway() {
         let (mut state, rng) = setup();
         state.treasury.balance = Money::from_credits(100_000);
-        // A project big enough that the agency spends more than it is given.
+        // **A project big enough that the agency spends more than it is
+        // given.** The state funds the agency in proportion to its headcount,
+        // so it takes a team of a dozen before the research outweighs the
+        // allocation.
+        for id in 1..12 {
+            state.people.insert(
+                PersonId(id),
+                domain::person::Person::new(
+                    PersonId(id),
+                    format!("Person {id}"),
+                    Role::Scientist,
+                    Money::from_credits(1_200),
+                ),
+            );
+        }
         let project_id = state.id_counters.next_research_project();
         state.projects.insert(
             project_id,
@@ -231,7 +237,7 @@ mod tests {
                 title: "Liquid upper stage".to_owned(),
                 discipline: domain::research::DisciplineId(0),
                 principal_investigator: PersonId(0),
-                team: vec![PersonId(0), PersonId(0), PersonId(0)],
+                team: state.people.keys().copied().collect(),
                 funding: domain::finance::Budget::empty(),
                 progress: domain::research::Progress::empty(100),
                 target_capability: None,
@@ -243,7 +249,7 @@ mod tests {
         let mut context = MonthContext::new(&mut state, &rng, Instant::ZERO, Vec::new());
         FinancePhase::run(&mut context).expect("the phase runs");
         assert!(context.state.treasury.net().is_negative());
-        assert!(context.state.treasury.runway_months() < 12);
+        assert!(context.state.treasury.runway_months() < 24);
     }
 
     #[test]
@@ -251,6 +257,17 @@ mod tests {
         let (mut state, rng) = setup();
         state.treasury.balance = Money::ZERO;
         // A project that costs more than the agency is given.
+        for id in 1..12 {
+            state.people.insert(
+                PersonId(id),
+                domain::person::Person::new(
+                    PersonId(id),
+                    format!("Person {id}"),
+                    Role::Scientist,
+                    Money::from_credits(1_200),
+                ),
+            );
+        }
         let project_id = state.id_counters.next_research_project();
         state.projects.insert(
             project_id,
@@ -259,7 +276,7 @@ mod tests {
                 title: "Liquid upper stage".to_owned(),
                 discipline: domain::research::DisciplineId(0),
                 principal_investigator: PersonId(0),
-                team: vec![PersonId(0), PersonId(0), PersonId(0)],
+                team: state.people.keys().copied().collect(),
                 funding: domain::finance::Budget::empty(),
                 progress: domain::research::Progress::empty(100),
                 target_capability: None,

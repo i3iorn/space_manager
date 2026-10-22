@@ -222,13 +222,22 @@ fn check_facilities(state: &CampaignState) -> Result<(), InvariantViolation> {
     Ok(())
 }
 
-/// Every chronicle entry refers to something that exists.
+/// Every chronicle entry refers to something that existed.
+///
+/// **The chronicle is a record of the past, and the past includes people who
+/// have since left.** A record of somebody's resignation is about that person,
+/// and it is not a dangling reference. The rule is therefore that the subject
+/// either still exists or was allocated at some point — and what it catches is
+/// an entry about an id that was never handed out, which is a bug rather than
+/// a history.
 fn check_chronicle(state: &CampaignState) -> Result<(), InvariantViolation> {
     for entry in &state.chronicle {
         for subject in &entry.subjects {
             let exists = match subject {
                 SubjectRef::Programme(id) => state.programmes.contains_key(id),
-                SubjectRef::Person(id) => state.people.contains_key(id),
+                SubjectRef::Person(id) => {
+                    state.people.contains_key(id) || id.0 < state.id_counters.people_allocated()
+                }
                 SubjectRef::Facility(id) => state.facilities.contains_key(id),
                 SubjectRef::Vehicle(_) => true,
             };
@@ -315,6 +324,26 @@ mod tests {
             check(&campaign),
             Err(InvariantViolation::DanglingSubject { .. })
         ));
+    }
+
+    #[test]
+    fn a_chronicle_entry_about_somebody_who_has_left_is_not_dangling() {
+        // **The chronicle is a record of the past, and the past includes
+        // people who have since left.** A record of somebody's resignation is
+        // about that person.
+        let mut campaign = state();
+        let id = campaign.id_counters.next_person();
+        campaign.chronicle.push(
+            ChronicleEntry::new(
+                ChronicleId(0),
+                Instant::ZERO,
+                Category::Personnel,
+                "Somebody resigned".to_owned(),
+                Severity::Info,
+            )
+            .about(SubjectRef::Person(id)),
+        );
+        assert!(check(&campaign).is_ok());
     }
 
     #[test]

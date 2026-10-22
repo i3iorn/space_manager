@@ -39,19 +39,21 @@ pub const TOPICS: &[Topic] = &[
          the net is a **daily** figure, not a monthly one, because the game runs in real \
          time and the player thinks in days.\n\n\
          Salaries are the largest outgoing and they are the hardest to change. Research costs \
-         12,000 credits a head plus 6,000 of overhead; a test campaign costs \
-         7,000 a head. Facilities cost what they cost, and the cost is charged when \
+         1,200 credits a head plus 3,000 of overhead; a test campaign costs \
+         600 a head. Facilities cost what they cost, and the cost is charged when \
          the order lands rather than when it is issued.\n\n\
          **The arithmetic, for forty scientists:**\n\n\
          | | A month | A day |\n|---|---|---|\n\
          | Payroll | 48,000 | 1,600 |\n\
          | The appropriation | 76,000 | 2,533 |\n\
          | The surplus | 28,000 | 933 |\n\
-         | One four-person project | 54,000 | 1,800 |\n\n\
-         Which is to say that **one project eats the surplus twice over.** The agency is \
-         funded in proportion to its size, and a project is funded out of the money that \
-         size brings in. A player who wants to run several projects at once has to grow, \
-         and growing means hiring, and hiring means the payroll.\n\n\
+         | One four-person project | 7,800 | 260 |\n\
+         | Two buildings' upkeep | 12,000 | 400 |\n\n\
+         Which is to say that **the buildings and the projects together eat most of the \
+         surplus.** The agency is funded in proportion to its size, and everything the \
+         agency *does* is funded out of the money that size brings in. A player who wants \
+         to run several projects at once has to grow, and growing means hiring, and \
+         hiring means the payroll.\n\n\
          A negative net is not immediately fatal, but it is never sustainable, and the crisis \
          stages below start to move."
     ),

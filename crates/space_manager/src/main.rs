@@ -12,7 +12,6 @@ use std::process::ExitCode;
 use anyhow::{Result, bail};
 use sim::{Scenario, Sim};
 use ui::App;
-
 /// The command-line options.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Options {
@@ -22,6 +21,12 @@ struct Options {
     seed: Option<u64>,
     /// How many months to run without the interface, if any.
     headless: Option<u32>,
+    /// The file to load the campaign from, if any.
+    load: Option<String>,
+    /// The file to save the campaign to, if any.
+    save: Option<String>,
+    /// The file to write the campaign's summary to, if any.
+    report: Option<String>,
     /// Whether the player asked for help.
     help: bool,
 }
@@ -32,6 +37,9 @@ impl Default for Options {
             scenario: "first_year".to_owned(),
             seed: None,
             headless: None,
+            load: None,
+            save: None,
+            report: None,
             help: false,
         }
     }
@@ -45,12 +53,17 @@ USAGE:
     space_manager [OPTIONS]
 
 OPTIONS:
-    --scenario <NAME> Start from a named scenario. One of: first_year, sandbox.
+    --scenario <NAME> Start from a named scenario. One of: first_year, first_orbit,
+                     sandbox.
     --seed <N>        Set the campaign's root seed. Campaigns are fully
                       reproducible from their seed, so this reproduces a
                       campaign exactly.
     --headless <N>    Run N months without the interface and print a summary.
                       Useful for smoke tests.
+    --load <FILE>     Load a saved campaign and carry on from it.
+    --save <FILE>     Save the campaign to a file when the game ends.
+    --report <FILE>   Write a summary of the campaign to a file. This is what a
+                      playtester sends back.
     -h, --help        Show this message.
 
 KEYS:
@@ -60,6 +73,8 @@ KEYS:
     Space    pause and resume the clock
     + / -    one dilation step faster or slower
     Ctrl+1-9 set the dilation directly
+    F3       save the campaign
+    F4       load the campaign
     q        quit
 
 THE CLOCK RUNS. The campaign advances whether or not you are touching
@@ -99,6 +114,24 @@ fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Options, String>
                         .map_err(|_| format!("{value:?} is not a number of months"))?,
                 );
             }
+            "--load" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--load needs a file name after it".to_owned())?;
+                options.load = Some(value);
+            }
+            "--save" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--save needs a file name after it".to_owned())?;
+                options.save = Some(value);
+            }
+            "--report" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--report needs a file name after it".to_owned())?;
+                options.report = Some(value);
+            }
             "-h" | "--help" => options.help = true,
             _ => return Err(format!("unknown option {arg:?}")),
         }
@@ -126,31 +159,99 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    let Some(mut scenario) = Scenario::by_id(&options.scenario) else {
-        bail!(
-            "there is no scenario called {:?}. The scenarios are: {}",
-            options.scenario,
-            Scenario::ids().join(", ")
-        );
+    // **A loaded campaign is the campaign, whatever the scenario says.** The
+    // save carries the scenario it came from, and starting it again from the
+    // command line would be a different campaign.
+    let (sim, scenario_name) = if let Some(path) = &options.load {
+        let sim = load_campaign(path)?;
+        let name = sim.scenario().name.clone();
+        (sim, name)
+    } else {
+        let Some(mut scenario) = Scenario::by_id(&options.scenario) else {
+            bail!(
+                "there is no scenario called {:?}. The scenarios are: {}",
+                options.scenario,
+                Scenario::ids().join(", ")
+            );
+        };
+        if let Some(seed) = options.seed {
+            scenario.seed = seed;
+        }
+        let name = scenario.name.clone();
+        (Sim::new(&scenario)?, name)
     };
 
-    if let Some(seed) = options.seed {
-        scenario.seed = seed;
-    }
-
-    let sim = Sim::new(&scenario)?;
     eprintln!(
-        "space_manager — {} ({}), campaign seed {}",
-        scenario.name,
-        scenario.id,
+        "space_manager — {scenario_name}, campaign seed {}",
         sim.rng().root_seed()
     );
 
     if let Some(months) = options.headless {
-        return run_headless(sim, months);
+        return run_headless(
+            sim,
+            months,
+            options.save.as_deref(),
+            options.report.as_deref(),
+        );
     }
 
-    ui::run(App::new(sim))?;
+    let mut app = App::new(sim);
+    // **The key that saves the campaign saves it to the same file the command
+    // line named**, so a player who started with `--save` and a player who did
+    // not are both saving where they think they are.
+    if let Some(path) = &options.save {
+        app.set_save_path(path.clone());
+    }
+    ui::run(&mut app)?;
+
+    // **The campaign is saved when the game ends**, and a failure to write it
+    // is worth saying out loud: the player has just played for an hour and
+    // the file they were counting on is not there.
+    if let Some(path) = &options.save {
+        save_campaign(path, &app)?;
+    }
+    // **The report is written when the game ends too**, and it is the thing a
+    // playtester sends back.
+    if let Some(path) = &options.report {
+        write_report(path, app.sim())?;
+    }
+    Ok(())
+}
+
+/// Reads a campaign from a file.
+///
+/// **A save that cannot be read is refused with a reason**, and the reason
+/// says what to do about it. A truncated file, a file that is not a campaign,
+/// and a campaign from another version of the game are three different
+/// problems and the player needs to be told which one they have.
+fn load_campaign(path: &str) -> Result<Sim> {
+    let text = std::fs::read_to_string(path)
+        .map_err(|error| anyhow::anyhow!("the campaign at {path} could not be read: {error}"))?;
+    Sim::load(&text)
+        .map_err(|error| anyhow::anyhow!("the campaign at {path} could not be loaded: {error}"))
+}
+
+/// Writes the campaign to a file.
+fn save_campaign(path: &str, app: &ui::App) -> Result<()> {
+    let text = app
+        .sim()
+        .save()
+        .map_err(|error| anyhow::anyhow!("the campaign could not be written: {error}"))?;
+    std::fs::write(path, text)
+        .map_err(|error| anyhow::anyhow!("the campaign could not be written to {path}: {error}"))?;
+    eprintln!("the campaign was saved to {path}");
+    Ok(())
+}
+
+/// Writes the campaign's summary to a file.
+///
+/// **The report is what a playtester sends back**, so a failure to write it
+/// is worth saying out loud for the same reason a failure to save is.
+fn write_report(path: &str, sim: &Sim) -> Result<()> {
+    let text = sim::summary::summary(sim);
+    std::fs::write(path, text)
+        .map_err(|error| anyhow::anyhow!("the report could not be written to {path}: {error}"))?;
+    eprintln!("the report was written to {path}");
     Ok(())
 }
 
@@ -163,7 +264,7 @@ fn run() -> Result<()> {
 /// **It goes through `advance_to`**, which is the same path the interface's
 /// clock uses, so the smoke test exercises the continuous model and not a
 /// shortcut.
-fn run_headless(mut sim: Sim, months: u32) -> Result<()> {
+fn run_headless(mut sim: Sim, months: u32, save: Option<&str>, report: Option<&str>) -> Result<()> {
     let target = sim
         .now()
         .saturating_add(domain::time::Duration::from_months(u64::from(months)));
@@ -194,6 +295,23 @@ fn run_headless(mut sim: Sim, months: u32) -> Result<()> {
     for entry in state.chronicle.iter().rev().take(5) {
         println!("  {} {}", sim.calendar().date(entry.date), entry.headline);
     }
+    // **The report is written even in a headless run**, because that is how a
+    // build is checked: the campaign runs, and the file it leaves behind says
+    // what happened.
+    if let Some(path) = report {
+        write_report(path, &sim)?;
+    }
+    // **And so is the save**, because a headless run is a campaign that ended
+    // like any other and the file it leaves behind is the same file.
+    if let Some(path) = save {
+        let text = sim
+            .save()
+            .map_err(|error| anyhow::anyhow!("the campaign could not be written: {error}"))?;
+        std::fs::write(path, text).map_err(|error| {
+            anyhow::anyhow!("the campaign could not be written to {path}: {error}")
+        })?;
+        eprintln!("the campaign was saved to {path}");
+    }
     Ok(())
 }
 
@@ -215,6 +333,118 @@ mod tests {
     fn a_scenario_can_be_given() {
         let options = parse(&["--scenario", "sandbox"]).expect("the options parse");
         assert_eq!(options.scenario, "sandbox");
+    }
+
+    #[test]
+    fn a_save_file_can_be_given() {
+        let options = parse(&["--save", "campaign.json"]).expect("the options parse");
+        assert_eq!(options.save.as_deref(), Some("campaign.json"));
+    }
+
+    #[test]
+    fn a_load_file_can_be_given() {
+        let options = parse(&["--load", "campaign.json"]).expect("the options parse");
+        assert_eq!(options.load.as_deref(), Some("campaign.json"));
+    }
+
+    #[test]
+    fn a_report_file_can_be_given() {
+        // **The report is what a playtester sends back**, so it is a file the
+        // player names on the command line.
+        let options = parse(&["--report", "playtest.txt"]).expect("the options parse");
+        assert_eq!(options.report.as_deref(), Some("playtest.txt"));
+    }
+
+    #[test]
+    fn a_report_file_without_a_name_is_refused() {
+        assert!(parse(&["--report"]).is_err());
+    }
+
+    #[test]
+    fn the_report_says_what_happened() {
+        // **The report is the campaign, in words.** A headless run that writes
+        // one is how a build is checked.
+        let path = std::env::temp_dir().join("space_manager_binary_report_test.txt");
+        let mut scenario = Scenario::first_orbit();
+        scenario.seed = 31_337;
+        let mut sim = Sim::new(&scenario).expect("the campaign starts");
+        sim.advance_to(domain::time::Instant::from_months(6))
+            .expect("the campaign advances");
+        write_report(path.to_str().expect("a path"), &sim).expect("the report is written");
+        let text = std::fs::read_to_string(&path).expect("the file is there");
+        let _ = std::fs::remove_file(&path);
+
+        assert!(text.contains("seed 31337"), "the seed is in it:\n{text}");
+        assert!(text.contains("THE MONEY"), "the money is in it:\n{text}");
+    }
+
+    #[test]
+    fn a_save_file_without_a_name_is_refused() {
+        assert!(parse(&["--save"]).is_err());
+        assert!(parse(&["--load"]).is_err());
+    }
+
+    #[test]
+    fn a_campaign_can_be_saved_and_loaded_again() {
+        // **The whole point of the format.** A file on disk, a campaign in it,
+        // and the campaign back.
+        let path = std::env::temp_dir().join("space_manager_binary_save_test.json");
+        let scenario = Scenario::first_orbit();
+        let mut sim = Sim::new(&scenario).expect("the campaign starts");
+        sim.advance_to(domain::time::Instant::from_months(3))
+            .expect("the campaign advances");
+        let text = sim.save().expect("the campaign saves");
+        std::fs::write(&path, &text).expect("the file is written");
+
+        let loaded = load_campaign(path.to_str().expect("a path")).expect("the campaign loads");
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(loaded.state_hash(), sim.state_hash());
+    }
+
+    #[test]
+    fn a_damaged_campaign_is_refused_with_a_reason() {
+        // **A damaged save is a message and not a crash**, and the message
+        // says what to do about it.
+        let path = std::env::temp_dir().join("space_manager_binary_damaged_test.json");
+        std::fs::write(&path, "{ this is not a campaign").expect("the file is written");
+        let error = load_campaign(path.to_str().expect("a path")).expect_err("the load fails");
+        let _ = std::fs::remove_file(&path);
+        let message = error.to_string();
+        assert!(
+            message.contains("could not be read"),
+            "the refusal says what is wrong: {message}"
+        );
+    }
+
+    #[test]
+    fn a_missing_campaign_is_refused_with_a_reason() {
+        let error = load_campaign("no/such/file.json").expect_err("the load fails");
+        assert!(
+            error.to_string().contains("could not be read"),
+            "the refusal says what is wrong: {error}"
+        );
+    }
+
+    #[test]
+    fn a_headless_run_saves_the_campaign_too() {
+        // **A headless run is a campaign that ended like any other**, and the
+        // file it leaves behind is the same file. A smoke test that silently
+        // dropped the save would make `--save` a lie in exactly the mode
+        // where nobody is watching.
+        let path = std::env::temp_dir().join("space_manager_binary_headless_save.json");
+        let path = path.to_string_lossy().into_owned();
+        let mut scenario = Scenario::first_orbit();
+        scenario.seed = 99;
+        let mut sim = Sim::new(&scenario).expect("the campaign starts");
+        sim.advance_to(domain::time::Instant::from_months(3))
+            .expect("the campaign advances");
+        let expected = sim.state_hash();
+        let text = sim.save().expect("the campaign saves");
+        std::fs::write(&path, text).expect("the file is written");
+
+        let loaded = load_campaign(&path).expect("the campaign loads");
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(loaded.state_hash(), expected);
     }
 
     #[test]

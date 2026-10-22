@@ -15,7 +15,19 @@ use sim::{Scenario, Sim};
 
 /// A campaign with a finished vehicle ready to fly.
 fn campaign() -> Sim {
-    let mut sim = Sim::new(&Scenario::first_year()).expect("the campaign starts");
+    // **The agency has developed the technology the vehicle needs.** A slider
+    // the agency has not researched is pinned at zero, and a destination it
+    // has not developed the technology for is not somewhere it can fly.
+    let mut scenario = Scenario::first_year();
+    for capability in [
+        domain::research::CapabilityId(1),
+        domain::research::CapabilityId(2),
+        domain::research::CapabilityId(3),
+        domain::research::CapabilityId(4),
+    ] {
+        scenario.start_state.unlocked.insert(capability);
+    }
+    let mut sim = Sim::new(&scenario).expect("the campaign starts");
     sim.issue(OrderKind::DesignVehicle {
         archetype: ArchetypeId(1),
         name: "Orbital Launcher 1".to_owned(),

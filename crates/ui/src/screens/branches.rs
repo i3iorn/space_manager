@@ -7,6 +7,14 @@
 //! The branch is the *same campaign* up to the fork point — the same state, the
 //! same chronicle, the same recruits — because otherwise every difference
 //! would be noise.
+//!
+//! # The comparison
+//!
+//! **Two timelines side by side.** The left column is the original and the
+//! right is the branch, and the rows are the things a player would want to
+//! compare: the money, the people, the knowledge, the approval. Below them
+//! are the chronicle entries that only one of them has, because a difference
+//! the player cannot see is a difference the player cannot use.
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -26,15 +34,18 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     ));
     lines.push(Line::raw(""));
 
-    // The fork points: the instants at which the player gave an order.
-    let points = app.fork_points();
-    if points.is_empty() {
+    // The decisions: the timeline of the campaign.
+    let decisions = app.decisions();
+    if decisions.is_empty() {
         lines.push(Line::raw("  There is nothing to fork yet."));
         lines.push(Line::raw("  The campaign has not been given an order."));
         lines.push(Line::raw(""));
     } else {
-        lines.push(Line::styled("  Fork at:", theme::title()));
-        for (index, instant) in points.iter().enumerate() {
+        lines.push(Line::styled(
+            "  The decisions you have made:",
+            theme::title(),
+        ));
+        for (index, (instant, kind)) in decisions.iter().enumerate() {
             let date = app.sim().calendar().date(*instant).to_string();
             // **The focus is a style and a marker**, so it is findable in a
             // monochrome terminal as well as a colourful one.
@@ -43,7 +54,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
             } else {
                 (theme::NO_FOCUS, theme::historical())
             };
-            lines.push(Line::styled(format!("  {marker} {date}"), style));
+            lines.push(Line::styled(format!("  {marker} {date:<12} {kind}"), style));
         }
         lines.push(Line::raw(""));
     }
@@ -52,7 +63,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     match app.branch() {
         None => {
             lines.push(Line::styled(
-                "  Enter forks the campaign at the selected instant.",
+                "  Enter forks the campaign at the selected decision.",
                 theme::historical(),
             ));
         }
@@ -67,25 +78,47 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
                 theme::title(),
             ));
             lines.push(Line::raw(""));
+
             if differences.is_empty() {
                 lines.push(Line::styled(
                     "  The two branches agree on everything measured.",
                     theme::Meaning::Good.style(),
                 ));
             } else {
+                // **Two columns, side by side.** The player's eye compares
+                // down the rows, and the row is the thing that differs.
                 lines.push(Line::from(vec![
-                    Span::styled("  Diverged".to_owned(), theme::title()),
-                    Span::styled("original".to_owned(), theme::title()),
-                    Span::styled("branch".to_owned(), theme::title()),
+                    Span::raw(format!("  {:<16}", "")),
+                    Span::styled(format!("{:<12}", "original"), theme::title()),
+                    Span::styled("branch", theme::title()),
                 ]));
                 for difference in &differences {
                     lines.push(Line::from(vec![
-                        Span::raw(format!("  {:<14}", difference.subject)),
-                        Span::styled(difference.left.clone(), theme::Meaning::Attention.style()),
+                        Span::raw(format!("  {:<16}", difference.subject)),
+                        Span::styled(format!("{:<12}", difference.left), theme::historical()),
                         Span::styled(
                             difference.right.clone(),
                             theme::Meaning::Informational.style(),
                         ),
+                    ]));
+                }
+            }
+
+            // **What only one of them has.** A difference the player cannot
+            // see is a difference the player cannot use.
+            let chronicle = sim::branch::chronicle_differences(app.sim().state(), branch.state());
+            if !chronicle.is_empty() {
+                lines.push(Line::raw(""));
+                lines.push(Line::styled("  Only one of them saw:", theme::title()));
+                for (headline, in_original) in chronicle.iter().take(12) {
+                    let (which, style) = if *in_original {
+                        ("original", theme::historical())
+                    } else {
+                        ("branch", theme::Meaning::Informational.style())
+                    };
+                    lines.push(Line::from(vec![
+                        Span::raw(format!("  {which:<9} ")),
+                        Span::styled(headline.clone(), style),
                     ]));
                 }
             }

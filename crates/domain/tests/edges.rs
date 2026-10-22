@@ -347,9 +347,8 @@ fn a_person_starts_in_reasonable_condition() {
         (100 * domain::scale::PERCENT_UNITS as u32) as u16
     );
     assert_eq!(
-        person.state.shift,
-        (100 * domain::scale::PERCENT_UNITS as u32) as u16,
-        "and on a full load"
+        person.state.shift, None,
+        "and on whatever the agency policy says, which is a full load when it says nothing"
     );
 }
 

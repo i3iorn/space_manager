@@ -30,15 +30,14 @@ pub enum OrderError {
         name: String,
     },
 
-    /// The person is already assigned to something else.
-    #[error("{name} is already assigned to {current}.")]
+    /// The person is already on what they have been put on.
+    #[error("{name} is already on {current}.")]
     AlreadyAssigned {
         /// The name of the person.
         name: String,
         /// Where they are already assigned.
         current: String,
     },
-
     /// The person has no assignment and cannot be given the requested one.
     #[error("{name} cannot take that assignment.")]
     CannotAssign {
@@ -107,18 +106,24 @@ pub enum OrderError {
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum SimError {
     /// The saved campaign could not be read.
-    #[error("The campaign could not be read: {reason}")]
+    #[error("The campaign could not be read: {reason}.")]
     CorruptState {
         /// What was wrong.
         reason: String,
     },
 
     /// The save was made under a different engine version.
-    #[error("This campaign was made with a different version of the game and cannot be replayed.")]
+    ///
+    /// **The message says what to do about it**, because a refusal the player
+    /// cannot act on is a refusal that only annoys them. The two versions are
+    /// in the message so that a player reporting a bug can quote them.
+    #[error(
+        "This campaign was saved with a different version of the game (it is {found}, and this is {expected}), so it cannot be replayed here."
+    )]
     VersionMismatch {
-        /// The version the save was made under.
+        /// The version this build of the game expects.
         expected: String,
-        /// The version running now.
+        /// The version the save was made under.
         found: String,
     },
 

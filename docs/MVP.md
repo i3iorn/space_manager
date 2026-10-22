@@ -9,6 +9,10 @@
 > **Status:** Proposal, revision 2. Revision 2 adapts the scope to the continuous time
 > model: the game is no longer played in monthly turns, and the slice is measured in
 > simulated years and real hours rather than in turns.
+>
+> **All four slices are built, except for the playtests.** The build plan is
+> `ROADMAP.md` §5 to §7, and what the implementation found on the way is in
+> `ROADMAP.md` §6.5 and §7.1.
 
 ---
 
