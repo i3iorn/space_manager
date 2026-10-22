@@ -1335,6 +1335,37 @@ because its people are not being held at half a load for eight months at a
 time. All three reference policies still reach orbit and still meet the
 deadline. `BALANCE.md` §12 has the new distribution.
 
+### 7.11 The game saves itself, and it saves where it is allowed to
+
+**The quit dialog said "the campaign is not saved. Quitting ends it", and that
+was true — and it was also the single worst thing about the game.** A player
+who has spent an evening on a campaign and believes that quitting loses it
+will not quit when they should, and will not close the terminal, and will
+leave the game running overnight to avoid losing the evening.
+
+**The game writes the campaign at every month boundary now**, so the worst a
+player can lose by closing the terminal is a month, and it writes it again
+when the player quits, so the worst they can lose by quitting is nothing. The
+dialog says what is true.
+
+**And the game writes to the platform's configuration directory**, which is the
+one thing `PERSISTENCE.md` §9 has said since the beginning: `%APPDATA%` on
+Windows, `~/Library/Application Support` on macOS, and the XDG directory
+everywhere else. **The game used to write `campaign.json` beside its own
+executable**, which is a save file that turns up in whatever folder the player
+happened to run the game from, and a save file that moves is a save file that
+is lost. The directory is made if it is not there, because the first save is
+the one that has to create it.
+
+**The automatic save is quiet and throttled.** A save that says something every
+month is a message the player learns to ignore, and the one time it matters —
+the save that failed — is the one that would be lost in the noise. And at the
+top dilation a month boundary arrives several times a second, so the game
+waits ten seconds of real time between automatic saves.
+
+**The save slots are still on the list.** A player who wants to keep an old
+campaign has nowhere to put it, and the design's numbered slots are the answer.
+
 ## 8. What is left
 
 **Everything in this plan is done except the things below**, and they are here

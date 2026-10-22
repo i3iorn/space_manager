@@ -1,9 +1,10 @@
 //! The confirmation before the game does something irreversible.
 //!
-//! **A campaign is not saved.** The player has spent an evening on one, and
-//! the keys that quit the game are two of the most-used keys on the keyboard.
-//! A dialog that asks *are you sure* is the difference between a game that
-//! protects the player's afternoon and one that does not.
+//! **Quitting is not the same as losing.** The game saves itself — at every
+//! month boundary, and when the player quits — so leaving is a decision about
+//! when to stop and not a decision about whether to throw the evening away.
+//! The dialog says so, because a player who believes quitting loses the
+//! campaign will not quit when they should.
 //!
 //! **Loading a saved campaign throws the current one away**, and that is the
 //! same kind of decision, so it is the same dialog.
@@ -124,7 +125,9 @@ pub fn render(frame: &mut Frame, area: Rect, confirmation: &Confirmation) {
         Purpose::Quit => (
             " Quit ",
             "Leave the campaign?",
-            "The campaign is not saved. Quitting ends it.".to_owned(),
+            "The campaign is saved when you quit, and the game saves itself every month. \
+             You can carry on from it."
+                .to_owned(),
             "Quit",
         ),
         Purpose::Load { path } => (

@@ -12,6 +12,9 @@ use std::process::ExitCode;
 use anyhow::{Result, bail};
 use sim::{Scenario, Sim};
 use ui::App;
+
+mod paths;
+
 /// The command-line options.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Options {
@@ -61,7 +64,9 @@ OPTIONS:
     --headless <N>    Run N months without the interface and print a summary.
                       Useful for smoke tests.
     --load <FILE>     Load a saved campaign and carry on from it.
-    --save <FILE>     Save the campaign to a file when the game ends.
+    --save <FILE>     Save the campaign to a file when the game ends. This is
+                      also where the game saves itself, so it is where F3 and
+                      F4 work.
     --report <FILE>   Write a summary of the campaign to a file. This is what a
                       playtester sends back.
     -h, --help        Show this message.
@@ -76,6 +81,9 @@ KEYS:
     F3       save the campaign
     F4       load the campaign
     q        quit
+
+SAVES. The game saves itself: at every month boundary, and when you quit. The
+file is in your system's configuration directory unless --save says otherwise.
 
 THE CLOCK RUNS. The campaign advances whether or not you are touching
 anything, and there is no month to end - press Space to stop and think.
@@ -197,25 +205,43 @@ fn run() -> Result<()> {
 
     let mut app = App::new(sim);
     // **The key that saves the campaign saves it to the same file the command
-    // line named**, so a player who started with `--save` and a player who did
-    // not are both saving where they think they are.
-    if let Some(path) = &options.save {
-        app.set_save_path(path.clone());
-    }
+    // line named**, so a player who started the game with `--save` and a
+    // player who did not are both saving where they think they are.
+    let path = save_path(options.save.as_deref());
+    app.set_save_path(path.clone());
+    // **And the game saves itself to the same file**, at every month boundary.
+    app.set_autosave_path(path);
     ui::run(&mut app)?;
 
     // **The campaign is saved when the game ends**, and a failure to write it
     // is worth saying out loud: the player has just played for an hour and
     // the file they were counting on is not there.
-    if let Some(path) = &options.save {
-        save_campaign(path, &app)?;
-    }
+    //
+    // **This happens whether or not `--save` was given.** The game saves
+    // itself, and the quit save is the last of those saves.
+    save_campaign(app.save_path(), &app)?;
     // **The report is written when the game ends too**, and it is the thing a
     // playtester sends back.
     if let Some(path) = &options.report {
         write_report(path, app.sim())?;
     }
     Ok(())
+}
+
+/// Where the campaign is saved.
+///
+/// **The command line wins**, because a player who named a file meant it. And
+/// the default is the platform's configuration directory, because a game that
+/// writes beside its own executable is a game whose save file turns up in
+/// whatever folder it was run from.
+fn save_path(named: Option<&str>) -> String {
+    if let Some(path) = named {
+        return path.to_owned();
+    }
+    paths::campaign_file().map_or_else(
+        || ui::DEFAULT_SAVE_PATH.to_owned(),
+        |path| path.to_string_lossy().into_owned(),
+    )
 }
 
 /// Reads a campaign from a file.
@@ -466,6 +492,25 @@ mod tests {
     #[test]
     fn a_non_numeric_seed_is_refused() {
         assert!(parse(&["--seed", "later"]).is_err());
+    }
+
+    #[test]
+    fn the_default_save_path_is_in_the_configuration_directory() {
+        // **A game that writes beside its own executable is a game whose save
+        // file turns up in whatever folder the player happened to run it
+        // from**, and a save file that moves is a save file that is lost.
+        let path = save_path(None);
+        assert!(path.ends_with("campaign.json"), "the file is named: {path}");
+        assert!(
+            path.contains("space_manager"),
+            "and it is in the game's own directory: {path}"
+        );
+    }
+
+    #[test]
+    fn a_named_save_file_wins_over_the_default() {
+        // **A player who named a file meant it.**
+        assert_eq!(save_path(Some("mygame.json")), "mygame.json");
     }
 
     #[test]

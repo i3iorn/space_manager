@@ -25,6 +25,38 @@ fn scratch(name: &str) -> String {
 }
 
 #[test]
+fn the_game_saves_itself() {
+    // **The player must not have to think about saving.** The game writes the
+    // campaign at every month boundary, so the worst a player can lose by
+    // closing the terminal is a month.
+    let mut app = fresh_app();
+    let path = scratch("autosave");
+    app.set_autosave_path(path.clone());
+    app.advance(Duration::from_months(2));
+    let written = std::path::Path::new(&path).exists();
+    let _ = std::fs::remove_file(&path);
+
+    assert!(written, "the campaign was written to {path}");
+}
+
+#[test]
+fn the_automatic_save_is_the_campaign() {
+    // **A save that is not the campaign is worse than no save**, and the
+    // automatic one is the one the player trusts most, because they never
+    // asked for it.
+    let mut app = fresh_app();
+    let path = scratch("autosave_contents");
+    app.set_autosave_path(path.clone());
+    app.advance(Duration::from_months(6));
+    let expected = app.sim().state_hash();
+    let text = std::fs::read_to_string(&path).expect("the file is there");
+    let _ = std::fs::remove_file(&path);
+
+    let loaded = sim::Sim::load(&text).expect("the campaign loads");
+    assert_eq!(loaded.state_hash(), expected);
+}
+
+#[test]
 fn the_campaign_can_be_saved_from_inside_the_game() {
     // **The whole point of the key.** A player who never thought about saving
     // presses one key and the campaign is on disk.

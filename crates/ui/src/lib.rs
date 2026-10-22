@@ -57,7 +57,7 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use thiserror::Error;
 
-pub use app::App;
+pub use app::{App, DEFAULT_SAVE_PATH};
 pub use screen::Screen;
 
 /// Something went wrong in the interface.

@@ -30,6 +30,28 @@ use crate::tutorial;
 /// file is named and the notice says where it went.
 pub const DEFAULT_SAVE_PATH: &str = "campaign.json";
 
+/// How long the game waits between automatic saves.
+///
+/// **Ten seconds of real time.** At the base rate a month boundary arrives
+/// every half hour, so the throttle never bites; at the top dilation it
+/// arrives several times a second, and the throttle is what keeps the game
+/// from writing the whole campaign five times a second.
+const AUTOSAVE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Writes a campaign to a file, making the directory if it is not there.
+///
+/// **The game's files live in the platform's configuration directory**, and
+/// that directory does not exist until the game has been run once — so the
+/// first save has to make it.
+fn write_campaign(path: &str, text: &str) -> std::io::Result<()> {
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    std::fs::write(path, text)
+}
+
 /// The application state.
 #[derive(Debug)]
 pub struct App {
@@ -84,9 +106,21 @@ pub struct App {
     /// Where the campaign is saved and loaded from.
     ///
     /// **The player must be able to save without having planned to.** It is
-    /// the file named on the command line, or `campaign.json` beside the
-    /// game, and the notice says where it went.
+    /// the file named on the command line, or the one in the platform's
+    /// configuration directory, and the notice says where it went.
     save_path: String,
+    /// Where the game saves the campaign by itself, if anywhere.
+    ///
+    /// **`None` means it does not**, which is what a test wants: a game that
+    /// saves itself in the middle of a test suite leaves files in the source
+    /// tree, and a file nobody asked for is a file nobody cleans up.
+    autosave_path: Option<String>,
+    /// When the game last saved the campaign by itself.
+    ///
+    /// **This is the throttle on the automatic save**, and it is real time
+    /// rather than simulated time: the point is how much disk the game writes,
+    /// and the disk does not care what the campaign thinks a month is.
+    last_autosave: Option<std::time::Instant>,
     /// Which piece of advice the banner is showing.
     ///
     /// **The advice is read from the campaign and is never stored**, so this
@@ -139,6 +173,8 @@ impl App {
             report: None,
             confirm: None,
             save_path: DEFAULT_SAVE_PATH.to_owned(),
+            autosave_path: None,
+            last_autosave: None,
             advice_index: 0,
             briefing: false,
         }
@@ -211,11 +247,57 @@ impl App {
                 return;
             }
         };
-        match std::fs::write(&path, text) {
+        match write_campaign(&path, &text) {
             Ok(()) => self.notice = Some(format!("Saved to {path}.")),
             Err(error) => {
                 self.notice = Some(format!(
                     "The campaign could not be written to {path}: {error}"
+                ));
+            }
+        }
+    }
+
+    /// Where the game saves the campaign by itself, if anywhere.
+    ///
+    /// **This is the same file the player saves to by hand**, because a game
+    /// that keeps two campaigns is a game that has to explain which is which.
+    pub fn set_autosave_path(&mut self, path: String) {
+        self.autosave_path = Some(path);
+    }
+
+    /// Saves the campaign without being asked.
+    ///
+    /// **The player must not have to think about saving.** The game writes the
+    /// campaign at every month boundary, so the worst a player can lose by
+    /// closing the terminal is a month, and the file it writes is the one the
+    /// player loads with `F4` when they come back.
+    ///
+    /// **It is quiet.** An automatic save that says something every month
+    /// would be a message the player learns to ignore, and the one time it
+    /// matters — the save that failed — is the one that would be lost in the
+    /// noise. A failure is worth saying out loud, though, because a save that
+    /// is not happening is worse than one that is.
+    fn autosave(&mut self) {
+        let Some(path) = self.autosave_path.clone() else {
+            return;
+        };
+        // **The throttle.** At the top dilation a month boundary arrives
+        // several times a second, and writing the whole campaign each time is
+        // a lot of disk for no gain — the player would lose the same minute
+        // either way.
+        if let Some(last) = self.last_autosave {
+            if last.elapsed() < AUTOSAVE_INTERVAL {
+                return;
+            }
+        }
+        let Ok(text) = self.sim.save() else {
+            return;
+        };
+        match write_campaign(&path, &text) {
+            Ok(()) => self.last_autosave = Some(std::time::Instant::now()),
+            Err(error) => {
+                self.notice = Some(format!(
+                    "The campaign could not be saved to {path}: {error}"
                 ));
             }
         }
@@ -995,6 +1077,13 @@ impl App {
                     if let Some(last) = reports.last() {
                         self.report = Some(last.clone());
                     }
+                }
+                // **A month boundary is the game's cue to save itself.** The
+                // campaign the player has been playing for an hour is written
+                // to disk before anything else happens, so that closing the
+                // terminal costs a month rather than an evening.
+                if !reports.is_empty() {
+                    self.autosave();
                 }
             }
             Err(error) => self.notice = Some(error.to_string()),

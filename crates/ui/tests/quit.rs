@@ -1,8 +1,9 @@
 //! The confirmation before the game quits.
 //!
-//! **The campaign is not saved**, so leaving the game is not a thing to do by
-//! accident. These tests are the guard on that: a stray `q` must not end a
-//! campaign, and a player who means to leave must be able to.
+//! **Quitting is not the same as losing.** The game saves itself, so leaving
+//! is a decision about when to stop. These tests are the guard on that: a
+//! stray `q` must not end a campaign, a player who means to leave must be
+//! able to, and the dialog must say what is true about the save.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Terminal;
@@ -56,14 +57,16 @@ fn the_q_key_asks_before_it_quits() {
 }
 
 #[test]
-fn the_confirmation_says_the_campaign_is_not_saved() {
+fn the_confirmation_says_the_campaign_is_saved() {
     // **The dialog says what is true**, because a dialog that hides the cost
-    // of the choice is worse than no dialog.
+    // of the choice is worse than no dialog — and a dialog that lies about the
+    // cost is worse still. **The game saves itself**, so quitting is not
+    // throwing the evening away, and the player has to be told that.
     let mut app = campaign();
     app.on_key(press(KeyCode::Char('q')));
     let screen = rendered(&mut app);
     assert!(
-        screen.contains("not saved"),
+        screen.contains("saved when you quit"),
         "the warning is on the screen: {screen}"
     );
 }

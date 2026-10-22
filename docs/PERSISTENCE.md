@@ -186,26 +186,35 @@ shows it in plain language, and the player keeps whatever they have.
 
 ### Autosaves
 
-**There are none, and this is a deliberate gap.** The design has three automatic
-saves — before each significant action, on quit, and into numbered slots — and the
-shipped game has none of them:
+**There is one, and the game writes it by itself.** The design had three — one
+before each significant action, one on quit, and numbered slots for the player
+— and the shipped game has the first two merged into one:
 
 | When | Where | Built |
 |---|---|---|
-| Before each significant action | `<saves>/autosave.json` | No |
-| On quit | `<saves>/quitsave.json` | No |
+| At every month boundary | The campaign file | **Yes** |
+| When the player quits | The campaign file | **Yes** |
+| Before each significant action | `<saves>/autosave.json` | No — the month boundary is the checkpoint |
 | Manually, into a slot | `<saves>/slot-<n>.json` | No |
 
-**What the game does instead is a manual save, from inside the game.** `F3` writes
-the campaign and `F4` reads it back, and the file is the one named by `--save` on
-the command line, or `campaign.json` beside the game. A player who never thought
-about saving can still save, and a player who never thinks about saving never
-loses more than the last month of work.
+**The campaign file is the game's own.** It is written at every month boundary,
+so the worst a player can lose by closing the terminal is a month, and it is
+written again when the player quits, so the worst they can lose by quitting is
+nothing. `F3` writes it by hand and `F4` reads it back.
 
-**The autosave is the obvious next thing**, and it is in `ROADMAP.md` §8. The
-reason it is not built is that it needs a place to write to — the design's answer
-is the platform's config directory, and the shipped game writes beside itself
-instead, which is the wrong answer on a read-only install.
+**The automatic save is quiet.** A save that says something every month is a
+message the player learns to ignore, and the one time it matters — the save
+that failed — is the one that would be lost in the noise. A failure is worth
+saying out loud, though, because a save that is not happening is worse than
+one that is.
+
+**It is throttled.** At the top dilation a month boundary arrives several times
+a second, and writing the whole campaign each time is a lot of disk for no
+gain. The game waits ten seconds of real time between automatic saves, which at
+the base rate is never and at the top rate is a file every ten seconds.
+
+**The save slots are still on the list.** A player who wants to keep an old
+campaign has nowhere to put it, and the design's numbered slots are the answer.
 
 **Simulated time only advances while the game is open [D].** Closing the game is a
 pause that costs nothing, and it is the only "skip" in a game that has no skip.
@@ -303,8 +312,9 @@ nobody could explain.
 ## 9. Directory layout
 
 ```
-<beside the game>/
-└─ campaign.json      the file --save named, or this one by default
+<the platform's configuration directory>/
+└─ space_manager/
+   └─ campaign.json      the file --save named, or this one by default
 ```
 
 **What the design intends:**
@@ -324,23 +334,29 @@ nobody could explain.
 
 The locations come from the platform's standard config directory, not the working
 directory — a game that writes into its own install directory is a game that breaks the
-moment it is installed read-only. **The shipped game writes beside itself instead**,
-which is the one thing the design says not to do, and it is on the list with the
-autosave.
+moment it is installed read-only. **The shipped game writes there now**:
+`%APPDATA%\space_manager` on Windows, `~/Library/Application Support/space_manager`
+on macOS, and `$XDG_CONFIG_HOME/space_manager` — or `~/.config/space_manager` —
+on everything else. **The numbered slots are still on the list**, and they would go
+in the same directory.
 
 ---
 
 ## 10. Open questions
 
-**Four of the five have been answered, and the fifth is the autosave.**
+**Four of the five have been answered, and the fifth is the save slots.**
 
 | # | Question | The answer | Where it is written |
 |---|---|---|---|
 | 1 | Curated `sim_version` inputs versus the whole source tree | **Curated.** The version hashes the phase order, the integration quantum, the random algorithms, the order kinds, and the scheduled kinds — and nothing else, so a comment does not invalidate a replay | `sim::version` |
 | 2 | Typed order payloads versus raw JSON in the log | **Both, and deliberately.** The log holds the kind's name and the kind's JSON, and the replay deserialises the JSON back into a typed `OrderKind`. The name is there so the file is readable; the typed order is the source of truth | `sim::Sim::replay` |
 | 3 | Do old saves migrate forward, or are they refused? | **Refused.** A migration that silently changes outcomes is worse than none, so a save of any other format is refused with a reason: *"It was made by an older build of the game, and it cannot be read safely."* | §5 |
-| 4 | Is the autosave per-campaign or global? | **Open, and it waits on a bigger question** — where the game may write at all. The shipped game writes `campaign.json` beside itself, which the design says not to do | §5 and §9 |
+| 4 | Is the autosave per-campaign or global? | **Neither, because there is one campaign file and it is per-campaign.** The game writes `campaign.json` in the platform's configuration directory at every month boundary and again when the player quits | §5 and §9 |
 | 5 | How much of the scheduler is written on every save? | **All of it.** The scheduler is part of the save, because a loaded campaign must restore its pending work rather than re-scheduling it — otherwise every month boundary that had already happened fires again | `SIMULATION.md` §8 |
+
+**And one more that the design has not asked yet:** **where do the save slots
+go, and how does a player keep an old campaign?** The answer is the same
+directory, and the question is still open.
 
 ---
 
