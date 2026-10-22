@@ -874,25 +874,32 @@ axis, the trade-offs are broken.
 
 ### The measured distribution
 
-**This is what the harness said after the shift policy landed**, over twenty seeds
-of the "First Orbit" scenario, sixty months each:
+**This is what the harness said after the shift policy became a thermostat**,
+over twenty seeds of the "First Orbit" scenario, sixty months each:
 
 | Policy | Reached orbit | Median time to orbit | Launches | Vehicle lost | Staff lost | Treasury left |
 |---|---|---|---|---|---|---|
-| Cautious | 19/20 | 38 months | 1 a campaign | 12 | 3 | 1,040,000 |
-| Fast | 20/20 | 36 months | 2 a campaign | 10 | 2 | 1,440,000 |
-| Science first | 20/20 | 32 months | 1 a campaign | 2 | 4 | 775,000 |
+| Cautious | 19/20 | 38 months | 2 a campaign | 9 | 3 | 973,000 |
+| Fast | 20/20 | 33 months | 2 a campaign | 10 | 3 | 1,445,000 |
+| Science first | 20/20 | 32 months | 1 a campaign | 1 | 3 | 807,000 |
 
 **All three survive**, which is the criterion that matters, and they are separated
 on every axis except the one that matters least: the fast strategy gets there
-soonest, the science-first one is the most expensive and the most learned, and the
-cautious one is the one that loses vehicles.
+soonest, the science-first one is the most learned, and the cautious one is the
+one that has to launch twice.
 
-**The cautious policy now uses the shift policy rather than thirty individual
-shift changes**, and it is the one that reaches orbit slightly less often: the
-policy has a week of bureaucracy, so the first few months of a campaign are worked
-at full load. **That is the price of one standing instruction over thirty
-individual ones**, and it is a price the design accepts.
+**The cautious policy uses the shift policy rather than thirty individual shift
+changes**, and it is the one that reaches orbit slightly less often: the policy
+has a week of bureaucracy, so the first few months of a campaign are worked at
+full load. **That is the price of one standing instruction over thirty individual
+ones**, and it is a price the design accepts.
+
+**The thermostat changed the cautious policy's shape.** Before, a person whose
+fatigue settled on the limit had their shift flip on and off every hour, and the
+agency got half of neither; now they are eased once and stay eased until they
+have recovered, and the cautious campaign launches twice where it used to launch
+once. **A policy that holds is a policy that costs**, and the cautious strategy
+is supposed to cost.
 
 **The spread between the three policies is six months of time to orbit**, which is
 narrower than the ten to twenty the target asks for. The next balance pass should

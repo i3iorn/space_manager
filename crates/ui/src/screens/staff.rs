@@ -218,8 +218,17 @@ fn shift_line(
             None => format!("{percent}% → policy (pending)"),
         };
     }
-    if person.state.shift_override().is_none() && state.shift_policy.is_some() {
-        return format!("{percent}% (policy)");
+    if person.state.shift_override().is_none() {
+        // **And they need to know whether the agency policy is the reason.**
+        // A person on a light shift because the policy eased them off is a
+        // different thing from a person the manager moved, and the player has
+        // to be able to tell them apart.
+        if person.state.policy_eased {
+            return format!("{percent}% (eased by the policy)");
+        }
+        if state.shift_policy.is_some() {
+            return format!("{percent}% (policy)");
+        }
     }
     format!("{percent}%")
 }

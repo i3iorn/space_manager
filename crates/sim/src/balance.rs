@@ -395,6 +395,21 @@ pub const SHIFT_MAX_PERCENT: u32 = 200;
 /// The step the shift moves by, as a percentage.
 pub const SHIFT_STEP_PERCENT: u32 = 10;
 
+/// How far below the limit a person must recover before the shift policy
+/// releases them, in points of fatigue.
+///
+/// **This is the margin that makes the policy a thermostat.** The policy
+/// eases a person when their fatigue reaches the limit, and keeps them eased
+/// until their fatigue has come down by this much — so a person whose fatigue
+/// has settled on the limit does not have their shift flip on and off every
+/// hour.
+///
+/// Ten points is a round number and it is about a fifth of the way from a
+/// fresh person's fatigue to a broken one's: a person eased at sixty percent
+/// comes back to a full load at fifty, and the agency is never working anybody
+/// to pieces in the meantime.
+pub const SHIFT_POLICY_BAND_PERCENT: u32 = 10;
+
 /// How much of the effort above a full load turns into output, in basis points.
 ///
 /// **Overtime is never free.** At a hundred and fifty percent the person

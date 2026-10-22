@@ -127,6 +127,9 @@ fn apply_people(state: &mut CampaignState) {
             let person = &state.people[&id];
             derived::effective_shift(state, person)
         };
+        // **And so is the policy**, because the thermostat is a step and the
+        // step happens here, where the fatigue moves.
+        let policy = state.shift_policy;
 
         let person = state.people.get_mut(&id).expect("the person exists");
 
@@ -159,6 +162,12 @@ fn apply_people(state: &mut CampaignState) {
             0,
             i64::from(25_600),
         ) as u16;
+
+        // **The policy's thermostat.** The agency eases a person off when their
+        // fatigue reaches the limit and keeps them eased until they have
+        // recovered by a margin — so the shift does not flip on and off every
+        // hour around the limit.
+        crate::shift::update_easing(person, policy);
 
         // **Morale.** It drifts towards what the assignment makes of it, and
         // the state's goodwill is part of what the assignment makes of it: a

@@ -407,10 +407,18 @@ it says two things — **who it covers** and **what they work**.
 - **With a threshold, only the tired are moved.** "Anybody over 60% fatigue goes to
   half shifts." The people who are fresher than the threshold keep their own shift.
 
-**The threshold makes it a thermostat.** An eased-off person recovers, comes back up
+**The threshold makes it a thermostat [D].** An eased-off person recovers, comes back up
 to the threshold, and is eased off again, and the cycle is slow. The point is that the
 agency never has anybody work themselves to pieces, and the player never has to watch
 eighty fatigue bars to know whether it is doing that.
+
+**And the thermostat is a latch and not a comparison [D].** A person is eased when their
+fatigue reaches the threshold, and stays eased until their fatigue has come down by ten
+points. **A comparison is not enough.** A person whose fatigue settles exactly on the
+threshold crosses it every few hours, and the agency gets half of neither shift: the
+shift flips on and off, the output flickers, and the performance model sees a team
+that nobody has done anything to. The margin is the whole difference between a
+thermostat and a buzzer.
 
 **A person the manager has moved individually is moved off the policy**, and the staff
 screen says so — a person on a light shift because the policy eased them off is a

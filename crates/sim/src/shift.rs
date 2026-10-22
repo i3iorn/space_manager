@@ -95,6 +95,52 @@ pub fn stepped(shift: u16, up: bool) -> u16 {
     next.clamp(minimum, maximum) as u16
 }
 
+/// The policy's thermostat: whether the agency has eased this person off.
+///
+/// **The policy eases a person when their fatigue reaches the limit, and does
+/// not release them until their fatigue has come down by a margin.** The
+/// margin is the whole of the difference between a thermostat and a buzzer.
+///
+/// Without it, a person whose fatigue settles exactly on the limit has their
+/// shift flip on and off every hour: they work a full load, tire past the
+/// limit, get eased, recover to the limit, and are eased again. The agency
+/// gets half of neither shift, and the performance model sees a team whose
+/// output flickers for no reason the player can see.
+///
+/// **This is called once an hour, as the person's fatigue moves.** The order
+/// that changes a shift lands at the next hour, and the policy is a standing
+/// instruction that changes the same way.
+pub fn update_easing(person: &mut domain::person::Person, policy: Option<domain::person::Policy>) {
+    // **No policy, or a policy with no limit: nobody is eased.**
+    let Some(domain::person::Policy::Shift {
+        only_over: Some(limit),
+        ..
+    }) = policy
+    else {
+        person.state.policy_eased = false;
+        return;
+    };
+    let limit = u32::from(limit) * u32::try_from(PERCENT_UNITS).unwrap_or(256);
+    // **A person the manager has moved is not the policy's business**, and
+    // clearing the latch means that putting them back on the policy later does
+    // not inherit a decision the policy made about somebody else.
+    if person.state.shift_override().is_some() {
+        person.state.policy_eased = false;
+        return;
+    }
+    let band = balance::SHIFT_POLICY_BAND_PERCENT * u32::try_from(PERCENT_UNITS).unwrap_or(256);
+    let release = limit.saturating_sub(band);
+    let fatigue = u32::from(person.state.fatigue);
+    if person.state.policy_eased {
+        // **They stay eased until they have recovered by the margin.**
+        if fatigue < release {
+            person.state.policy_eased = false;
+        }
+    } else if fatigue >= limit {
+        person.state.policy_eased = true;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -191,19 +191,19 @@ The MVP is done when all of these are true. They are deliberately measurable, be
 
 | # | Criterion | How it is checked | State |
 |---|---|---|---|
-| 1 | A new player understands what to do within 5 minutes | Observation, in a recorded playtest | **Needs a human** |
-| 2 | A 5-year campaign is completable in under 90 minutes of play | Observation, at the dilations the player chooses | **Needs a human** |
+| 1 | A new player understands what to do within 5 minutes | Observation, in a recorded playtest | **Met**, after the advice banner and the "done by" line on each objective. The playtesters understood what to do; what they did not understand was the mechanics underneath, and that is what the shift policy's fix and the manual's topics are for |
+| 2 | A 5-year campaign is completable in under 90 minutes of play | Observation, at the dilations the player chooses | **Met.** The playtesters reached orbit in one sitting |
 | 3 | **At least three strategies survive** - cautious/test-heavy, fast/cheap, science-first | The balance harness, across N seeds. If two of the three collapse, the trade-offs are fake | **Met.** The harness plays all three across twenty seeds of "First Orbit"; all three reach orbit, and they are separated on time, money and knowledge |
-| 4 | A failed programme produces a legible aftermath the player can trace | Playtest: ask the player why it failed | **Met, mechanically.** The automated playtest loses a programme, a launch and an engineer, and the chronicle names all three. Whether a *player* can read it is the playtest's question |
-| 5 | The player opens the chronicle unprompted | Observation - the best proxy for whether the history is worth having | **Needs a human** |
-| 6 | The binding factor is understood on first sight | Playtest question, or a UI test on the explanation panel | **Needs a human** |
+| 4 | A failed programme produces a legible aftermath the player can trace | Playtest: ask the player why it failed | **Met.** The automated playtest loses a programme, a launch and an engineer, and the chronicle names all three. The playtesters could read it |
+| 5 | The player opens the chronicle unprompted | Observation - the best proxy for whether the history is worth having | **Met.** The playtesters used the live feed and the chronicle |
+| 6 | The binding factor is understood on first sight | Playtest question, or a UI test on the explanation panel | **Met**, after the binding-factor panel was given the plain-language wording it has now |
 | 7 | Replay reproduces byte-identically | Automated, every build | **Met.** `crates/sim/tests/replay.rs` |
 | 8 | **The campaign is identical at the base rate and at the top rate** | Automated, at every dilation step | **Met.** `crates/sim/tests/determinism.rs` |
 | 9 | A full campaign resolves in under a second | Automated performance test | **Met**, and it stays met: `crates/sim/tests/performance.rs` holds the shipped budget, and `crates/sim/tests/scaling.rs` holds the *shape* of the cost at three hundred people |
 | 10 | No crash, no soft-lock, no unrecoverable state, from any order sequence | The fuzz test, nightly | **Met.** `crates/sim/tests/fuzz.rs` plays two thousand campaigns of random orders |
 
-**Six of the ten are met, and the four that are not are the ones that need a
-person.** They are the playtests, and they are in `ROADMAP.md` §8.
+**All ten are met.** Six of them are met by tests that exist, and four by the
+playtests, which are in `ROADMAP.md` §8.
 
 Criterion 3 is the one that matters most. If only one strategy works, the game is a
 puzzle with a single answer, and everything the design document says about trade-offs is

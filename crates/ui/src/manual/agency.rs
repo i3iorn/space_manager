@@ -349,7 +349,17 @@ pub const TOPICS: &[Topic] = &[
          lot of wear - and the wear is multiplied into everything else.\n\n\
          The shift moves with the left and right arrows on the staff screen, and it is \
          an order like everything else: it lands at the next hour, and it costs no \
-         money and no goodwill."
+         money and no goodwill.\n\n\
+         **The agency can have a shift policy as well**, which is the tool for three \
+         hundred people: one standing instruction, everybody works it. With a limit, \
+         the policy covers only the tired — *anybody over sixty percent fatigue goes to \
+         fifty percent shifts* — and the people who are fresher keep their own.\n\n\
+         **The limit is a latch and not a comparison.** A person is eased when their \
+         fatigue reaches the limit and stays eased until it has come down by ten \
+         points, so a person whose fatigue settles on the limit does not have their \
+         shift flip on and off every hour. The staff screen says *eased by the policy* \
+         when it is the policy's doing, and a person the manager has moved is never \
+         eased by the policy at all."
     ),
     topic!(
         "agency.finding",

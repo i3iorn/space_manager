@@ -374,6 +374,14 @@ past. Read `docs/SIMULATION.md` before changing any of it.
   way to ask what shift a person is on. **Reading `person.state.shift` directly
   gives the wrong answer** for every person the policy covers, and the symptom is
   a policy that appears to do nothing.
+- **The shift policy's threshold is a latch, not a comparison.**
+  `PersonState::policy_eased` is the thermostat's memory: a person is eased when
+  their fatigue reaches the limit and stays eased until it has come down by
+  `SHIFT_POLICY_BAND_PERCENT`. **A comparison of fatigue against the limit is not
+  enough** — a person whose fatigue settles on the limit crosses it every few
+  hours, and the shift flips on and off. It was six hundred and sixty-four changes
+  a person a year before the latch, and it is one now. The bit is set once an hour,
+  in `sim::rates`, where the fatigue moves; `sim::shift::update_easing` owns it.
 - **Up and down navigate, and left and right change the value.** That is the
   convention on every screen: the arrows in the order palette, the staff
   screen's shift, and the lists. **The palette had it the wrong way round once**

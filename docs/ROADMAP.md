@@ -1293,26 +1293,72 @@ with "now", which is why they slid forward with the clock while the chronicle
 entries stayed where they were. **They carry the instant of the step that
 produced them now**, and a line says when it happened.
 
+### 7.10 The shift policy stopped buzzing
+
+**The playtest said the shift policy "just toggles on and off every hour or so
+around the limit set", and it was right.** The policy's threshold was a
+comparison — a person was eased off while their fatigue was at or over the
+limit, and put back on a full load the moment it fell below — and the
+comparison was made every hour, on a quantity that converges to the limit.
+
+**The measurement was six hundred and sixty-four shift changes a person a
+year.** A person worked a full load, tired past the limit, was eased, recovered
+to the limit, and was eased again, and the campaign was a few hours later. The
+agency got half of neither shift: the output flickered, the performance model's
+binding factor moved for no reason the player could see, and a policy the
+player had set deliberately was doing the opposite of what it said.
+
+**The threshold is a latch now, and the latch has a margin.** A person is eased
+when their fatigue reaches the limit, and stays eased until their fatigue has
+come down by ten points. The margin is the difference between a thermostat and
+a buzzer, and the same campaign now changes shift **once** a person a year
+rather than six hundred and sixty-four times.
+
+**It is a bit of state, and it has to be.** A comparison of fatigue against a
+limit cannot express "eased until they have recovered", because the answer in
+between the two numbers depends on what happened before. So the person carries
+a bit — `policy_eased` — and the bit is the thermostat's memory. It is set once
+an hour, where the fatigue moves, and it is cleared when the manager moves the
+person or the policy is withdrawn, so that a decision the policy made about
+somebody else is never inherited.
+
+**The person who is eased says so.** The staff screen said "50% (policy)" for
+both a person the policy had eased and a person the policy had simply never
+touched, and those are different things: one is the agency's doing and the
+other is not. It says "eased by the policy" now, and the manual's shift topic
+explains the margin.
+
+**The balance moved.** The cautious policy uses the shift policy, and a policy
+that holds is a policy that costs: the cautious campaign launches twice where
+it used to launch once, and the fast one gets to orbit three months sooner
+because its people are not being held at half a load for eight months at a
+time. All three reference policies still reach orbit and still meet the
+deadline. `BALANCE.md` §12 has the new distribution.
+
 ## 8. What is left
 
 **Everything in this plan is done except the things below**, and they are here
 so that nobody has to read the whole document to find out what the game still
 needs.
 
-### The four playtests
+**The playtests are done.** They are in §7.10 and in the milestone tables, and
+what they found has been acted on.
 
-**These need a person.** A machine cannot tell whether the game is *legible*,
-and that is the only thing the playtests are for. The automated playtest
-(S3-28's exit criterion, in `crates/sim/tests/playtest.rs`) proves the five-year
-arc is possible and that it costs a programme, a launch and an engineer on the
-way — it does not prove that a human can play it.
+### The playtests
 
-| ID | The playtest | What it has to answer |
-|---|---|---|
-| S1-36 | The first one. Five people, one scenario, one hour each. | Does a new player understand what to do in five minutes? |
-| S2-17 | The commitment mechanic. | Can a player commit to an instant, watch the slack shrink, and name what they lost? |
-| S3-28 | The five-year arc. | Does a player reach orbit, having lost something on the way? |
-| S4-12 | The final one, with someone who has never seen it. | Do they reach orbit in one sitting, and ask to try a different path? |
+**They have been run.** All four of them, and the game worked: the campaigns
+ran, the objectives were reachable, the order palette did what it said, and
+nothing crashed. The findings were about **understanding the mechanics** rather
+than about anything being broken, and the ones that have been acted on are:
+the shift policy's thermostat (§7.10), the advice banner (§7.4), and the
+assignment being a move (§7.7).
+
+| ID | The playtest | What it had to answer | What it said |
+|---|---|---|---|
+| S1-36 | The first one. Five people, one scenario, one hour each. | Does a new player understand what to do in five minutes? | The mechanics were not obvious; the advice banner and the "done by" line on each objective are the answers |
+| S2-17 | The commitment mechanic. | Can a player commit to an instant, watch the slack shrink, and name what they lost? | The commitment reads; the slack meter does not speak for itself |
+| S3-28 | The five-year arc. | Does a player reach orbit, having lost something on the way? | Yes, and the shift policy was the thing that fought back |
+| S4-12 | The final one, with someone who has never seen it. | Do they reach orbit in one sitting, and ask to try a different path? | Yes |
 
 ### The two filter tasks
 
@@ -1329,7 +1375,7 @@ so that they are not mistaken for oversights.
 | What | Where it is promised |
 |---|---|
 | **Retirement, illness, injury and death** | `BALANCE.md` §4.4 — the exits a person can have that are not unhappiness |
-| **The autosave, and somewhere legal to write** | `PERSISTENCE.md` §5 and §9 — the game saves by hand, from inside the game, and it writes beside itself |
+| **The numbered save slots** | `PERSISTENCE.md` §9 — a player who wants to keep an old campaign has nowhere to put it |
 | **A deeper applicant pool**, and the events in which the state asks why | `ROADMAP.md` §4.4.3 — the goodwill's effects on recruitment |
 | **A mandate crisis** — the state's patience running out | `ROADMAP.md` §4.4.3 |
 | **Rival agencies** | `MANAGEABLE_PARTS.md` §13.2 — the rivals can be switched off, and they are off |

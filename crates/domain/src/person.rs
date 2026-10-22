@@ -368,6 +368,19 @@ pub struct PersonState {
     /// full load: a person the policy has not moved works whatever everybody
     /// else works. See [`Policy`].
     pub shift: Option<u16>,
+    /// Whether the agency policy has eased this person off.
+    ///
+    /// **This is the thermostat's memory, and it is the whole of it.** The
+    /// policy eases a person when their fatigue reaches the limit, and does not
+    /// release them until their fatigue has come down by a margin — so a person
+    /// whose fatigue has settled on the limit does not have their shift flip on
+    /// and off every hour.
+    ///
+    /// **It is a bit of state, and it has to be.** A comparison of fatigue
+    /// against a limit is not enough: a person who recovers to exactly the
+    /// limit and then tires again crosses it every few hours, and the agency
+    /// gets half of neither shift.
+    pub policy_eased: bool,
 }
 
 /// One of the agency's standing instructions.
@@ -386,10 +399,13 @@ pub enum Policy {
         ///
         /// **This is the thermostat.** With no threshold everybody works the
         /// shift; with one, the people who are fresher than the threshold keep
-        /// their own, and the people who are tireder than it are eased off —
-        /// which means a tired person recovers, comes back up to the threshold,
-        /// and is eased off again. The cycle is slow, and the point of it is
-        /// that the agency never has anybody work themselves to pieces.
+        /// their own, and the people who are tireder than it are eased off.
+        ///
+        /// **The threshold is a latch and not a comparison.** A person is eased
+        /// when their fatigue reaches it, and stays eased until their fatigue
+        /// has come down by a margin — because a person who recovers to exactly
+        /// the limit and then tires again crosses it every few hours, and the
+        /// agency gets half of neither shift. See `PersonState::policy_eased`.
         only_over: Option<u8>,
     },
 }
@@ -405,6 +421,7 @@ impl PersonState {
             health: percent_to_units(100) as u16,
             fame: 0,
             shift: None,
+            policy_eased: false,
         }
     }
 

@@ -129,23 +129,128 @@ fn a_policy_with_a_threshold_moves_only_the_tired() {
     let mut state = state_with_one_person();
     let person = state.people.get_mut(&PersonId(0)).expect("the person");
     person.assignment = Assignment::Division(DivisionId(0));
-    person.state.fatigue = (40 * domain::scale::PERCENT_UNITS as u32) as u16;
     state.shift_policy = Some(domain::person::Policy::Shift {
         shift: shift(50),
         only_over: Some(60),
     });
+
+    // **A person who is fresher than the threshold is not moved.**
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    person.state.fatigue = (40 * domain::scale::PERCENT_UNITS as u32) as u16;
+    sim::shift::update_easing(person, state.shift_policy);
     assert_eq!(
         sim::derived::effective_shift(&state, &state.people[&PersonId(0)]),
         shift(100),
         "a person who is fresher than the threshold is not moved"
     );
 
+    // **And a person who is tireder than it is eased off.**
     let person = state.people.get_mut(&PersonId(0)).expect("the person");
     person.state.fatigue = (70 * domain::scale::PERCENT_UNITS as u32) as u16;
+    sim::shift::update_easing(person, state.shift_policy);
     assert_eq!(
         sim::derived::effective_shift(&state, &state.people[&PersonId(0)]),
         shift(50),
         "a person who is tireder than the threshold is eased off"
+    );
+}
+
+#[test]
+fn an_eased_person_stays_eased_until_they_have_recovered() {
+    // **The margin is the whole of it.** A person who recovers to the limit
+    // and tires again crosses it every few hours, and the agency gets half of
+    // neither shift.
+    let mut state = state_with_one_person();
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    person.assignment = Assignment::Division(DivisionId(0));
+    state.shift_policy = Some(domain::person::Policy::Shift {
+        shift: shift(50),
+        only_over: Some(60),
+    });
+
+    // **Eased**, because they are over the limit.
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    person.state.fatigue = (65 * domain::scale::PERCENT_UNITS as u32) as u16;
+    sim::shift::update_easing(person, state.shift_policy);
+    assert!(person.state.policy_eased, "the policy has eased them");
+
+    // **Still eased**, because they have not recovered by the margin.
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    person.state.fatigue = (59 * domain::scale::PERCENT_UNITS as u32) as u16;
+    sim::shift::update_easing(person, state.shift_policy);
+    assert!(
+        person.state.policy_eased,
+        "they are still on light duties at fifty-nine percent"
+    );
+
+    // **Released**, because they have.
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    let release = 60 - balance::SHIFT_POLICY_BAND_PERCENT;
+    person.state.fatigue = ((release - 1) * domain::scale::PERCENT_UNITS as u32) as u16;
+    sim::shift::update_easing(person, state.shift_policy);
+    assert!(
+        !person.state.policy_eased,
+        "and they are back on a full load at {release} percent"
+    );
+}
+
+#[test]
+fn the_policy_does_not_flip_on_and_off_around_the_limit() {
+    // **The complaint that started this.** A person whose fatigue settles on
+    // the limit had their shift flip on and off every hour, and the agency's
+    // output flickered for a reason the player could not see.
+    //
+    // **A year of the policy is measured here**, and the number of changes is
+    // the number that matters. Before the thermostat it was six hundred and
+    // sixty-four changes a person a year; now it is a handful.
+    let mut scenario = sim::Scenario::first_orbit();
+    scenario.start_state.shift_policy = Some(domain::person::Policy::Shift {
+        shift: shift(50),
+        only_over: Some(60),
+    });
+    let mut sim = sim::Sim::new(&scenario).expect("the scenario starts");
+    let mut last: std::collections::BTreeMap<PersonId, u16> = std::collections::BTreeMap::default();
+    let mut changes = 0usize;
+    for hour in 0..(24 * 365) {
+        sim.advance_to(domain::time::Instant::from_hours(hour + 1))
+            .expect("the campaign advances");
+        for person in sim.state().people.values() {
+            let shift = sim::derived::effective_shift(sim.state(), person);
+            if let Some(previous) = last.insert(person.id, shift) {
+                if previous != shift {
+                    changes += 1;
+                }
+            }
+        }
+    }
+    assert!(
+        changes < 40,
+        "the policy's shift changed {changes} times in a year, and it should be a handful"
+    );
+}
+
+#[test]
+fn a_person_the_manager_has_moved_is_not_the_policy_s_business() {
+    // **The individual decides better than the policy**, and the policy's
+    // memory must not outlive the decision it was made about.
+    let mut state = state_with_one_person();
+    let person = state.people.get_mut(&PersonId(0)).expect("the person");
+    person.assignment = Assignment::Division(DivisionId(0));
+    person.state.shift = Some(shift(150));
+    person.state.fatigue = (90 * domain::scale::PERCENT_UNITS as u32) as u16;
+    state.shift_policy = Some(domain::person::Policy::Shift {
+        shift: shift(50),
+        only_over: Some(60),
+    });
+    sim::shift::update_easing(person, state.shift_policy);
+    assert!(
+        !person.state.policy_eased,
+        "the policy does not ease somebody the manager has moved"
+    );
+    assert_eq!(
+        sim::derived::effective_shift(&state, &state.people[&PersonId(0)]),
+        shift(150),
+        "and the manager's shift stands"
     );
 }
 

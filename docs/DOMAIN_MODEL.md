@@ -267,6 +267,16 @@ the state**, so the campaign is still deterministic and still replayable. **A sh
 order with `None` puts somebody back on the policy**, which is the other half of the
 override. See `MANAGEABLE_PARTS.md` §5.2.1 and `ROADMAP.md` S1-48.
 
+**The policy's threshold is a latch and not a comparison [D].** `PersonState` carries
+a bit, `policy_eased`, and it is the whole of the thermostat: the agency eases a
+person when their fatigue reaches the threshold, and does not release them until
+their fatigue has come down by `SHIFT_POLICY_BAND_PERCENT`. **A comparison of
+fatigue against a limit is not enough**, because a person whose fatigue settles
+exactly on the limit crosses it every few hours — their shift flips on and off, the
+output flickers, and the agency gets half of neither. The bit is updated once an
+hour, where the fatigue moves, and it is cleared when the person has an individual
+override or the policy is withdrawn.
+
 **The attrition risk is derived, not stored [D].** The chance a person leaves this
 month is computed from their morale, their loyalty, and whether they are at their
 limit, and it is the same number the simulation rolls against — so the interface can

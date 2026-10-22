@@ -137,11 +137,14 @@ pub fn effective_shift(state: &CampaignState, person: &domain::person::Person) -
         return FULL_SHIFT;
     };
     match only_over {
-        // **The thermostat.** The people who are fresher than the threshold keep
-        // their own shift, and the people who are tireder than it are eased
-        // off.
-        Some(threshold) if person.state.fatigue_percent() < u32::from(threshold) => FULL_SHIFT,
-        _ => shift,
+        // **The thermostat's memory.** The policy eases a person when their
+        // fatigue reaches the limit and keeps them eased until they have
+        // recovered by a margin, so the shift does not flip every hour around
+        // the limit.
+        Some(_) if person.state.policy_eased => shift,
+        Some(_) => FULL_SHIFT,
+        // **With no limit, everybody works the shift.**
+        None => shift,
     }
 }
 

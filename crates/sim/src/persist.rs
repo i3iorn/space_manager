@@ -30,10 +30,11 @@ use crate::error::SimError;
 /// facility was scaled**, **7 when the testing joined the state**, **8 when
 /// the knowledge became per discipline rather than per capability**, **9
 /// when the policy order became a standing instruction and the shift became
-/// an override of it**, and **10 when a shift change could put somebody back
-/// on the policy**. A file of an older format is refused rather than
-/// half-read.
-pub const SAVE_FORMAT: u32 = 10;
+/// an override of it**, **10 when a shift change could put somebody back
+/// on the policy**, and **11 when the shift policy became a thermostat with a
+/// margin instead of a comparison that flipped every hour**. A file of an older
+/// format is refused rather than half-read.
+pub const SAVE_FORMAT: u32 = 11;
 
 /// The engine version.
 ///
