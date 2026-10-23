@@ -18,9 +18,15 @@
 
 use std::time::Duration as RealDuration;
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use domain::time::{Duration, Instant, TimeScale};
 use sim::Scenario;
 use ui::{App, clock::Clock};
+
+/// The `Esc` key, with no modifiers.
+fn esc() -> KeyEvent {
+    KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)
+}
 
 /// The host's frame time, in milliseconds.
 ///
@@ -57,6 +63,14 @@ fn run_at(scale: TimeScale) -> (u64, Vec<String>) {
         // asked, and this asks for the same span either way.
         let delta = delta.min(target.duration_since(app.sim().effective_now()));
         app.advance(delta);
+        // **A question on the table is put aside, not answered.** The world
+        // stops while the dialog is up, and a loop that waits for the campaign
+        // to move would wait for ever. Putting it aside is what a player who
+        // is not watching does — the clock runs again, the window keeps
+        // counting, and the expiry is part of the campaign either way.
+        if app.decision().is_some() {
+            app.on_key(esc());
+        }
     }
 
     let chronicle = app

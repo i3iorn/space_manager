@@ -38,6 +38,13 @@ pub const PRIORITY_PROJECT: u8 = 65;
 /// The priority of an attrition check.
 pub const PRIORITY_ATTRITION: u8 = 70;
 
+/// The priority of a decision expiring.
+///
+/// **A decision's window closes after the world's work for the instant**, so
+/// the expiry applies to the state the work produced — a decision about money
+/// expires against the money the month actually has.
+pub const PRIORITY_DECISION: u8 = 75;
+
 /// The priority of an event check.
 ///
 /// **Events resolve last within an instant**, so that they react to the work that
@@ -130,6 +137,15 @@ pub enum ScheduledKind {
         /// The person.
         person: PersonId,
     },
+    /// The moment a decision's answer is due.
+    ///
+    /// **A decision has a window, and the window is scheduled.** If the player
+    /// has answered by the time this fires, the item is a no-op; if they have
+    /// not, the expiry applies and the agency's silence has its cost.
+    DecisionExpiry {
+        /// The pending decision whose window has closed.
+        decision: u64,
+    },
 }
 
 impl ScheduledKind {
@@ -143,6 +159,7 @@ impl ScheduledKind {
             Self::MissionPhase { .. } => PRIORITY_MISSION,
             Self::ProjectComplete { .. } | Self::VehicleComplete { .. } => PRIORITY_PROJECT,
             Self::AttritionCheck { .. } => PRIORITY_ATTRITION,
+            Self::DecisionExpiry { .. } => PRIORITY_DECISION,
             Self::EventCheck | Self::EventFollowUp { .. } => PRIORITY_EVENT,
         }
     }

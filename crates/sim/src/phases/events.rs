@@ -314,6 +314,26 @@ pub fn apply_event(context: &mut MonthContext<'_>, event: &EventDef) {
     for follow_up in &event.follow_ups {
         schedule_follow_up(context, follow_up);
     }
+
+    // **An event that asks does not answer for itself.** The decision is
+    // raised, not applied: the option the player picks carries the
+    // consequences, and the expiry carries the cost of silence. The event's
+    // own effects are the baseline — what already happened — and the answer
+    // is on top of that.
+    if crate::decisions::decision_for(event.id).is_some() {
+        context.decisions.push(event.id);
+    }
+}
+
+/// Applies a list of effects, in order.
+///
+/// **A decision's effects are event effects**, applied by the same applier:
+/// deltas, never closures. The player's answer and the cost of silence are
+/// both expressed in the only language the catalogue speaks.
+pub fn apply_effects(context: &mut MonthContext<'_>, effects: &[Effect]) {
+    for effect in effects {
+        apply_effect(context, effect);
+    }
 }
 
 /// Adds a signed delta to a signed scaled value, clamped to the scale.

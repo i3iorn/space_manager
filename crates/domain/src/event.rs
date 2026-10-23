@@ -192,6 +192,46 @@ pub struct NarrativeSpec {
     pub category: Category,
 }
 
+/// One of the choices an event puts to the player.
+///
+/// **A decision is data, never a closure**, for the same reason an effect is:
+/// the catalogue is static and the state it names may not exist yet, so an
+/// option can only change the world through the same deltas an event uses.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub struct DecisionOption {
+    /// The option's identifier, stable and comparable.
+    pub id: String,
+    /// What the player reads, in the player's language.
+    pub label: String,
+    /// What choosing it does.
+    pub effects: Vec<Effect>,
+}
+
+/// A choice an event puts to the player, with a window to answer in.
+///
+/// **An event that asks nothing is a sentence; an event that asks something is
+/// a decision.** The decision carries the window — how long the player has to
+/// answer — and what happens when nobody does. It is raised by the event that
+/// carries it, held by the simulation until the player answers or the window
+/// closes, and whichever happens first decides which effects are applied.
+///
+/// The decision's own effects are **not** the event's effects. The event's
+/// effects are the baseline — what already happened — and the decision's
+/// options and expiry are what the player's answer, or silence, adds.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub struct Decision {
+    /// The headline the player reads, in the player's language.
+    pub headline: String,
+    /// The detail, if there is one.
+    pub body: Option<String>,
+    /// How many days the player has to answer.
+    pub days_to_decide: u32,
+    /// What happens when the window closes and nobody has answered.
+    pub expiry_effects: Vec<Effect>,
+    /// The choices, in the order they are shown.
+    pub options: Vec<DecisionOption>,
+}
+
 /// Something an event causes later.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct FollowUp {

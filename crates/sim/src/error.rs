@@ -140,4 +140,22 @@ pub enum SimError {
         /// What went wrong.
         reason: String,
     },
+
+    /// There is no decision by that id on the table.
+    ///
+    /// **A decision that has been answered, or that has expired, is no longer
+    /// a decision.** The caller is told plainly, because answering twice is
+    /// not an answer.
+    #[error("there is no decision {id} on the table")]
+    NoDecision {
+        /// The id that was named.
+        id: u64,
+    },
+
+    /// The option named is not one the decision offers.
+    #[error("\"{option}\" is not one of the choices.")]
+    NoSuchOption {
+        /// The option that was named.
+        option: String,
+    },
 }

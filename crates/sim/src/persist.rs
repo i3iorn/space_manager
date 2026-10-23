@@ -31,10 +31,11 @@ use crate::error::SimError;
 /// the knowledge became per discipline rather than per capability**, **9
 /// when the policy order became a standing instruction and the shift became
 /// an override of it**, **10 when a shift change could put somebody back
-/// on the policy**, and **11 when the shift policy became a thermostat with a
-/// margin instead of a comparison that flipped every hour**. A file of an older
-/// format is refused rather than half-read.
-pub const SAVE_FORMAT: u32 = 11;
+/// on the policy**, **11 when the shift policy became a thermostat with a
+/// margin instead of a comparison that flipped every hour**, and **12 when
+/// the world began to ask questions the agency had to answer**. A file of an
+/// older format is refused rather than half-read.
+pub const SAVE_FORMAT: u32 = 12;
 
 /// The engine version.
 ///
@@ -118,6 +119,14 @@ pub struct SaveEnvelope {
     /// launch in flight must restore that launch, or the campaign silently
     /// changes.
     pub scheduler: Scheduler,
+    /// The decisions the world has asked for, and the agency has not answered.
+    ///
+    /// **A decision that evaporates in a save/load is a decision the player
+    /// never got to make**, so the pending queue is part of the save, with
+    /// the counter that names its questions.
+    pub pending_decisions: Vec<crate::decisions::PendingDecision>,
+    /// The counter that names pending decisions.
+    pub decision_seq: u64,
 }
 
 impl SaveEnvelope {
@@ -130,6 +139,8 @@ impl SaveEnvelope {
         scenario: crate::scenario::Scenario,
         log: Vec<LoggedOrder>,
         scheduler: Scheduler,
+        pending_decisions: Vec<crate::decisions::PendingDecision>,
+        decision_seq: u64,
     ) -> Self {
         Self {
             format: SAVE_FORMAT,
@@ -140,6 +151,8 @@ impl SaveEnvelope {
             scenario,
             log,
             scheduler,
+            pending_decisions,
+            decision_seq,
         }
     }
 
@@ -225,6 +238,8 @@ mod tests {
             crate::scenario::Scenario::first_year(),
             Vec::new(),
             Scheduler::new(),
+            Vec::new(),
+            0,
         )
     }
 

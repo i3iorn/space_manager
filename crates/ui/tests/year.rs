@@ -6,6 +6,8 @@
 
 use std::time::Duration as RealDuration;
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
 use domain::ids::PersonId;
 use domain::order::OrderKind;
 use domain::person::Assignment;
@@ -22,6 +24,13 @@ fn play(app: &mut App, seconds: u64) {
     while app.sim().now().millis() < seconds * 1_000 {
         let delta = app.clock_mut().simulated_for(frame);
         app.advance(delta);
+        // **A question on the table is put aside, not answered.** The world
+        // stops while the dialog is up, and this loop waits for the campaign
+        // to move — so a question nobody answers would stop it for ever.
+        // Putting it aside is what a player who is not watching does.
+        if app.decision().is_some() {
+            app.on_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        }
     }
 }
 

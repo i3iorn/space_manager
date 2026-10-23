@@ -78,6 +78,8 @@ pub enum Action {
     Load,
     /// Open the main menu.
     OpenMenu,
+    /// Answer the decision the world has put on the table.
+    OpenDecision,
     /// Stop or start the clock.
     TogglePause,
     /// One dilation step faster.
@@ -163,6 +165,10 @@ pub fn action_for(key: KeyEvent, _screen: Screen) -> Action {
         // player reaches for when they want the things that are about the
         // campaign rather than about the screen they are on.
         KeyCode::Char('m' | 'M') => Action::OpenMenu,
+        // **A decision is on `d`,** for "decide". It is a plain letter, so it
+        // is the same key on every layout, and the world does not ask its
+        // questions often enough to spend a function key on them.
+        KeyCode::Char('d' | 'D') => Action::OpenDecision,
         KeyCode::Char('q') => Action::Quit,
         _ => Action::None,
     }

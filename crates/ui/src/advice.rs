@@ -42,7 +42,11 @@ pub struct Advice {
 ///
 /// **The order is the order of urgency, and the order of the catalogue is the
 /// tie-break.** A situation that has never been true does not take up a slot.
-pub const ALL: [Advice; 17] = [
+pub const ALL: [Advice; 18] = [
+    Advice {
+        priority: 118,
+        situation: a_decision_is_waiting,
+    },
     Advice {
         priority: 112,
         situation: the_state_has_cut_the_funding,
@@ -155,6 +159,23 @@ pub fn count(sim: &Sim) -> usize {
 }
 
 // --- The situations -------------------------------------------------------
+
+/// The world has put a question on the table, and the agency has not answered.
+///
+/// **A question the player has put aside is a question the player cannot see**,
+/// and the window keeps running whether they are looking at it or not. The
+/// advice names the question and the instant it goes past, so a player who has
+/// dismissed the dialog once still knows it is there — and the key that brings
+/// it back.
+fn a_decision_is_waiting(sim: &Sim) -> Option<String> {
+    let pending = sim.pending_decisions().first()?;
+    let decision = pending.definition();
+    let due = sim.calendar().date(pending.due);
+    Some(format!(
+        "{} The window closes on {due}; press D to answer it.",
+        decision.headline
+    ))
+}
 
 /// The state has cut the agency's funding.
 ///

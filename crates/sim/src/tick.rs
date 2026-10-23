@@ -4,6 +4,7 @@
 //! it invalidates old replays — deliberately. See `docs/SIMULATION.md` §2.2.
 
 use domain::chronicle::ChronicleEntry;
+use domain::ids::EventId;
 use domain::order::OrderKind;
 use domain::report::ReportLine;
 use domain::state::CampaignState;
@@ -42,6 +43,12 @@ pub struct MonthContext<'a> {
     pub opportunities: Vec<String>,
     /// The month's chronicle entries.
     pub events: Vec<ChronicleEntry>,
+    /// The events that fired and want the player to answer.
+    ///
+    /// **An event that carries a decision does not resolve its question** — it
+    /// raises it. The simulation turns these into pending decisions, and the
+    /// host shows them and stops the clock.
+    pub decisions: Vec<EventId>,
     /// The items the phases want on the scheduler.
     ///
     /// **A phase cannot reach the scheduler**, because the scheduler belongs
@@ -80,6 +87,7 @@ impl<'a> MonthContext<'a> {
             warnings: Vec::new(),
             opportunities: Vec::new(),
             events: Vec::new(),
+            decisions: Vec::new(),
             schedule: Vec::new(),
         }
     }

@@ -107,6 +107,14 @@ fn the_campaign_is_the_same_at_every_dilation() {
             let next = now.saturating_add(frame).min(target);
             let delta = next.duration_since(now);
             app.advance(delta);
+            // **A question on the table is put aside, not answered.** The
+            // world stops while the dialog is up, and this loop waits for the
+            // campaign to move — so a question nobody answers would stop it
+            // for ever. Putting it aside is what a player who is not watching
+            // does, and it keeps the clock running.
+            if app.decision().is_some() {
+                app.on_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+            }
         }
         app.sim().state_hash()
     };

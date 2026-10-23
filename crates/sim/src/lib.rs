@@ -41,6 +41,7 @@
 pub mod balance;
 pub mod branch;
 pub mod deadlines;
+pub mod decisions;
 pub mod derived;
 pub mod error;
 pub mod event_catalogue;
@@ -142,6 +143,17 @@ pub struct Sim {
     pending_lines: Vec<(Instant, domain::report::ReportLine)>,
     /// The orders that were refused since the last monthly report, and why.
     pending_rejections: Vec<OrderError>,
+    /// The decisions the world has asked for, and the player has not answered.
+    ///
+    /// **A pending decision is part of the campaign.** The host pauses the
+    /// clock while one is open, the player answers, and the world moves on.
+    /// It is saved with the campaign, because a decision that evaporates in
+    /// a save/load is a decision the player never got to make.
+    pending_decisions: Vec<crate::decisions::PendingDecision>,
+    /// The counter that names pending decisions.
+    ///
+    /// It is monotonic and never reused, the way the order counter is.
+    decision_seq: u64,
     log: Vec<LoggedOrder>,
     sequence: u64,
 }
@@ -164,6 +176,8 @@ impl Sim {
             carry: Duration::ZERO,
             pending_lines: Vec::new(),
             pending_rejections: Vec::new(),
+            pending_decisions: Vec::new(),
+            decision_seq: 0,
             log: Vec::new(),
             sequence: 0,
         };
@@ -542,6 +556,10 @@ impl Sim {
                 self.fire_follow_up(at, *event);
                 Ok(None)
             }
+            ScheduledKind::DecisionExpiry { decision } => {
+                self.expire_decision(at, *decision);
+                Ok(None)
+            }
             ScheduledKind::VehicleComplete { vehicle } => {
                 self.complete_vehicle(at, *vehicle);
                 Ok(None)
@@ -672,6 +690,7 @@ impl Sim {
     fn draw_event(&mut self, at: Instant) {
         let check = self.state.event_checks;
         let mut working = self.state.clone();
+        let raised;
         {
             let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
             crate::phases::events::draw_and_apply(&mut context, check);
@@ -686,11 +705,13 @@ impl Sim {
                 .map(domain::report::ReportLine::new)
                 .collect();
             self.pending_lines.extend(stamp(warnings, at));
+            raised = std::mem::take(&mut context.decisions);
             for entry in context.events {
                 working.chronicle(entry);
             }
         }
         self.state = working;
+        self.absorb_decisions(raised, at);
     }
 
     /// Fires a follow-up event.
@@ -700,6 +721,7 @@ impl Sim {
         };
         let definition = definition.clone();
         let mut working = self.state.clone();
+        let raised;
         {
             let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
             crate::phases::events::apply_event(&mut context, &definition);
@@ -714,12 +736,167 @@ impl Sim {
                 .map(domain::report::ReportLine::new)
                 .collect();
             self.pending_lines.extend(stamp(warnings, at));
+            raised = std::mem::take(&mut context.decisions);
             for entry in context.events {
                 working.chronicle(entry);
             }
         }
         self.state = working;
+        self.absorb_decisions(raised, at);
     }
+
+    /// The decisions the world has asked for, and the agency has not answered.
+    ///
+    /// **A pending decision is the game's own pause button.** The host reads
+    /// this list, and while it is not empty the clock stops and the question
+    /// is on the table. The oldest question is the one the player sees first.
+    #[must_use]
+    pub fn pending_decisions(&self) -> &[crate::decisions::PendingDecision] {
+        &self.pending_decisions
+    }
+
+    /// Answers a pending decision.
+    ///
+    /// **A decision is an order the world asks for**, and it is applied the way
+    /// an order is: through the effects the chosen option carries, dated at the
+    /// instant the answer was given. The expiry on the scheduler has nothing
+    /// left to do once the decision is answered, and it is a no-op when it
+    /// fires.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`SimError`] if there is no pending decision by that id, or
+    /// the option is not one of the decision's choices.
+    pub fn decide(&mut self, id: u64, option_id: &str) -> Result<(), SimError> {
+        let Some(index) = self
+            .pending_decisions
+            .iter()
+            .position(|pending| pending.id == id)
+        else {
+            return Err(SimError::NoDecision { id });
+        };
+        let pending = self.pending_decisions.remove(index);
+        let decision = pending.definition();
+        let Some(chosen) = decision
+            .options
+            .iter()
+            .find(|option| option.id == option_id)
+        else {
+            // The question stays on the table when the answer names nothing.
+            self.pending_decisions.insert(index, pending);
+            return Err(SimError::NoSuchOption {
+                option: option_id.to_owned(),
+            });
+        };
+        let mut working = self.state.clone();
+        {
+            let at = self.now;
+            let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
+            crate::phases::events::apply_effects(&mut context, &chosen.effects);
+            let headline = format!("{} — answered: {}", decision.headline, chosen.label);
+            context.events.push(domain::chronicle::ChronicleEntry::new(
+                context.state.next_chronicle_id(),
+                at,
+                Self::category_of(pending.event),
+                headline,
+                domain::chronicle::Severity::Info,
+            ));
+            for entry in context.events {
+                working.chronicle(entry);
+            }
+            let line = domain::report::ReportLine::new(format!(
+                "{} — answered: {}",
+                decision.headline, chosen.label,
+            ))
+            .with_severity(domain::chronicle::Severity::Info);
+            self.pending_lines.extend(stamp(vec![line], at));
+        }
+        self.state = working;
+        Ok(())
+    }
+
+    /// Turns the questions the phases raised into pending decisions.
+    ///
+    /// **A phase cannot reach the pending queue or the scheduler**, so it
+    /// collects its questions in the context, and the simulation turns them
+    /// into decisions with a window to answer in. Each one gets an expiry on
+    /// the scheduler, so silence has a cost even if nobody is watching.
+    fn absorb_decisions(&mut self, raised: Vec<domain::ids::EventId>, at: Instant) {
+        for event in raised {
+            let Some(decision) = crate::decisions::decision_for(event) else {
+                continue;
+            };
+            self.decision_seq += 1;
+            let id = self.decision_seq;
+            let due = at.saturating_add(domain::time::Duration::from_days(u64::from(
+                decision.days_to_decide,
+            )));
+            self.pending_decisions
+                .push(crate::decisions::PendingDecision { id, event, due });
+            self.scheduler.schedule(
+                due,
+                crate::scheduler::ScheduledKind::DecisionExpiry { decision: id },
+            );
+            let headline = decision.headline.clone();
+            self.pending_lines.extend(stamp(
+                vec![
+                    domain::report::ReportLine::new(format!("A decision is waiting: {headline}"))
+                        .with_severity(domain::chronicle::Severity::Major),
+                ],
+                at,
+            ));
+        }
+    }
+
+    /// Applies a decision's expiry: nobody answered in time.
+    ///
+    /// **Silence is an answer**, and the expiry effects are the answer the
+    /// world gives when the agency says nothing. A decision that was answered
+    /// before its window closed makes this a no-op.
+    fn expire_decision(&mut self, at: Instant, id: u64) {
+        let Some(index) = self
+            .pending_decisions
+            .iter()
+            .position(|pending| pending.id == id)
+        else {
+            return;
+        };
+        let pending = self.pending_decisions.remove(index);
+        let decision = pending.definition();
+        let mut working = self.state.clone();
+        {
+            let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
+            crate::phases::events::apply_effects(&mut context, &decision.expiry_effects);
+            let headline = decision.headline.clone();
+            context.events.push(domain::chronicle::ChronicleEntry::new(
+                context.state.next_chronicle_id(),
+                at,
+                Self::category_of(pending.event),
+                format!("The agency let it pass: {headline}"),
+                domain::chronicle::Severity::Major,
+            ));
+            for entry in context.events {
+                working.chronicle(entry);
+            }
+            self.pending_lines.extend(stamp(
+                vec![
+                    domain::report::ReportLine::new(format!("No answer came in time: {headline}"))
+                        .with_severity(domain::chronicle::Severity::Major),
+                ],
+                at,
+            ));
+        }
+        self.state = working;
+    }
+
+    /// The chronicle category of the event that raised a decision.
+    fn category_of(event: domain::ids::EventId) -> domain::chronicle::Category {
+        crate::event_catalogue::event(event)
+            .map_or(domain::chronicle::Category::External, |event| {
+                event.narrative.category
+            })
+    }
+
     /// Completes a vehicle that finished being built.
     ///
     /// **The build completes at a scheduled instant**, the same way a project
@@ -812,7 +989,9 @@ impl Sim {
                 .extend(std::mem::take(&mut self.pending_rejections));
             tick::resolve_month(&mut context)?;
             let report = report::build(&context);
+            let raised = std::mem::take(&mut context.decisions);
             self.state = working;
+            self.absorb_decisions(raised, at);
             Ok(report)
         }
     }
@@ -824,14 +1003,17 @@ impl Sim {
     /// event would fire and never be recorded.
     fn resolve_events(&mut self, at: Instant) -> Result<(), SimError> {
         let mut working = self.state.clone();
+        let raised: Vec<domain::ids::EventId>;
         {
             let mut context = tick::MonthContext::new(&mut working, &self.rng, at, Vec::new());
             tick::resolve_events(&mut context)?;
+            raised = std::mem::take(&mut context.decisions);
             for entry in context.events {
                 working.chronicle(entry);
             }
             self.state = working;
         }
+        self.absorb_decisions(raised, at);
         Ok(())
     }
 
@@ -869,6 +1051,8 @@ impl Sim {
             self.scenario.clone(),
             self.log.clone(),
             self.scheduler.clone(),
+            self.pending_decisions.clone(),
+            self.decision_seq,
         );
         envelope.to_json()
     }
@@ -898,6 +1082,8 @@ impl Sim {
             carry: Duration::ZERO,
             pending_lines: Vec::new(),
             pending_rejections: Vec::new(),
+            pending_decisions: envelope.pending_decisions,
+            decision_seq: envelope.decision_seq,
             log: envelope.log,
             sequence,
         };

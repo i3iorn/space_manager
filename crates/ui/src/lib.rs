@@ -19,6 +19,7 @@
 //! | [`advice`] | What to do next, read from the campaign |
 //! | [`app`] | The application state and the render pass |
 //! | [`briefing`] | The opening briefing: the framing, and the first goal |
+//! | [`decision`] | The dialog for the question the world has put on the table |
 //! | [`screen`] | The screens and their fixed number keys |
 //! | [`input`] | Key handling, global and per-screen |
 //! | [`list_control`] | Filtering and sorting the lists |
@@ -37,6 +38,7 @@ pub mod app;
 pub mod briefing;
 pub mod clock;
 pub mod confirm;
+pub mod decision;
 pub mod input;
 pub mod list_control;
 pub mod manual;

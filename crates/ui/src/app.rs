@@ -15,6 +15,7 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use sim::Sim;
 
 use crate::clock::Clock;
+use crate::decision;
 use crate::input::{Action, action_for, is_clock_control};
 use crate::list_control;
 use crate::manual;
@@ -150,6 +151,20 @@ pub struct App {
     /// saving, loading, and changing the clock are decisions about the
     /// campaign, and they do not belong on a screen about staff or money.
     menu: Option<menu::Menu>,
+    /// The decision the world has put on the table, if the dialog is up.
+    ///
+    /// **The dialog is the game's own pause button.** While a question is on
+    /// the screen the campaign does not move, because a question the world
+    /// answers by itself while the player is reading it is a question nobody
+    /// answered.
+    decision: Option<decision::DecisionDialog>,
+    /// The decision the player has put aside with `Esc`, if there is one.
+    ///
+    /// **A question that is put aside is not answered.** It stays on the
+    /// table, its window keeps running, and the dialog comes back for it when
+    /// the player asks — but it does not force itself on the player again
+    /// until a *new* question arrives.
+    decision_dismissed: Option<u64>,
 }
 
 impl App {
@@ -196,6 +211,8 @@ impl App {
             advice_index: 0,
             briefing: false,
             menu: None,
+            decision: None,
+            decision_dismissed: None,
         }
     }
 
@@ -346,12 +363,17 @@ impl App {
         };
         self.sim = sim;
         // **The branch belongs to the campaign that was replaced**, and so do
-        // the fork points.
+        // the fork points. The question on the table belongs to it too, so
+        // the dialog is closed and a question that came back with the save
+        // comes up again on its own.
         self.branch = None;
+        self.decision = None;
+        self.decision_dismissed = None;
         self.fork_points.clear();
         self.selected = 0;
         self.report = None;
         self.refresh_fork_points();
+        self.open_decision_if_waiting();
         self.notice = Some(format!("Loaded {path}."));
     }
 
@@ -570,6 +592,13 @@ impl App {
             return self.menu_key(key);
         }
 
+        // **The decision dialog is a modal over everything but the
+        // confirmation**, and the clock controls are the exception, because
+        // the clock belongs to the host and not to the question.
+        if self.decision.is_some() {
+            return self.decision_key(key);
+        }
+
         // **The player has acted, so the hint on this screen has done its
         // job.** It is dismissed here rather than when it was first drawn, so
         // that it stays on the screen until it has been read.
@@ -621,6 +650,7 @@ impl App {
             Action::Save => self.save(),
             Action::Load => self.open_load_confirmation(),
             Action::OpenMenu => self.open_menu(),
+            Action::OpenDecision => self.open_decision(),
             // **The advice is browsed, not taken.** The player reads what the
             // banner says and presses `n` when they want to know what else
             // the campaign needs.
@@ -1025,6 +1055,16 @@ impl App {
         self.menu.as_ref()
     }
 
+    /// The decision dialog, if it is up.
+    ///
+    /// **The dialog is only the view.** The question itself is read from the
+    /// simulation when it is drawn, so an accessor that hands out the dialog's
+    /// own state is enough for a test to walk the answers.
+    #[must_use]
+    pub const fn decision(&self) -> Option<&decision::DecisionDialog> {
+        self.decision.as_ref()
+    }
+
     /// A key press, while the main menu is open.
     ///
     /// **The menu takes the keys until it is dismissed**, and the clock
@@ -1087,6 +1127,145 @@ impl App {
         action
     }
 
+    /// Opens the decision dialog for the question that is waiting.
+    ///
+    /// **The dialog comes up on its own when a question arrives**, and the
+    /// key is for a player who has put one aside and wants it back. There is
+    /// no mode to enter and nothing to navigate to; the question is a modal
+    /// over whatever the player is doing.
+    pub fn open_decision(&mut self) {
+        if self.decision.is_some() {
+            return;
+        }
+        if self.sim.pending_decisions().is_empty() {
+            self.notice = Some("The world is not asking anything right now.".to_owned());
+            return;
+        }
+        self.decision_dismissed = None;
+        self.decision = Some(decision::DecisionDialog::new());
+    }
+
+    /// Brings the dialog up if a question is waiting and the player has not
+    /// just put it aside.
+    ///
+    /// **A question the player dismissed stays dismissed until a new one
+    /// arrives.** The dialog forces itself on the player when a question is
+    /// new, and it does not come back on its own for one they have already
+    /// seen — otherwise a player who wanted to finish a thought could not.
+    fn open_decision_if_waiting(&mut self) {
+        if self.decision.is_some() {
+            return;
+        }
+        let Some(pending) = self.sim.pending_decisions().first() else {
+            return;
+        };
+        if self.decision_dismissed == Some(pending.id) {
+            return;
+        }
+        self.decision = Some(decision::DecisionDialog::new());
+    }
+
+    /// Puts the question aside with `Esc`.
+    ///
+    /// **Putting a question aside is not answering it.** It stays on the
+    /// table, the window keeps running, and its expiry is still coming. The
+    /// dialog closes; the question does not.
+    fn put_decision_aside(&mut self) {
+        if let Some(pending) = self.sim.pending_decisions().first() {
+            self.decision_dismissed = Some(pending.id);
+        }
+        self.decision = None;
+    }
+
+    /// Answers the question on the table with the answer the player chose.
+    ///
+    /// **The answer goes through the simulation**, the way every other change
+    /// to the world does: the chosen option's effects are applied, the answer
+    /// is written into the chronicle, and the question leaves the table. The
+    /// notice says what the player did, because "done" is not a sentence.
+    fn answer_decision(&mut self) {
+        let Some(pending) = self.sim.pending_decisions().first().cloned() else {
+            self.decision = None;
+            return;
+        };
+        let Some(dialog) = self.decision.as_ref() else {
+            return;
+        };
+        let decision = pending.definition();
+        let Some(option) = decision.options.get(dialog.selected()) else {
+            return;
+        };
+        let label = option.label.clone();
+        match self.sim.decide(pending.id, &option.id) {
+            Ok(()) => {
+                self.decision = None;
+                self.decision_dismissed = None;
+                self.notice = Some(format!("Answered: {label}."));
+                // **The next question comes up at once, if there is one.** A
+                // player who is answering questions is in the answering flow,
+                // and the next question should not wait for a keypress.
+                self.open_decision_if_waiting();
+            }
+            Err(sim::SimError::NoDecision { .. }) => {
+                // The question expired while the dialog was up, or it was
+                // answered somewhere else; either way it is gone.
+                self.decision = None;
+                self.notice = Some(
+                    "The question has already been answered, or its window has closed.".to_owned(),
+                );
+            }
+            Err(_) => {
+                self.notice = Some("The answer could not be recorded.".to_owned());
+            }
+        }
+    }
+
+    /// A key press, while the decision dialog is up.
+    ///
+    /// **The dialog takes the keys until it is answered or put aside**, and
+    /// the clock controls are the exception, because the clock belongs to the
+    /// host. Saving works, because the campaign saves the question with it;
+    /// loading and quitting open their own confirmations, which outrank this
+    /// dialog because throwing the campaign away outranks answering it.
+    fn decision_key(&mut self, key: KeyEvent) -> Action {
+        let action = action_for(key, self.screen);
+        if is_clock_control(action) {
+            self.clock_action(action);
+            return action;
+        }
+        match action {
+            Action::OpenManual => {
+                self.open_manual(None);
+            }
+            Action::OpenInfo => {
+                self.open_manual(Some(self.screen));
+            }
+            Action::Help => self.show_help = true,
+            Action::Save => self.save(),
+            Action::Load => self.open_load_confirmation(),
+            Action::Quit => self.open_confirmation(),
+            Action::Up => {
+                if let Some(dialog) = self.decision.as_mut() {
+                    dialog.up();
+                }
+            }
+            Action::Down => {
+                let count = self
+                    .sim
+                    .pending_decisions()
+                    .first()
+                    .map_or(0, |pending| pending.definition().options.len());
+                if let Some(dialog) = self.decision.as_mut() {
+                    dialog.down(count);
+                }
+            }
+            Action::Accept => self.answer_decision(),
+            Action::Back | Action::OpenDecision => self.put_decision_aside(),
+            _ => {}
+        }
+        action
+    }
+
     /// Chooses an item on the main menu.
     fn choose_menu_item(&mut self, item: menu::Item) {
         self.menu = None;
@@ -1116,6 +1295,10 @@ impl App {
             Ok(sim) => {
                 self.sim = sim;
                 self.branch = None;
+                // **The question on the table belongs to the campaign that
+                // was replaced**, and a new campaign starts with none.
+                self.decision = None;
+                self.decision_dismissed = None;
                 self.fork_points.clear();
                 self.selected = 0;
                 self.report = None;
@@ -1229,7 +1412,7 @@ impl App {
         // **The briefing waits too.** It is the first thing the player reads,
         // and a campaign that moves on while it is being read is a campaign
         // that has already spent the time the player needed.
-        if self.confirm.is_some() || self.briefing {
+        if self.confirm.is_some() || self.briefing || self.decision.is_some() {
             return;
         }
         // **The target is measured from the campaign's effective time**, not
@@ -1265,6 +1448,11 @@ impl App {
                 self.notice = Some(error.to_string());
             }
         }
+
+        // **A question that arrived while the clock was running comes up at
+        // once**, before the next frame is drawn. The player should not have
+        // to notice a line in a feed to know the world wants an answer.
+        self.open_decision_if_waiting();
     }
 
     /// Refreshes the fork points from the order log.
@@ -1338,6 +1526,24 @@ impl App {
                 menu,
                 &self.clock.label(),
                 self.clock.is_paused(),
+            );
+        }
+
+        // **The decision dialog is a modal over everything but the
+        // confirmation**, because the question outranks the screen behind it
+        // and the campaign does not move while it is up. It sits with the
+        // menu: the keymap answers "what are the keys", the confirmation asks
+        // "do you mean it", and this asks what the world asked.
+        if let (Some(dialog), Some(pending)) =
+            (self.decision.as_ref(), self.sim.pending_decisions().first())
+        {
+            let due = self.sim.calendar().date(pending.due).to_string();
+            decision::render(
+                frame,
+                centred(70, 70, frame.area()),
+                dialog,
+                pending.definition(),
+                &due,
             );
         }
 

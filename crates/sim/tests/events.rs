@@ -43,7 +43,11 @@ fn most_checks_produce_nothing() {
         .state()
         .chronicle
         .iter()
+        // The research result is the campaign's own work, and a "let it pass"
+        // entry is the record of a decision nobody answered — neither is the
+        // world happening to the agency.
         .filter(|entry| entry.headline != "Research completed: Liquid upper stage.")
+        .filter(|entry| !entry.headline.contains("The agency let it pass"))
         .count();
     let weeks = 400 / 7;
     assert!(
